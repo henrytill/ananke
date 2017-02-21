@@ -36,11 +36,7 @@ decrypt nonce key aad ciphertext = do
   return (out, BA.convert tag)
 
 generatePassword :: T.Text -> BS.ByteString -> BS.ByteString
-generatePassword password salt =
-  generate (Parameters 16384 8 1 32) (encodeUtf8 password) salt
+generatePassword password = generate (Parameters 16384 8 1 32) (encodeUtf8 password)
 
 recoverPassword :: T.Text -> BS.ByteString -> BS.ByteString
-recoverPassword password salt =
-  case Base64.decode salt of
-    Left e  -> error (show e)
-    Right s -> generatePassword password s
+recoverPassword password salt = either error (generatePassword password) (Base64.decode salt)

@@ -27,7 +27,7 @@ roundTrip
   -> T.Text
   -> Bool
 roundTrip password salt nonce aad text =
-  let key               = generatePassword password salt
+  let key               = generateKey password salt
       encodedText       = encodeUtf8 text
       (encrypted, etag) = case encrypt nonce key aad encodedText of
                             CryptoFailed e      -> error (show e)

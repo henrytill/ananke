@@ -69,23 +69,17 @@ getCipherText mk e = do
     then return decrypted
     else throwError (Integrity "Tags do not match")
 
-withUpdateTimestamp :: MonadIO m => Entry -> (Entry -> Entry) -> m Entry
-withUpdateTimestamp e f = f <$> g
+withUpdateTimestamp :: MonadIO m => (Entry -> Entry) -> Entry -> m Entry
+withUpdateTimestamp f e = f <$> g
   where
     g = (\ts -> e {timestamp = ts}) <$> liftIO getCurrentTime
 
-updateDescription :: MonadIO m => Entry -> Description -> m Entry
-updateDescription e d = withUpdateTimestamp e $ \ue ->
-  ue {description = d}
+updateDescription :: MonadIO m => Description    -> Entry -> m Entry
+updateIdentity    :: MonadIO m => Maybe Identity -> Entry -> m Entry
+updateCipherText  :: MonadIO m => CipherText     -> Entry -> m Entry
+updateMetadata    :: MonadIO m => Maybe Metadata -> Entry -> m Entry
 
-updateIdentity :: MonadIO m => Entry -> Maybe Identity -> m Entry
-updateIdentity e i = withUpdateTimestamp e $ \ue ->
-  ue {identity = i}
-
-updateCipherText :: MonadIO m => Entry -> CipherText -> m Entry
-updateCipherText e ct = withUpdateTimestamp e $ \ue ->
-  ue {cipherText = ct}
-
-updateMetadata :: MonadIO m => Entry -> Maybe Metadata -> m Entry
-updateMetadata e m = withUpdateTimestamp e $ \ue ->
-  ue {meta = m}
+updateDescription d = withUpdateTimestamp $ \ue -> ue {description = d}
+updateIdentity i    = withUpdateTimestamp $ \ue -> ue {identity = i}
+updateCipherText ct = withUpdateTimestamp $ \ue -> ue {cipherText = ct}
+updateMetadata m    = withUpdateTimestamp $ \ue -> ue {meta = m}

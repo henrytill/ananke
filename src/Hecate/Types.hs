@@ -1,4 +1,7 @@
-{-# LANGUAGE DeriveGeneric, FlexibleContexts, DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Hecate.Types where
 
@@ -22,6 +25,11 @@ data Error
   | Integrity String
   | FileSystem String
   deriving (Show, Eq)
+
+type ApplicationStack a = ExceptT Error IO a
+
+newtype App a = App { unApp :: ApplicationStack a }
+  deriving (Functor, Applicative, Monad, MonadError Error, MonadIO)
 
 newtype ByteString64 = ByteString64 { unByteString64 :: BS.ByteString }
   deriving ( Eq

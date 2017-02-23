@@ -37,11 +37,11 @@ genHex = elements $ ['A'..'F'] ++ ['0'..'9']
 
 prop_roundTripAuthFile :: Property
 prop_roundTripAuthFile = monadicIO $ do
-  fp  <- pick $ ((<>) "/tmp/hecate-tests/testFile_") <$> sequence (take 8 (repeat genHex))
-  mp  <- pick $ (MasterPassword . T.pack)            <$> listOf1 arbitrary
-  s   <- pick $ (Salt . ByteString64 . C.pack)       <$> sequence (take 12 (repeat arbitrary))
+  fp  <- pick $ ("/tmp/hecate-tests/testFile_" <>) <$> replicateM 8 genHex
+  mp  <- pick $ (MasterPassword . T.pack)          <$> listOf1 arbitrary
+  s   <- pick $ (Salt . ByteString64 . C.pack)     <$> replicateM 12 arbitrary
   ret <- run  $ runExceptT $ roundTripAuthFile fp mp s
-  assert (ret == (Right True))
+  assert (ret == Right True)
 
 roundTripEntries
   :: (MonadIO m, MonadError Error m)
@@ -61,13 +61,13 @@ roundTripEntries mp s d u pt m = do
 prop_roundTripEntries :: Property
 prop_roundTripEntries = monadicIO $ do
   mp  <- pick $ (MasterPassword . T.pack)      <$> listOf1 arbitrary
-  s   <- pick $ (Salt . ByteString64 . C.pack) <$> sequence (take 12 (repeat arbitrary))
-  d   <- pick $ arbitrary
-  u   <- pick $ arbitrary
-  pt  <- pick $ arbitrary
-  mt  <- pick $ arbitrary
+  s   <- pick $ (Salt . ByteString64 . C.pack) <$> replicateM 12 arbitrary
+  d   <- pick arbitrary
+  u   <- pick arbitrary
+  pt  <- pick arbitrary
+  mt  <- pick arbitrary
   ret <- run  $ runExceptT $ roundTripEntries mp s d u pt mt
-  assert (ret == (Right True))
+  assert (ret == Right True)
 
 ioTests :: [Property]
 ioTests = [ prop_roundTripAuthFile

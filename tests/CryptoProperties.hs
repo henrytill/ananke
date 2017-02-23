@@ -1,5 +1,6 @@
 module CryptoProperties (cryptoTests) where
 
+import Control.Monad (replicateM)
 import Crypto.Error (CryptoFailable (..))
 import Data.Text.Encoding
 import Hecate.Crypto
@@ -39,7 +40,7 @@ prop_roundTrip =
   forAll arbitrary $ \text     ->
   roundTrip password salt nonce aad text
   where
-    arbNonce = C.pack <$> sequence (take 12 (repeat arbitrary))
+    arbNonce = C.pack <$> replicateM 12 arbitrary
 
 cryptoTests :: [Property]
 cryptoTests = [prop_roundTrip]

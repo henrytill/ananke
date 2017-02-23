@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
 module Main where
 
 import Control.Monad
@@ -16,8 +14,8 @@ doProperties ps =
   all isSuccess <$> mapM (quickCheckWithResult stdArgs) ps
   where
     isSuccess :: Result -> Bool
-    isSuccess (Success _ _ _) = True
-    isSuccess _               = False
+    isSuccess Success{} = True
+    isSuccess _         = False
 
 main :: IO ()
 main = do

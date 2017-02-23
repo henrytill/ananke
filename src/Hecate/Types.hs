@@ -95,7 +95,7 @@ instance ToJSON Salt where
 instance FromJSON Salt
 
 makeSalt :: MonadIO m => Int -> m Salt
-makeSalt len = liftIO (getEntropy len) >>= (pure . Salt . ByteString64)
+makeSalt len = Salt . ByteString64 <$> liftIO (getEntropy len)
 
 -- | An 'Auth' is a record containing a 'MasterKey' and the 'Salt' that was used
 -- to generate it
@@ -120,7 +120,7 @@ instance ToJSON Nonce where
 instance FromJSON Nonce
 
 makeNonce :: MonadIO m => m Nonce
-makeNonce = liftIO (getEntropy 12) >>= (pure . Nonce . ByteString64)
+makeNonce = Nonce . ByteString64 <$> liftIO (getEntropy 12)
 
 -- | An 'AuthTag' is additional authenticated data that is used to verify the
 -- integrity of a decrypted value

@@ -13,7 +13,7 @@ tests = cryptoTests ++ ioTests
 
 doProperties :: [Property] -> IO Bool
 doProperties ps =
-  mapM (quickCheckWithResult stdArgs) ps >>= pure . all isSuccess
+  all isSuccess <$> mapM (quickCheckWithResult stdArgs) ps
   where
     isSuccess :: Result -> Bool
     isSuccess (Success _ _ _) = True

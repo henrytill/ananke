@@ -4,7 +4,7 @@ module Hecate.IO where
 
 import Control.Monad
 import Control.Monad.Except
-import Data.Time.Clock (UTCTime, getCurrentTime)
+import Data.Time.Clock (getCurrentTime)
 import Hecate.Crypto
 import Hecate.Types
 import System.Directory (createDirectory, doesFileExist, doesDirectoryExist)
@@ -39,11 +39,10 @@ loadAuth mp authFile = do
   unless dirExists (liftIO $ createDirectory path)
   fileExists <- liftIO $ doesFileExist authFile
   if fileExists
-    then readAuthFile authFile  >>= getAuth mp
-    else makeSalt 24            >>=
-         (pure . genAuth mp)    >>=
-         writeAuthFile authFile >>
-         readAuthFile authFile  >>= getAuth mp
+    then readAuthFile authFile      >>= getAuth mp
+    else genAuth mp <$> makeSalt 24 >>=
+         writeAuthFile authFile     >>
+         readAuthFile authFile      >>= getAuth mp
 
 entry
   :: (MonadIO m, MonadError Error m)
@@ -70,21 +69,23 @@ getCipherText mk e = do
     then return decrypted
     else throwError (Integrity "Tags do not match")
 
-withUpdateTimestamp :: MonadIO m => (UTCTime -> m Entry) -> m Entry
-withUpdateTimestamp f = liftIO getCurrentTime >>= f
+withUpdateTimestamp :: MonadIO m => Entry -> (Entry -> Entry) -> m Entry
+withUpdateTimestamp e f = f <$> g
+  where
+    g = (\ts -> e {timestamp = ts}) <$> liftIO getCurrentTime
 
 updateDescription :: MonadIO m => Entry -> Description -> m Entry
-updateDescription e d = withUpdateTimestamp $ \ts ->
-  pure (e {description = d, timestamp = ts})
+updateDescription e d = withUpdateTimestamp e $ \ue ->
+  ue {description = d}
 
 updateIdentity :: MonadIO m => Entry -> Maybe Identity -> m Entry
-updateIdentity e i = withUpdateTimestamp $ \ts ->
-  pure (e {identity = i, timestamp = ts})
+updateIdentity e i = withUpdateTimestamp e $ \ue ->
+  ue {identity = i}
 
 updateCipherText :: MonadIO m => Entry -> CipherText -> m Entry
-updateCipherText e ct = withUpdateTimestamp $ \ts ->
-  pure (e {cipherText = ct, timestamp = ts})
+updateCipherText e ct = withUpdateTimestamp e $ \ue ->
+  ue {cipherText = ct}
 
 updateMetadata :: MonadIO m => Entry -> Maybe Metadata -> m Entry
-updateMetadata e m = withUpdateTimestamp $ \ts ->
-  pure (e {meta = m, timestamp = ts})
+updateMetadata e m = withUpdateTimestamp e $ \ue ->
+  ue {meta = m}

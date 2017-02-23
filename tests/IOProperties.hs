@@ -12,8 +12,6 @@ import System.Directory (createDirectory, doesDirectoryExist)
 import System.FilePath (takeDirectory)
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
-import qualified Data.ByteString.Char8 as C
-import qualified Data.Text as T
 import Instances()
 
 roundTripAuthFile
@@ -38,8 +36,8 @@ genHex = elements $ ['A'..'F'] ++ ['0'..'9']
 prop_roundTripAuthFile :: Property
 prop_roundTripAuthFile = monadicIO $ do
   fp  <- pick $ ("/tmp/hecate-tests/testFile_" <>) <$> replicateM 8 genHex
-  mp  <- pick $ (MasterPassword . T.pack)          <$> listOf1 arbitrary
-  s   <- pick $ (Salt . ByteString64 . C.pack)     <$> replicateM 12 arbitrary
+  mp  <- pick arbitrary
+  s   <- pick arbitrary
   ret <- run  $ runExceptT $ roundTripAuthFile fp mp s
   assert (ret == Right True)
 
@@ -60,8 +58,8 @@ roundTripEntries mp s d u pt m = do
 
 prop_roundTripEntries :: Property
 prop_roundTripEntries = monadicIO $ do
-  mp  <- pick $ (MasterPassword . T.pack)      <$> listOf1 arbitrary
-  s   <- pick $ (Salt . ByteString64 . C.pack) <$> replicateM 12 arbitrary
+  mp  <- pick arbitrary
+  s   <- pick arbitrary
   d   <- pick arbitrary
   u   <- pick arbitrary
   pt  <- pick arbitrary

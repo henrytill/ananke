@@ -2,9 +2,11 @@
 
 module Instances where
 
+import Control.Monad
 import Hecate.Types
 import Test.QuickCheck
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as C
 import qualified Data.Text as T
 
 instance Arbitrary T.Text where
@@ -14,6 +16,14 @@ instance Arbitrary T.Text where
 instance Arbitrary BS.ByteString where
   arbitrary = BS.pack <$> arbitrary
   shrink xs = BS.pack <$> shrink (BS.unpack xs)
+
+instance Arbitrary MasterPassword where
+  arbitrary                  = (MasterPassword . T.pack) <$> listOf1 arbitrary
+  shrink (MasterPassword xs) = MasterPassword <$> shrink xs
+
+instance Arbitrary Salt where
+  arbitrary = (Salt . ByteString64 . C.pack) <$> replicateM 24 arbitrary
+  shrink    = shrinkNothing
 
 instance Arbitrary Description where
   arbitrary               = Description <$> arbitrary

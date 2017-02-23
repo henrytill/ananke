@@ -4,11 +4,12 @@ module Main where
 
 import Control.Monad
 import CryptoProperties
+import IOProperties
 import System.Exit
 import Test.QuickCheck
 
 tests :: [Property]
-tests = cryptoTests
+tests = cryptoTests ++ ioTests
 
 doProperties :: [Property] -> IO Bool
 doProperties ps =

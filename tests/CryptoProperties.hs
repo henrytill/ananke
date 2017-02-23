@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
 module CryptoProperties (cryptoTests) where
 
 import Crypto.Error (CryptoFailable (..))
@@ -10,14 +8,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Char8 as C
 import qualified Data.Text as T
-
-instance Arbitrary T.Text where
-  arbitrary = T.pack <$> arbitrary
-  shrink xs = T.pack <$> shrink (T.unpack xs)
-
-instance Arbitrary BS.ByteString where
-  arbitrary = BS.pack <$> arbitrary
-  shrink xs = BS.pack <$> shrink (BS.unpack xs)
+import Instances()
 
 roundTrip
   :: T.Text

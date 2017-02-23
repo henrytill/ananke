@@ -22,7 +22,7 @@ data Error
   | AuthVerification String
   | Integrity String
   | FileSystem String
-  deriving Show
+  deriving (Show, Eq)
 
 -- | 'ByteString64'
 newtype ByteString64 = ByteString64 { unByteString64 :: BS.ByteString }
@@ -50,7 +50,7 @@ instance FromJSON ByteString64 where
 
 -- | A 'PlainText' represents a decrypted 'Text' value
 newtype PlainText = PlainText T.Text
-  deriving (Generic, Show)
+  deriving (Generic, Show, Eq)
 
 instance ToJSON PlainText where
   toEncoding = genericToEncoding defaultOptions
@@ -89,7 +89,7 @@ instance FromJSON MasterKey
 -- | A 'Salt' is a value that is used, in conjunction with a 'MasterPassword',
 -- to generate a 'MasterKey'
 newtype Salt = Salt ByteString64
-  deriving (Generic, Show)
+  deriving (Generic, Show, Eq)
 
 instance ToJSON Salt where
   toEncoding = genericToEncoding defaultOptions
@@ -104,7 +104,7 @@ makeSalt len = liftIO (getEntropy len) >>= (pure . Salt . ByteString64)
 data Auth = Auth
   { key  :: MasterKey
   , salt :: Salt
-  } deriving (Generic, Show)
+  } deriving (Generic, Show, Eq)
 
 instance ToJSON Auth where
   toEncoding = genericToEncoding defaultOptions

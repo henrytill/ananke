@@ -14,18 +14,18 @@ import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy as BSL
 
 parseAuth :: MonadError Error m => BSL.ByteString -> m Auth
-parseAuth bs = either (throwError . JsonDecoding) pure (Aeson.eitherDecode bs)
+parseAuth = either (throwError . JsonDecoding) pure . Aeson.eitherDecode
 
 getAuth :: MonadError Error m => MasterPassword -> BSL.ByteString -> m MasterKey
 getAuth mp bs = parseAuth bs >>= ensureAuth mp
 
 readAuthFile :: MonadIO m => FilePath -> m BSL.ByteString
-readAuthFile path = liftIO $ BSL.readFile path
+readAuthFile = liftIO . BSL.readFile
 
 writeAuthFile :: MonadIO m => FilePath -> Auth -> m ()
-writeAuthFile path a = liftIO $ BSL.writeFile path (Aeson.encode a)
+writeAuthFile path = liftIO . BSL.writeFile path . Aeson.encode
 
-getHome :: (MonadIO m) => m (Maybe FilePath)
+getHome :: MonadIO m => m (Maybe FilePath)
 getHome = liftIO $ getEnv "HOME"
 
 loadAuth

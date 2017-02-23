@@ -26,14 +26,14 @@ encrypt nce k aad plaintext = do
   return (out, BA.convert tag)
 
 encryptM
-  :: (MonadError Error m)
+  :: MonadError Error m
   => MasterKey
   -> Nonce
   -> Description
   -> PlainText
   -> m (CipherText, AuthTag)
-encryptM (MasterKey mk) (Nonce nce) (Description d) (PlainText pass) =
-  let result      = encrypt (unByteString64 nce) (unByteString64 mk) (encodeUtf8 d) (encodeUtf8 pass)
+encryptM (MasterKey mk) (Nonce nce) (Description d) (PlainText t) =
+  let result      = encrypt (unByteString64 nce) (unByteString64 mk) (encodeUtf8 d) (encodeUtf8 t)
       f (ct, tag) = pure (CipherText (ByteString64 ct), AuthTag (ByteString64 tag))
   in onCryptoFailure (throwError . Crypto) f result
 
@@ -51,7 +51,7 @@ decrypt nce k aad ciphertext = do
   return (out, BA.convert tag)
 
 decryptM
-  :: (MonadError Error m)
+  :: MonadError Error m
   => MasterKey
   -> Nonce
   -> Description
@@ -63,7 +63,7 @@ decryptM (MasterKey mk) (Nonce nce) (Description d) (CipherText t) =
   in onCryptoFailure (throwError . Crypto) f result
 
 generateKey :: T.Text -> BS.ByteString -> BS.ByteString
-generateKey password = generate (Parameters 16384 8 1 32) (encodeUtf8 password)
+generateKey = generate (Parameters 16384 8 1 32) . encodeUtf8
 
 generateMasterKey
   :: MasterPassword

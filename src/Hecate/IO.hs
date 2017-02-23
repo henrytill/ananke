@@ -78,13 +78,13 @@ updateDescription e d = withUpdateTimestamp $ \ts ->
   pure (e {description = d, timestamp = ts})
 
 updateIdentity :: MonadIO m => Entry -> Maybe Identity -> m Entry
-updateIdentity e u = withUpdateTimestamp $ \ts ->
-  pure (e {username = u, timestamp = ts})
+updateIdentity e i = withUpdateTimestamp $ \ts ->
+  pure (e {identity = i, timestamp = ts})
 
 updateCipherText :: MonadIO m => Entry -> CipherText -> m Entry
-updateCipherText e p = withUpdateTimestamp $ \ts ->
-  pure (e {cipherText = p, timestamp = ts})
+updateCipherText e ct = withUpdateTimestamp $ \ts ->
+  pure (e {cipherText = ct, timestamp = ts})
 
 updateMetadata :: MonadIO m => Entry -> Maybe Metadata -> m Entry
-updateMetadata e n = withUpdateTimestamp $ \ts ->
-  pure (e {meta = n, timestamp = ts})
+updateMetadata e m = withUpdateTimestamp $ \ts ->
+  pure (e {meta = m, timestamp = ts})

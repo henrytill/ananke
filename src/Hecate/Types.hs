@@ -2,9 +2,9 @@
 
 module Hecate.Types where
 
-import Crypto.Random.Entropy (getEntropy)
 import Control.Monad.Except
 import Crypto.Error (CryptoError (..))
+import Crypto.Random.Entropy (getEntropy)
 import Data.Aeson (ToJSON (..), FromJSON (..), genericToEncoding, defaultOptions)
 import Data.Data
 import Data.Text.Encoding
@@ -14,7 +14,6 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Base64 as Base64
 import qualified Data.Text as T
 
--- | Application errors
 data Error
   = Base64Decoding String
   | JsonDecoding String
@@ -24,7 +23,6 @@ data Error
   | FileSystem String
   deriving (Show, Eq)
 
--- | 'ByteString64'
 newtype ByteString64 = ByteString64 { unByteString64 :: BS.ByteString }
   deriving ( Eq
            , Data
@@ -48,7 +46,7 @@ instance FromJSON ByteString64 where
   parseJSON o =
     parseJSON o >>= either fail (pure . ByteString64) . Base64.decode . encodeUtf8
 
--- | A 'PlainText' represents a decrypted 'Text' value
+-- | A 'PlainText' represents a decrypted value
 newtype PlainText = PlainText T.Text
   deriving (Generic, Show, Eq)
 
@@ -57,7 +55,7 @@ instance ToJSON PlainText where
 
 instance FromJSON PlainText
 
--- | A 'CipherText' represents a encrypted 'Text' value
+-- | A 'CipherText' represents an encrypted value
 newtype CipherText = CipherText ByteString64
   deriving (Generic, Show)
 
@@ -66,8 +64,8 @@ instance ToJSON CipherText where
 
 instance FromJSON CipherText
 
--- | A 'MasterPassword' is used, in conjunction with a 'Salt', to generate a
--- user's 'MasterKey'
+-- | A 'MasterPassword' is used, in conjunction with a 'Salt', to either
+-- generate or verify a user's 'MasterKey'
 newtype MasterPassword = MasterPassword T.Text
   deriving (Generic, Show)
 
@@ -112,7 +110,7 @@ instance ToJSON Auth where
 instance FromJSON Auth
 
 -- | A 'Nonce' is a value that is used, in conjunction with a 'MasterKey', to
--- encrypt and decrypt a given password
+-- encrypt and decrypt a given value
 newtype Nonce = Nonce ByteString64
   deriving (Generic, Show)
 
@@ -125,7 +123,7 @@ makeNonce :: MonadIO m => m Nonce
 makeNonce = liftIO (getEntropy 12) >>= (pure . Nonce . ByteString64)
 
 -- | An 'AuthTag' is additional authenticated data that is used to verify the
--- integrity of a decrypted password
+-- integrity of a decrypted value
 newtype AuthTag = AuthTag ByteString64
   deriving (Generic, Show, Eq)
 
@@ -154,7 +152,8 @@ instance ToJSON Identity where
 
 instance FromJSON Identity
 
--- | A 'Metadata' value contains additional info for a given 'Entry'
+-- | A 'Metadata' value contains additional non-specific information for a given
+-- 'Entry'
 newtype Metadata = Metadata T.Text
   deriving (Generic, Show)
 
@@ -163,14 +162,14 @@ instance ToJSON Metadata where
 
 instance FromJSON Metadata
 
--- | An 'Entry' is a record that stores an encrypted piece of information and
--- it's associated information
+-- | An 'Entry' is a record that stores an encrypted value along with associated
+-- information
 data Entry = Entry
   { nonce       :: Nonce
   , authTag     :: AuthTag
   , timestamp   :: UTCTime
   , description :: Description
-  , username    :: Maybe Identity
+  , identity    :: Maybe Identity
   , cipherText  :: CipherText
   , meta        :: Maybe Metadata
   } deriving (Generic, Show)

@@ -6,36 +6,36 @@
 module Hecate.Server (app) where
 
 import Control.Monad.Except
-import Hecate.IO
+import Control.Monad.Reader
+import Hecate.Server.Database
+import Hecate.Server.Types
 import Hecate.Types
 import Hecate.Util
 import Servant
 
 type API = "entries" :> Get '[JSON] [Entry]
 
-server :: Server API
-server = enter convert es
+server :: ServerContext -> Server API
+server appContext = enter (convert appContext) (ServerApp entries)
   where
-    entries :: (MonadIO m, MonadError Error m) => m [Entry]
+    entries
+      :: (MonadIO m, MonadReader ServerContext m)
+      => m [Entry]
     entries = do
-      mk <- loadAuth (MasterPassword "zardoz") "/Users/ht/.hecate/auth.json"
-      e1 <- entry mk (Description "first entry") (Just (Identity "ht@xngns.net")) (PlainText "notarealpassword") Nothing
-      return [e1]
+      ctx <- ask
+      getAll (_conn ctx)
 
-    es :: App [Entry]
-    es = App entries
-
-    errorToServantError :: Error -> ServantErr
+    errorToServantError :: ServerError -> ServantErr
     errorToServantError = const err500
 
-    convertError :: Monad m => ExceptT Error m a -> ExceptT ServantErr m a
+    convertError :: Monad m => ExceptT ServerError m a -> ExceptT ServantErr m a
     convertError = bimapExceptT errorToServantError id
 
-    convert :: App :~> ExceptT ServantErr IO
-    convert = Nat $ convertError . unApp
+    convert :: ServerContext -> ServerApp :~> ExceptT ServantErr IO
+    convert ctx = Nat $ convertError . flip runReaderT ctx . unServerApp
 
 api :: Proxy API
 api = Proxy
 
-app :: Application
-app = serve api server
+app :: ServerContext -> Application
+app = serve api . server

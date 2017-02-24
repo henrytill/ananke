@@ -1,17 +1,18 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module DatabaseProperties (doDatabaseProperties) where
+module Hecate.Server.Database.Properties (doDatabaseProperties) where
 
 import Control.Monad.Except
 import Data.List ((\\))
 import Database.SQLite.Simple hiding (Error)
-import Hecate.Database
-import Hecate.IO
+import Hecate.Client
+import Hecate.Client.Types
+import Hecate.Generators
+import Hecate.Orphans ()
+import Hecate.Server.Database
 import Hecate.Types
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
-import Generators
-import Instances ()
 
 data TestData = TestData
   { test_description :: Description
@@ -25,21 +26,21 @@ instance Arbitrary TestData where
   shrink (TestData as bs cs ds) = TestData <$> shrink as <*> shrink bs <*> shrink cs <*> shrink ds
 
 addEntryToDatabase
-  :: (MonadIO m, MonadError Error m)
+  :: (MonadIO m, MonadError ClientError m)
   => Connection
   -> MasterKey
   -> [TestData]
   -> m [Entry]
-addEntryToDatabase conn mk tds = do
-  es <- mapM (\td ->entry mk (test_description td) (test_identity td) (test_plainText td) (test_metadata td)) tds
-  _  <- mapM (insert conn) es
+addEntryToDatabase c mk tds = do
+  es <- mapM (\td -> entry mk (test_description td) (test_identity td) (test_plainText td) (test_metadata td)) tds
+  _  <- mapM (insert c) es
   return es
 
 prop_roundTripEntriesToDatabase :: MasterKey -> Connection -> Property
-prop_roundTripEntriesToDatabase mk conn = monadicIO $ do
+prop_roundTripEntriesToDatabase mk c = monadicIO $ do
   tds <- pick $ listOf1 arbitrary
-  es  <- run $ runExceptT $ addEntryToDatabase conn mk tds
-  res <- run $ getAll conn
+  es  <- run $ runExceptT $ addEntryToDatabase c mk tds
+  res <- run $ getAll c
   case es of
     Right xs -> assert $ null (xs \\ res)
     _        -> assert False
@@ -49,9 +50,9 @@ dbTests = [ prop_roundTripEntriesToDatabase ]
 
 doDatabaseProperties :: IO [Result]
 doDatabaseProperties = do
-  conn    <- open "/tmp/hecate-tests/test.db"
-  _       <- initDatabase conn
+  c       <- open "/tmp/hecate-tests/test.db"
+  _       <- initDatabase c
   mk      <- generate genMasterKey
-  results <- mapM (\p -> quickCheckWithResult stdArgs (p mk conn)) dbTests
-  _       <- close conn
+  results <- mapM (\p -> quickCheckWithResult stdArgs (p mk c)) dbTests
+  _       <- close c
   return results

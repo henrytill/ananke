@@ -1,15 +1,15 @@
-module CryptoProperties (cryptoTests) where
+module Hecate.Client.Crypto.Properties (cryptoTests) where
 
 import Control.Monad (replicateM)
 import Crypto.Error (CryptoFailable (..))
 import Data.Text.Encoding
-import Hecate.Crypto
+import Hecate.Client.Crypto
+import Hecate.Orphans ()
 import Test.QuickCheck
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Base64 as Base64
 import qualified Data.ByteString.Char8 as C
 import qualified Data.Text as T
-import Instances()
 
 roundTrip
   :: T.Text

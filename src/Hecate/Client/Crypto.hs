@@ -1,11 +1,12 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Hecate.Crypto where
+module Hecate.Client.Crypto where
 
 import Control.Monad.Except
 import Crypto.Error (CryptoFailable, onCryptoFailure)
 import Crypto.KDF.Scrypt (Parameters (..), generate)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
+import Hecate.Client.Types
 import Hecate.Types
 import qualified Crypto.Cipher.ChaChaPoly1305 as C
 import qualified Data.ByteArray as BA
@@ -26,7 +27,7 @@ encrypt nce k aad plaintext = do
   return (out, BA.convert tag)
 
 encryptM
-  :: MonadError Error m
+  :: MonadError ClientError m
   => MasterKey
   -> Nonce
   -> Description
@@ -51,7 +52,7 @@ decrypt nce k aad ciphertext = do
   return (out, BA.convert tag)
 
 decryptM
-  :: MonadError Error m
+  :: MonadError ClientError m
   => MasterKey
   -> Nonce
   -> Description
@@ -65,17 +66,14 @@ decryptM (MasterKey mk) (Nonce nce) (Description d) (CipherText t) =
 generateKey :: T.Text -> BS.ByteString -> BS.ByteString
 generateKey = generate (Parameters 16384 8 1 32) . encodeUtf8
 
-generateMasterKey
-  :: MasterPassword
-  -> Salt
-  -> MasterKey
+generateMasterKey :: MasterPassword -> Salt -> MasterKey
 generateMasterKey (MasterPassword pw) (Salt s) =
   MasterKey . ByteString64 . generate (Parameters 16384 8 1 32) (encodeUtf8 pw) $ unByteString64 s
 
 genAuth :: MasterPassword -> Salt -> Auth
 genAuth mp s = Auth { key = generateMasterKey mp s, salt = s }
 
-ensureAuth :: MonadError Error m => MasterPassword -> Auth -> m MasterKey
+ensureAuth :: MonadError ClientError m => MasterPassword -> Auth -> m MasterKey
 ensureAuth mp a =
   if key a == generateMasterKey mp (salt a)
   then pure (key a)

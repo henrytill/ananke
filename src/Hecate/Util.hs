@@ -1,6 +1,10 @@
 module Hecate.Util where
 
 import Control.Monad.Except
+import System.Posix.Env (getEnv)
+
+getHome :: MonadIO m => m (Maybe FilePath)
+getHome = liftIO $ getEnv "HOME"
 
 bimapExceptT :: Functor m => (e -> f) -> (a -> b) -> ExceptT e m a -> ExceptT f m b
 bimapExceptT f g (ExceptT m) = ExceptT (fmap h m) where

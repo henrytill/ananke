@@ -1,10 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Hecate.Database where
+module Hecate.Server.Database where
 
 import Control.Monad.Except
 import Database.SQLite.Simple hiding (Error)
+import Hecate.Server.Types
 import Hecate.Types
 
 initDatabase :: MonadIO m => Connection -> m ()
@@ -27,17 +28,13 @@ insert conn e = liftIO $ execute conn s e
         \  (nonce, authTag, timeStamp, description, identity, cipherText, meta) \
         \  VALUES (?, ?, ?, ?, ?, ?, ?)"
 
-head' :: [a] -> Maybe a
-head' []    = Nothing
-head' (x:_) = Just x
-
-getOne :: (MonadIO m, MonadError Error m) => Connection -> Nonce -> m Entry
+getOne :: (MonadIO m, MonadError ServerError m) => Connection -> Nonce -> m Entry
 getOne conn nce = do
   let q = "SELECT * FROM entries WHERE nonce = :nonce"
   res <- liftIO $ queryNamed conn q [":nonce" := nce]
-  case head' res of
-    Just x  -> pure x
-    Nothing -> throwError (NotFound nce)
+  case take 1 res of
+    [x] -> pure x
+    _   -> throwError (NotFound nce)
 
 getAll :: MonadIO m => Connection -> m [Entry]
 getAll conn = liftIO $ query_ conn q

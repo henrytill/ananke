@@ -1,9 +1,9 @@
-module Generators where
+module Hecate.Generators where
 
-import Hecate.Crypto (generateMasterKey)
-import Hecate.Types
+import Hecate.Client.Crypto (generateMasterKey)
+import Hecate.Client.Types
+import Hecate.Orphans ()
 import Test.QuickCheck
-import Instances ()
 
 genHex :: Gen Char
 genHex = elements $ ['A'..'F'] ++ ['0'..'9']

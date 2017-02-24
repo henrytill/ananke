@@ -1,9 +1,9 @@
 module Main where
 
 import Control.Monad
-import CryptoProperties
-import DatabaseProperties
-import IOProperties
+import Hecate.Client.Crypto.Properties
+import Hecate.Client.Properties
+import Hecate.Server.Database.Properties
 import System.Exit
 import Test.QuickCheck
 

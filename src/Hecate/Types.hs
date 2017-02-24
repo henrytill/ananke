@@ -169,3 +169,24 @@ instance SQLite.FromRow Entry where
 instance SQLite.ToRow Entry where
   toRow (Entry nce at ts d i ct m) =
     SQLite.toRow (nce, at, ts, d, i, ct, m)
+
+data Query = Query
+  { queryNonce       :: Maybe Nonce
+  , queryDescription :: Maybe Description
+  , queryIdentity    :: Maybe Identity
+  , queryMeta        :: Maybe Metadata
+  }
+  deriving (Generic, Show, Eq)
+
+instance ToJSON Query where
+  toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON Query
+
+newtype Ok = Ok { msg :: String }
+  deriving (Generic, Show)
+
+instance ToJSON Ok where
+  toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON Ok

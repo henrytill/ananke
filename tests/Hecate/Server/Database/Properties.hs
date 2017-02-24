@@ -33,14 +33,14 @@ addEntryToDatabase
   -> m [Entry]
 addEntryToDatabase c mk tds = do
   es <- mapM (\td -> entry mk (test_description td) (test_identity td) (test_plainText td) (test_metadata td)) tds
-  _  <- mapM (insert c) es
+  _  <- mapM (put c) es
   return es
 
 prop_roundTripEntriesToDatabase :: MasterKey -> Connection -> Property
 prop_roundTripEntriesToDatabase mk c = monadicIO $ do
   tds <- pick $ listOf1 arbitrary
   es  <- run $ runExceptT $ addEntryToDatabase c mk tds
-  res <- run $ getAll c
+  res <- run $ selectAll c
   case es of
     Right xs -> assert $ null (xs \\ res)
     _        -> assert False

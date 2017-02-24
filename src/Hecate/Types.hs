@@ -12,6 +12,9 @@ import Data.Aeson (ToJSON (..), FromJSON (..), genericToEncoding, defaultOptions
 import Data.Data
 import Data.Text.Encoding
 import Data.Time.Clock (UTCTime)
+import Database.SQLite.Simple hiding (Error (..))
+import Database.SQLite.Simple.ToField
+import Database.SQLite.Simple.FromField
 import GHC.Generics
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Base64 as Base64
@@ -24,6 +27,7 @@ data Error
   | AuthVerification String
   | Integrity String
   | FileSystem String
+  | NotFound Nonce
   deriving (Show, Eq)
 
 type ApplicationStack a = ExceptT Error IO a
@@ -54,6 +58,12 @@ instance FromJSON ByteString64 where
   parseJSON o =
     parseJSON o >>= either fail (pure . ByteString64) . Base64.decode . encodeUtf8
 
+instance ToField ByteString64 where
+  toField (ByteString64 bs) = toField bs
+
+instance FromField ByteString64 where
+  fromField f = ByteString64 <$> fromField f
+
 -- | A 'PlainText' represents a decrypted value
 newtype PlainText = PlainText T.Text
   deriving (Generic, Show, Eq)
@@ -65,12 +75,18 @@ instance FromJSON PlainText
 
 -- | A 'CipherText' represents an encrypted value
 newtype CipherText = CipherText ByteString64
-  deriving (Generic, Show)
+  deriving (Generic, Show, Eq)
 
 instance ToJSON CipherText where
   toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON CipherText
+
+instance ToField CipherText where
+  toField (CipherText bs) = toField bs
+
+instance FromField CipherText where
+  fromField f = CipherText <$> fromField f
 
 -- | A 'MasterPassword' is used, in conjunction with a 'Salt', to either
 -- generate or verify a user's 'MasterKey'
@@ -120,12 +136,18 @@ instance FromJSON Auth
 -- | A 'Nonce' is a value that is used, in conjunction with a 'MasterKey', to
 -- encrypt and decrypt a given value
 newtype Nonce = Nonce ByteString64
-  deriving (Generic, Show)
+  deriving (Generic, Show, Eq)
 
 instance ToJSON Nonce where
   toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON Nonce
+
+instance ToField Nonce where
+  toField (Nonce bs) = toField bs
+
+instance FromField Nonce where
+  fromField f = Nonce <$> fromField f
 
 makeNonce :: MonadIO m => m Nonce
 makeNonce = Nonce . ByteString64 <$> liftIO (getEntropy 12)
@@ -140,35 +162,59 @@ instance ToJSON AuthTag where
 
 instance FromJSON AuthTag
 
+instance ToField AuthTag where
+  toField (AuthTag bs) = toField bs
+
+instance FromField AuthTag where
+  fromField f = AuthTag <$> fromField f
+
 -- | A 'Description' identifies a given 'Entry'.  It could be a URI or a
 -- descriptive name.
 newtype Description = Description T.Text
-  deriving (Generic, Show)
+  deriving (Generic, Show, Eq)
 
 instance ToJSON Description where
   toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON Description
 
+instance ToField Description where
+  toField (Description bs) = toField bs
+
+instance FromField Description where
+  fromField f = Description <$> fromField f
+
 -- | An 'Identity' represents an identifying value.  It could be the username in
 -- a username/password pair
 newtype Identity = Identity T.Text
-  deriving (Generic, Show)
+  deriving (Generic, Show, Eq)
 
 instance ToJSON Identity where
   toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON Identity
 
+instance ToField Identity where
+  toField (Identity bs) = toField bs
+
+instance FromField Identity where
+  fromField f = Identity <$> fromField f
+
 -- | A 'Metadata' value contains additional non-specific information for a given
 -- 'Entry'
 newtype Metadata = Metadata T.Text
-  deriving (Generic, Show)
+  deriving (Generic, Show, Eq)
 
 instance ToJSON Metadata where
   toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON Metadata
+
+instance ToField Metadata where
+  toField (Metadata bs) = toField bs
+
+instance FromField Metadata where
+  fromField f = Metadata <$> fromField f
 
 -- | An 'Entry' is a record that stores an encrypted value along with associated
 -- information
@@ -180,9 +226,15 @@ data Entry = Entry
   , identity    :: Maybe Identity
   , cipherText  :: CipherText
   , meta        :: Maybe Metadata
-  } deriving (Generic, Show)
+  } deriving (Generic, Show, Eq)
 
 instance ToJSON Entry where
   toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON Entry
+
+instance FromRow Entry where
+  fromRow = Entry <$> field <*> field <*> field <*> field <*> field <*> field <*> field
+
+instance ToRow Entry where
+  toRow (Entry nce at ts d i ct m) = toRow (nce, at, ts, d, i, ct, m)

@@ -2,7 +2,6 @@
 
 module IOProperties (ioTests) where
 
-import Control.Monad
 import Control.Monad.Except
 import Data.Monoid
 import Hecate.Crypto
@@ -12,7 +11,8 @@ import System.Directory (createDirectory, doesDirectoryExist)
 import System.FilePath (takeDirectory)
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
-import Instances()
+import Generators
+import Instances ()
 
 roundTripAuthFile
   :: (MonadIO m, MonadError Error m)
@@ -30,9 +30,6 @@ roundTripAuthFile authFile mp s = do
   fileAuth  <- parseAuth bs
   return (fileAuth == auth)
 
-genHex :: Gen Char
-genHex = elements $ ['A'..'F'] ++ ['0'..'9']
-
 prop_roundTripAuthFile :: Property
 prop_roundTripAuthFile = monadicIO $ do
   fp  <- pick $ ("/tmp/hecate-tests/testFile_" <>) <$> replicateM 8 genHex
@@ -43,28 +40,25 @@ prop_roundTripAuthFile = monadicIO $ do
 
 roundTripEntries
   :: (MonadIO m, MonadError Error m)
-  => MasterPassword
-  -> Salt
+  => MasterKey
   -> Description
   -> Maybe Identity
   -> PlainText
   -> Maybe Metadata
   -> m Bool
-roundTripEntries mp s d u pt m = do
-  mk  <- pure $ generateMasterKey mp s
+roundTripEntries mk d u pt m = do
   e   <- entry mk d u pt m
   rpt <- getCipherText mk e
   return (pt == rpt)
 
 prop_roundTripEntries :: Property
 prop_roundTripEntries = monadicIO $ do
-  mp  <- pick arbitrary
-  s   <- pick arbitrary
+  mk  <- pick genMasterKey
   d   <- pick arbitrary
   u   <- pick arbitrary
   pt  <- pick arbitrary
   mt  <- pick arbitrary
-  ret <- run  $ runExceptT $ roundTripEntries mp s d u pt mt
+  ret <- run $ runExceptT $ roundTripEntries mk d u pt mt
   assert (ret == Right True)
 
 ioTests :: [Property]

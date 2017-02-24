@@ -2,22 +2,23 @@ module Main where
 
 import Control.Monad
 import CryptoProperties
+import DatabaseProperties
 import IOProperties
 import System.Exit
 import Test.QuickCheck
 
-tests :: [Property]
-tests = cryptoTests ++ ioTests
+props :: [Property]
+props = cryptoTests ++ ioTests
 
-doProperties :: [Property] -> IO Bool
-doProperties ps =
-  all isSuccess <$> mapM (quickCheckWithResult stdArgs) ps
-  where
-    isSuccess :: Result -> Bool
-    isSuccess Success{} = True
-    isSuccess _         = False
+isSuccess :: Result -> Bool
+isSuccess Success{} = True
+isSuccess _         = False
+
+doProperties :: [Property] -> IO [Result]
+doProperties = mapM (quickCheckWithResult stdArgs)
 
 main :: IO ()
 main = do
-  result <- doProperties tests
-  unless result exitFailure
+  rs1 <- doProperties props
+  rs2 <- doDatabaseProperties
+  unless (all isSuccess $ rs1 ++ rs2) exitFailure

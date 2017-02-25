@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Hecate.Server.Database where
+module Hecate.Database where
 
 import Control.Monad.Except
 import Data.Monoid

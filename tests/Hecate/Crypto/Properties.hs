@@ -1,9 +1,9 @@
-module Hecate.Client.Crypto.Properties (cryptoTests) where
+module Hecate.Crypto.Properties (cryptoTests) where
 
 import Control.Monad (replicateM)
 import Crypto.Error (CryptoFailable (..))
 import Data.Text.Encoding
-import Hecate.Client.Crypto
+import Hecate.Crypto
 import Hecate.Orphans ()
 import Test.QuickCheck
 import qualified Data.ByteString as BS

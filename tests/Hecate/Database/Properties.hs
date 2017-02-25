@@ -1,16 +1,15 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Hecate.Server.Database.Properties (doDatabaseProperties) where
+module Hecate.Database.Properties (doDatabaseProperties) where
 
 import Control.Monad.Except
 import Data.List ((\\))
 import Database.SQLite.Simple hiding (Error)
-import Hecate.Client
-import Hecate.Client.Types
+import Hecate.IO
+import Hecate.Types
 import Hecate.Generators
 import Hecate.Orphans ()
-import Hecate.Server.Database
-import Hecate.Types
+import Hecate.Database
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
 
@@ -26,7 +25,7 @@ instance Arbitrary TestData where
   shrink (TestData as bs cs ds) = TestData <$> shrink as <*> shrink bs <*> shrink cs <*> shrink ds
 
 addEntryToDatabase
-  :: (MonadIO m, MonadError ClientError m)
+  :: (MonadIO m, MonadError AppError m)
   => Connection
   -> MasterKey
   -> [TestData]

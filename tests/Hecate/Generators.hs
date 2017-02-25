@@ -1,7 +1,7 @@
 module Hecate.Generators where
 
-import Hecate.Client.Crypto (generateMasterKey)
-import Hecate.Client.Types
+import Hecate.Crypto (generateMasterKey)
+import Hecate.Types
 import Hecate.Orphans ()
 import Test.QuickCheck
 

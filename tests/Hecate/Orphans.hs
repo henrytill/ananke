@@ -3,7 +3,6 @@
 module Hecate.Orphans where
 
 import Control.Monad
-import Hecate.Client.Types
 import Hecate.Types
 import Test.QuickCheck
 import qualified Data.ByteString as BS

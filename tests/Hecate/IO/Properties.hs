@@ -1,12 +1,11 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Hecate.Client.Properties (ioTests) where
+module Hecate.IO.Properties (ioTests) where
 
 import Control.Monad.Except
 import Data.Monoid
-import Hecate.Client
-import Hecate.Client.Crypto
-import Hecate.Client.Types
+import Hecate.IO
+import Hecate.Crypto (genAuth)
 import Hecate.Generators
 import Hecate.Orphans ()
 import Hecate.Types
@@ -16,7 +15,7 @@ import Test.QuickCheck
 import Test.QuickCheck.Monadic
 
 roundTripAuthFile
-  :: (MonadIO m, MonadError ClientError m)
+  :: (MonadIO m, MonadError AppError m)
   => FilePath
   -> MasterPassword
   -> Salt
@@ -40,7 +39,7 @@ prop_roundTripAuthFile = monadicIO $ do
   assert (ret == Right True)
 
 roundTripEntries
-  :: (MonadIO m, MonadError ClientError m)
+  :: (MonadIO m, MonadError AppError m)
   => MasterKey
   -> Description
   -> Maybe Identity

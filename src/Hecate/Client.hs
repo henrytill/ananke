@@ -49,18 +49,18 @@ entry
   -> PlainText
   -> Maybe Metadata
   -> m Entry
-entry mk description username password meta = do
+entry mk description username plaintext meta = do
   nonce            <- makeNonce
   timestamp        <- liftIO getCurrentTime
-  (encrypted, tag) <- encryptM mk nonce description password
+  (encrypted, tag) <- encryptM mk nonce description plaintext
   return $ Entry nonce tag timestamp description username encrypted meta
 
-getCipherText
+getPlainText
   :: (MonadIO m, MonadError ClientError m)
   => MasterKey
   -> Entry
   -> m PlainText
-getCipherText mk e = do
+getPlainText mk e = do
   (decrypted, tag) <- decryptM mk (nonce e) (description e) (cipherText e)
   if tag == authTag e
     then return decrypted
@@ -71,12 +71,27 @@ withUpdateTimestamp f e = f <$> g
   where
     g = (\ts -> e {timestamp = ts}) <$> liftIO getCurrentTime
 
-updateDescription :: MonadIO m => Description    -> Entry -> m Entry
-updateIdentity    :: MonadIO m => Maybe Identity -> Entry -> m Entry
-updateCipherText  :: MonadIO m => CipherText     -> Entry -> m Entry
-updateMetadata    :: MonadIO m => Maybe Metadata -> Entry -> m Entry
+updateIdentity :: MonadIO m => Maybe Identity -> Entry -> m Entry
+updateMetadata :: MonadIO m => Maybe Metadata -> Entry -> m Entry
 
-updateDescription d = withUpdateTimestamp $ \ue -> ue {description = d}
-updateIdentity i    = withUpdateTimestamp $ \ue -> ue {identity = i}
-updateCipherText ct = withUpdateTimestamp $ \ue -> ue {cipherText = ct}
-updateMetadata m    = withUpdateTimestamp $ \ue -> ue {meta = m}
+updateIdentity i = withUpdateTimestamp $ \ue -> ue {identity = i}
+updateMetadata m = withUpdateTimestamp $ \ue -> ue {meta = m}
+
+updateDescription
+  :: (MonadIO m, MonadError ClientError m)
+  => MasterKey
+  -> Description
+  -> Entry
+  -> m Entry
+updateDescription mk d e = do
+  pt <- getPlainText mk e
+  entry mk d (identity e) pt (meta e)
+
+updateCiphertext
+  :: (MonadIO m, MonadError ClientError m)
+  => MasterKey
+  -> PlainText
+  -> Entry
+  -> m Entry
+updateCiphertext mk pt e =
+  entry mk (description e) (identity e) pt (meta e)

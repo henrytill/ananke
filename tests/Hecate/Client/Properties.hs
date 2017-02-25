@@ -49,7 +49,7 @@ roundTripEntries
   -> m Bool
 roundTripEntries mk d u pt m = do
   e   <- entry mk d u pt m
-  rpt <- getCipherText mk e
+  rpt <- getPlainText mk e
   return (pt == rpt)
 
 prop_roundTripEntries :: Property

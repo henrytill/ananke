@@ -175,8 +175,7 @@ data Query = Query
   , queryDescription :: Maybe Description
   , queryIdentity    :: Maybe Identity
   , queryMeta        :: Maybe Metadata
-  }
-  deriving (Generic, Show, Eq)
+  } deriving (Generic, Show, Eq)
 
 instance ToJSON Query where
   toEncoding = genericToEncoding defaultOptions

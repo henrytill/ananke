@@ -24,8 +24,8 @@ source-repository head
   type:     git
   location: https://github.com/henrytill/hecate
 
-executable hecate
-  main-is:             Main.hs
+executable hecate-server
+  main-is:             Server.hs
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base              >=4.8  && <4.10

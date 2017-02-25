@@ -12,13 +12,13 @@ initDatabase :: MonadIO m => SQLite.Connection -> m ()
 initDatabase conn = liftIO $ SQLite.execute_ conn s
   where
     s = "CREATE TABLE IF NOT EXISTS entries (\
-        \        nonce       BLOB UNIQUE NOT NULL,  \
-        \        authTag     BLOB NOT NULL,         \
-        \        timeStamp   TEXT NOT NULL,         \
-        \        description TEXT NOT NULL,         \
-        \        identity    TEXT,                  \
-        \        cipherText  BLOB NOT NULL,         \
-        \        meta        TEXT                   \
+        \  nonce       BLOB UNIQUE NOT NULL, \
+        \  authTag     BLOB NOT NULL,        \
+        \  timeStamp   TEXT NOT NULL,        \
+        \  description TEXT NOT NULL,        \
+        \  identity    TEXT,                 \
+        \  cipherText  BLOB NOT NULL,        \
+        \  meta        TEXT                  \
         \)"
 
 put :: MonadIO m => SQLite.Connection -> Entry -> m ()

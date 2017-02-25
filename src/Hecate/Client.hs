@@ -8,6 +8,9 @@ import Data.Time.Clock (getCurrentTime)
 import Hecate.Client.Crypto
 import Hecate.Client.Types
 import Hecate.Types
+import Hecate.Server
+import Servant hiding (PlainText)
+import Servant.Client
 import System.Directory (createDirectory, doesFileExist, doesDirectoryExist)
 import System.FilePath (takeDirectory)
 import qualified Data.Aeson as Aeson
@@ -94,3 +97,8 @@ updateCiphertext
   -> m Entry
 updateCiphertext mk pt e =
   entry mk (description e) (identity e) pt (meta e)
+
+putEntry     :: Entry -> ClientM Ok
+deleteEntry  :: Entry -> ClientM Ok
+queryEntries :: Query -> ClientM [Entry]
+putEntry :<|> deleteEntry :<|> queryEntries = client api

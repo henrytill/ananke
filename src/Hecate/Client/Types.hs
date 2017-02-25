@@ -1,13 +1,16 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Hecate.Client.Types where
 
-import Control.Monad.IO.Class
+import Control.Monad.Except
+import Control.Monad.Reader
 import Crypto.Error (CryptoError (..))
 import Crypto.Random.Entropy (getEntropy)
 import Data.Aeson (ToJSON (..), FromJSON (..), genericToEncoding, defaultOptions)
 import GHC.Generics
 import Hecate.Types
+import Servant.Client (ClientEnv (..))
 import qualified Data.Text as T
 
 -- | A 'MasterPassword' is used, in conjunction with a 'Salt', to either
@@ -73,3 +76,25 @@ data ClientError
   | Integrity String
   | FileSystem String
   deriving (Show, Eq)
+
+data ClientContext = ClientContext
+  { _clientEnv :: ClientEnv
+  , _authFile  :: FilePath
+  }
+
+type ClientStack a = ReaderT ClientContext (ExceptT ClientError IO) a
+
+newtype ClientApp a = ClientApp { unClientApp :: ClientStack a }
+  deriving ( Functor
+           , Applicative
+           , Monad
+           , MonadError ClientError
+           , MonadIO
+           , MonadReader ClientContext
+           )
+
+runClientApp
+  :: ClientContext
+  -> ClientApp a
+  -> IO (Either ClientError a)
+runClientApp ctx = runExceptT . flip runReaderT ctx . unClientApp

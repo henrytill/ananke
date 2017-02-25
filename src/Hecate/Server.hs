@@ -3,7 +3,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Hecate.Server (app) where
+module Hecate.Server
+  ( app
+  , api
+  ) where
 
 import Control.Monad.Except
 import Control.Monad.Reader

@@ -25,3 +25,9 @@ newtype ServerApp a = ServerApp { unServerApp :: ServerStack a }
            , MonadIO
            , MonadReader ServerContext
            )
+
+runServerApp
+  :: ServerContext
+  -> ServerApp a
+  -> IO (Either ServerError a)
+runServerApp ctx = runExceptT . flip runReaderT ctx . unServerApp

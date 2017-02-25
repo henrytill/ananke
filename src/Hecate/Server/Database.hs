@@ -42,7 +42,6 @@ nonceMatcher       :: Nonce       -> (SQLite.Query, [SQLite.NamedParam])
 descriptionMatcher :: Description -> (SQLite.Query, [SQLite.NamedParam])
 identityMatcher    :: Identity    -> (SQLite.Query, [SQLite.NamedParam])
 metadataMatcher    :: Metadata    -> (SQLite.Query, [SQLite.NamedParam])
-
 nonceMatcher       (Nonce n)       = ("nonce = :nonce",                [":nonce"       := n])
 descriptionMatcher (Description d) = ("description LIKE :description", [":description" := d])
 identityMatcher    (Identity i)    = ("identity LIKE :identity",       [":identity"    := i])

@@ -73,7 +73,6 @@ withUpdateTimestamp f e = f <$> g
 
 updateIdentity :: MonadIO m => Maybe Identity -> Entry -> m Entry
 updateMetadata :: MonadIO m => Maybe Metadata -> Entry -> m Entry
-
 updateIdentity i = withUpdateTimestamp $ \ue -> ue {identity = i}
 updateMetadata m = withUpdateTimestamp $ \ue -> ue {meta = m}
 

@@ -14,6 +14,7 @@ import System.IO
 import System.Posix.Env (getEnv)
 import qualified Data.Text as T
 import qualified Data.Aeson as Aeson
+import qualified Data.Aeson.Encode.Pretty as AesonPretty
 import qualified Data.ByteString.Lazy as BSL
 import qualified Hecate.Database as DB
 
@@ -52,7 +53,7 @@ readAuthFile :: MonadIO m => FilePath -> m BSL.ByteString
 readAuthFile = liftIO . BSL.readFile
 
 writeAuthFile :: MonadIO m => FilePath -> Auth -> m ()
-writeAuthFile path = liftIO . BSL.writeFile path . Aeson.encode
+writeAuthFile path = liftIO . BSL.writeFile path . AesonPretty.encodePretty
 
 ensureAuth
   :: (MonadIO m, MonadError AppError m)

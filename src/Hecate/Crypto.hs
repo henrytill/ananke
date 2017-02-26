@@ -68,12 +68,3 @@ generateKey = generate (Parameters 16384 8 1 32) . encodeUtf8
 generateMasterKey :: MasterPassword -> Salt -> MasterKey
 generateMasterKey (MasterPassword pw) (Salt s) =
   MasterKey . ByteString64 . generate (Parameters 16384 8 1 32) (encodeUtf8 pw) $ unByteString64 s
-
-genAuth :: MasterPassword -> Salt -> Auth
-genAuth mp s = Auth { key = generateMasterKey mp s, salt = s }
-
-ensureAuth :: MonadError AppError m => MasterPassword -> Auth -> m MasterKey
-ensureAuth mp a =
-  if key a == generateMasterKey mp (salt a)
-  then pure (key a)
-  else throwError (AuthVerification "Can't re-generate MasterKey from given MasterPassword")

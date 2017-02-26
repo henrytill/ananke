@@ -20,6 +20,9 @@ import qualified Hecate.Database as DB
 getHome :: MonadIO m => m (Maybe FilePath)
 getHome = liftIO $ getEnv "HOME"
 
+genAuth :: MasterPassword -> Salt -> Auth
+genAuth mp s = Auth { key = generateMasterKey mp s, salt = s }
+
 parseAuth :: MonadError AppError m => BSL.ByteString -> m Auth
 parseAuth = either (throwError . JsonDecoding) pure . Aeson.eitherDecode
 
@@ -31,6 +34,12 @@ readAuthFile = liftIO . BSL.readFile
 
 writeAuthFile :: MonadIO m => FilePath -> Auth -> m ()
 writeAuthFile path = liftIO . BSL.writeFile path . Aeson.encode
+
+ensureAuth :: MonadError AppError m => MasterPassword -> Auth -> m MasterKey
+ensureAuth mp a =
+  if key a == generateMasterKey mp (salt a)
+  then pure (key a)
+  else throwError (AuthVerification "Can't re-generate MasterKey from given MasterPassword")
 
 loadAuth
   :: (MonadIO m, MonadError AppError m)

@@ -5,7 +5,6 @@ module Hecate.IO.Properties (ioTests) where
 import Control.Monad.Except
 import Data.Monoid
 import Hecate.IO
-import Hecate.Crypto (genAuth)
 import Hecate.Generators
 import Hecate.Orphans ()
 import Hecate.Types

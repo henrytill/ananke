@@ -40,10 +40,12 @@ instance FromJSON ByteString64 where
     parseJSON o >>= either fail (pure . ByteString64) . Base64.decode . encodeUtf8
 
 instance ToField ByteString64 where
-  toField (ByteString64 bs) = toField bs
+  toField (ByteString64 bs) =
+    toField (toBase64 bs)
 
 instance FromField ByteString64 where
-  fromField f = ByteString64 <$> fromField f
+  fromField f =
+    fromField f >>= either fail (pure . ByteString64) . Base64.decode . encodeUtf8
 
 -- | A 'MasterPassword' is used, in conjunction with a 'Salt', to either
 -- generate or verify a user's 'MasterKey'

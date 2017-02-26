@@ -47,6 +47,7 @@ library
                      , aeson-pretty         >=0.8.2
                      , base64-bytestring    >=1.0    && <1.1
                      , bytestring           >=0.10   && <0.11
+                     , cassava              >=0.4.5  && <0.5
                      , cryptonite           >=0.21   && <0.22
                      , directory            >=1.2    && <1.4
                      , filepath             >=1.4    && <1.5
@@ -57,6 +58,7 @@ library
                      , text                 >=1.2    && <1.3
                      , time                 >=1.5
                      , transformers         >=0.4    && <0.6
+                     , vector               >=0.11   && <0.12
                      , unix                 >=2.7    && <2.8
   hs-source-dirs:      src
   default-language:    Haskell2010

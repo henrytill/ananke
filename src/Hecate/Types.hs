@@ -19,6 +19,7 @@ import Database.SQLite.Simple.ToField
 import GHC.Generics
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Base64 as Base64
+import qualified Data.Csv as CSV
 import qualified Data.Text as T
 import qualified Database.SQLite.Simple as SQLite
 
@@ -117,6 +118,12 @@ instance ToJSON Plaintext where
 
 instance FromJSON Plaintext
 
+instance CSV.ToField Plaintext where
+  toField (Plaintext bs) = CSV.toField bs
+
+instance CSV.FromField Plaintext where
+  parseField f = Plaintext <$> CSV.parseField f
+
 -- | A 'Ciphertext' represents an encrypted value
 newtype Ciphertext = Ciphertext ByteString64
   deriving (Generic, Show, Eq)
@@ -186,6 +193,12 @@ instance ToField Description where
 instance FromField Description where
   fromField f = Description <$> fromField f
 
+instance CSV.ToField Description where
+  toField (Description bs) = CSV.toField bs
+
+instance CSV.FromField Description where
+  parseField f = Description <$> CSV.parseField f
+
 -- | An 'Identity' represents an identifying value.  It could be the username in
 -- a username/password pair
 newtype Identity = Identity T.Text
@@ -205,6 +218,12 @@ instance ToField Identity where
 instance FromField Identity where
   fromField f = Identity <$> fromField f
 
+instance CSV.ToField Identity where
+  toField (Identity bs) = CSV.toField bs
+
+instance CSV.FromField Identity where
+  parseField f = Identity <$> CSV.parseField f
+
 -- | A 'Metadata' value contains additional non-specific information for a given
 -- 'Entry'
 newtype Metadata = Metadata T.Text
@@ -223,6 +242,12 @@ instance ToField Metadata where
 
 instance FromField Metadata where
   fromField f = Metadata <$> fromField f
+
+instance CSV.ToField Metadata where
+  toField (Metadata bs) = CSV.toField bs
+
+instance CSV.FromField Metadata where
+  parseField f = Metadata <$> CSV.parseField f
 
 -- | An 'Entry' is a record that stores an encrypted value along with associated
 -- information
@@ -253,6 +278,17 @@ instance SQLite.FromRow Entry where
 instance SQLite.ToRow Entry where
   toRow (Entry nce at ts d i ct m) =
     SQLite.toRow (nce, at, ts, d, i, ct, m)
+
+-- | An 'InputEntry' is a record that is imported or exported from a CSV file
+data InputEntry = InputEntry
+  { inputDescription :: Description
+  , inputIdentity    :: Maybe Identity
+  , inputPlaintext   :: Plaintext
+  , inputMeta        :: Maybe Metadata
+  } deriving (Generic, Show, Eq)
+
+instance CSV.FromRecord InputEntry
+instance CSV.ToRecord InputEntry
 
 -- | A 'DisplayEntry' is a record that is displayed to the user in response to a
 -- command
@@ -302,6 +338,7 @@ instance FromJSON Ok
 data AppError
   = Base64Decoding String
   | JsonDecoding String
+  | CsvDecoding String
   | Crypto CryptoError
   | AuthVerification String
   | Integrity String
@@ -337,6 +374,7 @@ data Command
         }
   | Remove { removeDescription :: String }
   | Lookup { lookupDescription :: String }
+  | Import { importFile :: FilePath }
   deriving Show
 
 -- | 'Response' represents the response to a 'Command'

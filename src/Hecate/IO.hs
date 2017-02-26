@@ -16,6 +16,8 @@ import qualified Data.Text as T
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Encode.Pretty as AesonPretty
 import qualified Data.ByteString.Lazy as BSL
+import qualified Data.Csv as CSV
+import qualified Data.Vector as Vector
 import qualified Hecate.Database as DB
 
 getHome :: MonadIO m => m (Maybe FilePath)
@@ -66,6 +68,13 @@ ensureAuth mp Auth{validator, salt} = do
   if b
     then pure mk
     else throwError (AuthVerification "Can't re-generate MasterKey from given MasterPassword")
+
+ensureFile :: (MonadIO m, MonadError AppError m) => FilePath -> m FilePath
+ensureFile file = do
+  exists <- liftIO (doesFileExist file)
+  if exists
+    then pure file
+    else throwError (FileSystem "File does not exist")
 
 loadAuth
   :: (MonadIO m, MonadError AppError m)
@@ -220,6 +229,22 @@ decryptEntries authFile es = do
   mk <- authorize authFile
   mapM (getDisplayEntry mk) es
 
+inputEntryToEntry
+  :: (MonadIO m, MonadError AppError m)
+  => MasterKey
+  -> InputEntry
+  -> m Entry
+inputEntryToEntry mk InputEntry{inputDescription, inputIdentity, inputPlaintext, inputMeta} =
+  entry mk inputDescription inputIdentity inputPlaintext inputMeta
+
+importCSV :: (MonadIO m, MonadError AppError m) => FilePath -> FilePath -> m [Entry]
+importCSV authFile csvFile = do
+  mk   <- authorize authFile
+  file <- ensureFile csvFile
+  bs   <- liftIO $ BSL.readFile file
+  ies  <- either (throwError . CsvDecoding) (pure . Vector.toList) (CSV.decode CSV.NoHeader bs)
+  mapM (inputEntryToEntry mk) ies
+
 evalCommand
   :: (MonadIO m, MonadError AppError m, MonadReader AppContext m)
   => Command
@@ -240,3 +265,8 @@ evalCommand Lookup{lookupDescription} = do
   q   <- pure $ queryFromDescription lookupDescription
   es  <- DB.query (_conn ctx) q
   MultipleEntries <$> decryptEntries (_authFile ctx) es
+evalCommand Import{importFile} = do
+  ctx <- ask
+  es  <- importCSV (_authFile ctx) importFile
+  _   <- mapM_ (DB.put (_conn ctx)) es
+  return Added

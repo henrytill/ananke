@@ -1,5 +1,6 @@
 module Main where
 
+import Control.Exception
 import Hecate.Database (initDatabase)
 import Hecate.IO (evalCommand, getHome)
 import Hecate.IO.Parser (runCLIParser)
@@ -8,14 +9,24 @@ import System.Exit
 import System.IO
 import qualified Database.SQLite.Simple as SQLite
 
-{-# ANN main "HLint: ignore Use print" #-}
-main :: IO ()
-main = do
+createContext :: IO AppContext
+createContext = do
   home       <- getHome >>= maybe (error "Can't find my way HOME") pure
   connection <- SQLite.open (home ++ "/.hecate/data.db")
   _          <- initDatabase connection
-  cmd        <- runCLIParser
-  resp       <- runAppM (AppContext (home ++ "/.hecate/auth.json") connection) (evalCommand cmd)
-  case resp of
-    Left e  -> hPrint stderr e >> exitFailure
-    Right o -> hPrint stdout o >> exitSuccess
+  return $ AppContext (home ++ "/.hecate/auth.json") connection
+
+{-# ANN runApp "HLint: ignore Use print" #-}
+runApp :: AppContext -> IO ExitCode
+runApp ctx = do
+  command  <- runCLIParser
+  response <- runAppM ctx (evalCommand command)
+  case response of
+    Left err  -> hPrint stderr err >> return (ExitFailure 1)
+    Right out -> hPrint stdout out >> return ExitSuccess
+
+finalize :: AppContext -> IO ()
+finalize ctx = SQLite.close (_conn ctx)
+
+main :: IO ()
+main = bracket createContext finalize runApp >>= exitWith

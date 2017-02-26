@@ -185,9 +185,9 @@ decryptEntries authFile es = do
   mapM (getDisplayEntry mk) es
 
 evalCommand
- :: (MonadIO m, MonadError AppError m, MonadReader AppContext m)
- => Command
- -> m Response
+  :: (MonadIO m, MonadError AppError m, MonadReader AppContext m)
+  => Command
+  -> m Response
 evalCommand a@Add{}    = do
   ctx <- ask
   e   <- makeEntry (_authFile ctx) (addDescription a) (addIdentity a) (addMeta a)

@@ -8,8 +8,7 @@ import Control.Monad.Reader
 import Data.Time.Clock (getCurrentTime)
 import Hecate.Crypto
 import Hecate.Types
-import System.Directory (createDirectory, doesFileExist, doesDirectoryExist)
-import System.FilePath (takeDirectory)
+import System.Directory (doesFileExist)
 import System.IO
 import System.Posix.Env (getEnv)
 import qualified Data.Text as T
@@ -47,9 +46,6 @@ loadAuth
   -> FilePath
   -> m MasterKey
 loadAuth mp authFile = do
-  let path = takeDirectory authFile
-  dirExists  <- liftIO $ doesDirectoryExist path
-  unless dirExists (liftIO $ createDirectory path)
   fileExists <- liftIO $ doesFileExist authFile
   if fileExists
     then readAuthFile authFile      >>= getAuth mp

@@ -29,6 +29,7 @@ executable hecate
   -- other-modules:
   -- other-extensions:
   build-depends:       base                 >=4.8    && <4.10
+                     , directory            >=1.2    && <1.4
                      , sqlite-simple        >=0.4.12
                      , hecate
   hs-source-dirs:      executables

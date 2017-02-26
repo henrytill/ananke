@@ -1,10 +1,12 @@
 module Main where
 
 import Control.Exception
+import Control.Monad
 import Hecate.Database (initDatabase)
 import Hecate.IO (evalCommand, getHome)
 import Hecate.IO.Parser (runCLIParser)
 import Hecate.Types (AppContext (..), runAppM)
+import System.Directory (createDirectory, doesDirectoryExist)
 import System.Exit
 import System.IO
 import qualified Database.SQLite.Simple as SQLite
@@ -12,7 +14,10 @@ import qualified Database.SQLite.Simple as SQLite
 createContext :: IO AppContext
 createContext = do
   home       <- getHome >>= maybe (error "Can't find my way HOME") pure
-  connection <- SQLite.open (home ++ "/.hecate/data.db")
+  let dataDir = home ++ "/.hecate"
+  dirExists  <- doesDirectoryExist dataDir
+  unless dirExists (createDirectory dataDir)
+  connection <- SQLite.open (dataDir ++ "/data.db")
   _          <- initDatabase connection
   return $ AppContext (home ++ "/.hecate/auth.json") connection
 

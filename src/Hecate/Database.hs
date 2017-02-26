@@ -13,11 +13,11 @@ initDatabase conn = liftIO $ SQLite.execute_ conn s
   where
     s = "CREATE TABLE IF NOT EXISTS entries (\
         \  nonce       BLOB UNIQUE NOT NULL, \
-        \  authTag     BLOB NOT NULL,        \
-        \  timeStamp   TEXT NOT NULL,        \
+        \  auth_tag    BLOB NOT NULL,        \
+        \  timestamp   TEXT NOT NULL,        \
         \  description TEXT NOT NULL,        \
         \  identity    TEXT,                 \
-        \  cipherText  BLOB NOT NULL,        \
+        \  ciphertext  BLOB NOT NULL,        \
         \  meta        TEXT                  \
         \)"
 
@@ -25,7 +25,7 @@ put :: MonadIO m => SQLite.Connection -> Entry -> m ()
 put conn e = liftIO $ SQLite.execute conn s e
   where
     s = "INSERT OR REPLACE INTO entries \
-        \  (nonce, authTag, timeStamp, description, identity, cipherText, meta) \
+        \  (nonce, auth_tag, timestamp, description, identity, ciphertext, meta) \
         \  VALUES (?, ?, ?, ?, ?, ?, ?)"
 
 delete :: MonadIO m => SQLite.Connection -> Entry -> m ()

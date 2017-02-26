@@ -5,6 +5,7 @@ module Hecate.IO where
 
 import Control.Monad.Except
 import Control.Monad.Reader
+import Crypto.Random.Entropy (getEntropy)
 import Data.Time.Clock (getCurrentTime)
 import Hecate.Crypto
 import Hecate.Types
@@ -19,13 +20,32 @@ import qualified Hecate.Database as DB
 getHome :: MonadIO m => m (Maybe FilePath)
 getHome = liftIO $ getEnv "HOME"
 
-genAuth :: MasterPassword -> Salt -> Auth
-genAuth mp s = Auth { key = generateMasterKey mp s, salt = s }
+makeValidator :: (MonadIO m, MonadError AppError m) => MasterKey -> m Validator
+makeValidator mk = do
+  rNonce              <- makeNonce
+  rDesc               <- Description . toBase64 <$> liftIO (getEntropy 24)
+  rPlaintext          <- Plaintext   . toBase64 <$> liftIO (getEntropy 24)
+  (rCiphertext, rTag) <- encryptM mk rNonce rDesc rPlaintext
+  return $ Validator rNonce rTag rDesc rPlaintext rCiphertext
+
+validate :: (MonadIO m, MonadError AppError m) => MasterKey -> Validator -> m Bool
+validate mk (Validator rNonce rTag rDesc rPlaintext rCiphertext) = do
+  (pt, tag) <- decryptM mk rNonce rDesc rCiphertext
+  return (tag == rTag && pt == rPlaintext)
+
+genAuth :: (MonadIO m, MonadError AppError m) => MasterKey -> Salt -> m Auth
+genAuth mk s = do
+  v <- makeValidator mk
+  return Auth { validator = v, salt = s }
 
 parseAuth :: MonadError AppError m => BSL.ByteString -> m Auth
 parseAuth = either (throwError . JsonDecoding) pure . Aeson.eitherDecode
 
-getAuth :: MonadError AppError m => MasterPassword -> BSL.ByteString -> m MasterKey
+getAuth
+  :: (MonadIO m, MonadError AppError m)
+  => MasterPassword
+  -> BSL.ByteString
+  -> m MasterKey
 getAuth mp bs = parseAuth bs >>= ensureAuth mp
 
 readAuthFile :: MonadIO m => FilePath -> m BSL.ByteString
@@ -34,11 +54,17 @@ readAuthFile = liftIO . BSL.readFile
 writeAuthFile :: MonadIO m => FilePath -> Auth -> m ()
 writeAuthFile path = liftIO . BSL.writeFile path . Aeson.encode
 
-ensureAuth :: MonadError AppError m => MasterPassword -> Auth -> m MasterKey
-ensureAuth mp a =
-  if key a == generateMasterKey mp (salt a)
-  then pure (key a)
-  else throwError (AuthVerification "Can't re-generate MasterKey from given MasterPassword")
+ensureAuth
+  :: (MonadIO m, MonadError AppError m)
+  => MasterPassword
+  -> Auth
+  -> m MasterKey
+ensureAuth mp a = do
+  mk <- pure $ generateMasterKey mp (salt a)
+  b  <- validate mk (validator a)
+  if b
+    then pure mk
+    else throwError (AuthVerification "Can't re-generate MasterKey from given MasterPassword")
 
 loadAuth
   :: (MonadIO m, MonadError AppError m)
@@ -48,10 +74,14 @@ loadAuth
 loadAuth mp authFile = do
   fileExists <- liftIO $ doesFileExist authFile
   if fileExists
-    then readAuthFile authFile      >>= getAuth mp
-    else genAuth mp <$> makeSalt 24 >>=
-         writeAuthFile authFile     >>
-         readAuthFile authFile      >>= getAuth mp
+    then readAuthFile authFile >>= getAuth mp
+    else do
+       salt <- makeSalt 24
+       mk   <- pure $ generateMasterKey mp salt
+       auth <- genAuth mk salt
+       _    <- writeAuthFile authFile auth
+       file <- readAuthFile authFile
+       getAuth mp file
 
 entry
   :: (MonadIO m, MonadError AppError m)

@@ -4,6 +4,7 @@ module Hecate.IO.Properties (ioTests) where
 
 import Control.Monad.Except
 import Data.Monoid
+import Hecate.Crypto
 import Hecate.IO
 import Hecate.Generators
 import Hecate.Orphans ()
@@ -23,10 +24,12 @@ roundTripAuthFile authFile mp s = do
   let path = takeDirectory authFile
   dirExists <- liftIO $ doesDirectoryExist path
   unless dirExists (liftIO $ createDirectory path)
-  auth      <- pure (genAuth mp s)
-  _         <- writeAuthFile authFile auth
-  bs        <- readAuthFile authFile
-  fileAuth  <- parseAuth bs
+  mk       <- pure $ generateMasterKey mp s
+  auth     <- genAuth mk s
+  _        <- writeAuthFile authFile auth
+  bs       <- readAuthFile authFile
+  fileAuth <- parseAuth bs
+  _        <- ensureAuth mp fileAuth
   return (fileAuth == auth)
 
 prop_roundTripAuthFile :: Property

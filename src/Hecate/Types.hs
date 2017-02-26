@@ -80,11 +80,24 @@ instance FromJSON Salt
 makeSalt :: MonadIO m => Int -> m Salt
 makeSalt len = Salt . ByteString64 <$> liftIO (getEntropy len)
 
--- | An 'Auth' is a record containing a 'MasterKey' and the 'Salt' that was used
--- to generate it
+-- | A 'Validator' is used to verify a user's password
+data Validator = Validator
+  { refNonce       :: Nonce
+  , refAuthTag     :: AuthTag
+  , refDescription :: Description
+  , refPlaintext   :: Plaintext
+  , refCiphertext  :: Ciphertext
+  } deriving (Generic, Show, Eq)
+
+instance ToJSON Validator where
+  toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON Validator
+
+-- | An 'Auth' is a record containing a 'Validator' and a 'Salt'
 data Auth = Auth
-  { key  :: MasterKey
-  , salt :: Salt
+  { validator :: Validator
+  , salt      :: Salt
   } deriving (Generic, Show, Eq)
 
 instance ToJSON Auth where

@@ -14,10 +14,10 @@ import Test.QuickCheck
 import Test.QuickCheck.Monadic
 
 data TestData = TestData
-  { test_description :: Description
-  , test_identity    :: Maybe Identity
-  , test_plainText   :: PlainText
-  , test_metadata    :: Maybe Metadata
+  { testDescription :: Description
+  , testIdentity    :: Maybe Identity
+  , testPlainText   :: Plaintext
+  , testMetadata    :: Maybe Metadata
   } deriving (Eq, Show)
 
 instance Arbitrary TestData where
@@ -31,7 +31,7 @@ addEntryToDatabase
   -> [TestData]
   -> m [Entry]
 addEntryToDatabase c mk tds = do
-  es <- mapM (\td -> entry mk (test_description td) (test_identity td) (test_plainText td) (test_metadata td)) tds
+  es <- mapM (\td -> entry mk (testDescription td) (testIdentity td) (testPlainText td) (testMetadata td)) tds
   _  <- mapM (put c) es
   return es
 

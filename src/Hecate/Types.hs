@@ -92,17 +92,32 @@ instance ToJSON Auth where
 
 instance FromJSON Auth
 
--- | A 'PlainText' represents a decrypted value
-newtype PlainText = PlainText T.Text
+-- | A 'Plaintext' represents a decrypted value
+newtype Plaintext = Plaintext T.Text
   deriving (Generic, Eq)
 
-instance Show PlainText where
-  show (PlainText t) = show t
+instance Show Plaintext where
+  show (Plaintext t) = show t
 
-instance ToJSON PlainText where
+instance ToJSON Plaintext where
   toEncoding = genericToEncoding defaultOptions
 
-instance FromJSON PlainText
+instance FromJSON Plaintext
+
+-- | A 'Ciphertext' represents an encrypted value
+newtype Ciphertext = Ciphertext ByteString64
+  deriving (Generic, Show, Eq)
+
+instance ToJSON Ciphertext where
+  toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON Ciphertext
+
+instance ToField Ciphertext where
+  toField (Ciphertext bs) = toField bs
+
+instance FromField Ciphertext where
+  fromField f = Ciphertext <$> fromField f
 
 -- | A 'Nonce' is a value that is used, in conjunction with a 'MasterKey', to
 -- encrypt and decrypt a given value
@@ -177,21 +192,6 @@ instance ToField Identity where
 instance FromField Identity where
   fromField f = Identity <$> fromField f
 
--- | A 'CipherText' represents an encrypted value
-newtype CipherText = CipherText ByteString64
-  deriving (Generic, Show, Eq)
-
-instance ToJSON CipherText where
-  toEncoding = genericToEncoding defaultOptions
-
-instance FromJSON CipherText
-
-instance ToField CipherText where
-  toField (CipherText bs) = toField bs
-
-instance FromField CipherText where
-  fromField f = CipherText <$> fromField f
-
 -- | A 'Metadata' value contains additional non-specific information for a given
 -- 'Entry'
 newtype Metadata = Metadata T.Text
@@ -219,7 +219,7 @@ data Entry = Entry
   , timestamp   :: UTCTime
   , description :: Description
   , identity    :: Maybe Identity
-  , cipherText  :: CipherText
+  , ciphertext  :: Ciphertext
   , meta        :: Maybe Metadata
   } deriving (Generic, Show, Eq)
 
@@ -247,7 +247,7 @@ data DisplayEntry = DisplayEntry
   { displayTimestamp   :: UTCTime
   , displayDescription :: Description
   , displayIdentity    :: Maybe Identity
-  , displayPlainText   :: PlainText
+  , displayPlaintext   :: Plaintext
   , displayMeta        :: Maybe Metadata
   } deriving Eq
 
@@ -330,7 +330,7 @@ data Command
 data Response
   = SingleEntry DisplayEntry
   | MultipleEntries [DisplayEntry]
-  | SinglePlainText PlainText
+  | SinglePlainText Plaintext
   | Added
   | Removed
   deriving (Eq)

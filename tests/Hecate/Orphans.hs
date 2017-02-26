@@ -33,9 +33,9 @@ instance Arbitrary Identity where
   arbitrary            = Identity <$> arbitrary
   shrink (Identity xs) = Identity <$> shrink xs
 
-instance Arbitrary PlainText where
-  arbitrary             = PlainText <$> arbitrary
-  shrink (PlainText xs) = PlainText <$> shrink xs
+instance Arbitrary Plaintext where
+  arbitrary             = Plaintext <$> arbitrary
+  shrink (Plaintext xs) = Plaintext <$> shrink xs
 
 instance Arbitrary Metadata where
   arbitrary            = Metadata <$> arbitrary

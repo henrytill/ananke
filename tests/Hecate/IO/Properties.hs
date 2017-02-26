@@ -43,7 +43,7 @@ roundTripEntries
   => MasterKey
   -> Description
   -> Maybe Identity
-  -> PlainText
+  -> Plaintext
   -> Maybe Metadata
   -> m Bool
 roundTripEntries mk d u pt m = do

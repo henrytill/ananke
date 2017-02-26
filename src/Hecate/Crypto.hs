@@ -30,11 +30,11 @@ encryptM
   => MasterKey
   -> Nonce
   -> Description
-  -> PlainText
-  -> m (CipherText, AuthTag)
-encryptM (MasterKey mk) (Nonce nce) (Description d) (PlainText t) =
+  -> Plaintext
+  -> m (Ciphertext, AuthTag)
+encryptM (MasterKey mk) (Nonce nce) (Description d) (Plaintext t) =
   let result      = encrypt (unByteString64 nce) (unByteString64 mk) (encodeUtf8 d) (encodeUtf8 t)
-      f (ct, tag) = pure (CipherText (ByteString64 ct), AuthTag (ByteString64 tag))
+      f (ct, tag) = pure (Ciphertext (ByteString64 ct), AuthTag (ByteString64 tag))
   in onCryptoFailure (throwError . Crypto) f result
 
 decrypt
@@ -43,10 +43,10 @@ decrypt
   -> BS.ByteString
   -> BS.ByteString
   -> CryptoFailable (BS.ByteString, BS.ByteString)
-decrypt nce k aad ciphertext = do
+decrypt nce k aad ct = do
   st1 <- C.nonce12 nce >>= C.initialize k
   let st2        = C.finalizeAAD (C.appendAAD aad st1)
-      (out, st3) = C.decrypt ciphertext st2
+      (out, st3) = C.decrypt ct st2
       tag        = C.finalize st3
   return (out, BA.convert tag)
 
@@ -55,11 +55,11 @@ decryptM
   => MasterKey
   -> Nonce
   -> Description
-  -> CipherText
-  -> m (PlainText, AuthTag)
-decryptM (MasterKey mk) (Nonce nce) (Description d) (CipherText t) =
+  -> Ciphertext
+  -> m (Plaintext, AuthTag)
+decryptM (MasterKey mk) (Nonce nce) (Description d) (Ciphertext t) =
   let result      = decrypt (unByteString64 nce) (unByteString64 mk) (encodeUtf8 d) (unByteString64 t)
-      f (pt, tag) = pure (PlainText (decodeUtf8 pt), AuthTag (ByteString64 tag))
+      f (pt, tag) = pure (Plaintext (decodeUtf8 pt), AuthTag (ByteString64 tag))
   in onCryptoFailure (throwError . Crypto) f result
 
 generateKey :: T.Text -> BS.ByteString -> BS.ByteString

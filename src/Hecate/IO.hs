@@ -53,7 +53,7 @@ entry
   => MasterKey
   -> Description
   -> Maybe Identity
-  -> PlainText
+  -> Plaintext
   -> Maybe Metadata
   -> m Entry
 entry mk description username plaintext meta = do
@@ -66,9 +66,9 @@ getPlainText
   :: (MonadIO m, MonadError AppError m)
   => MasterKey
   -> Entry
-  -> m PlainText
+  -> m Plaintext
 getPlainText mk e = do
-  (decrypted, tag) <- decryptM mk (nonce e) (description e) (cipherText e)
+  (decrypted, tag) <- decryptM mk (nonce e) (description e) (ciphertext e)
   if tag == authTag e
     then return decrypted
     else throwError (Integrity "Tags do not match")
@@ -96,7 +96,7 @@ updateDescription mk d e = do
 updateCiphertext
   :: (MonadIO m, MonadError AppError m)
   => MasterKey
-  -> PlainText
+  -> Plaintext
   -> Entry
   -> m Entry
 updateCiphertext mk pt e =
@@ -137,7 +137,7 @@ makeEntry authFile d i m = do
   t  <- promptText "Enter text to encrypt: "
   entry mk (Description . T.pack  $  d)
            (Identity    . T.pack <$> i)
-           (PlainText   . T.pack  $  t)
+           (Plaintext   . T.pack  $  t)
            (Metadata    . T.pack <$> m)
 
 queryFromDescription :: String -> Query
@@ -155,7 +155,7 @@ verifiedQuery
   -> m Query
 verifiedQuery authFile d = authorize authFile >> pure (queryFromDescription d)
 
-entryToDisplayEntry :: Entry -> PlainText -> DisplayEntry
+entryToDisplayEntry :: Entry -> Plaintext -> DisplayEntry
 entryToDisplayEntry Entry {timestamp, description, identity, meta} p =
   DisplayEntry timestamp description identity p meta
 

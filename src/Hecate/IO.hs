@@ -60,9 +60,9 @@ ensureAuth
   => MasterPassword
   -> Auth
   -> m MasterKey
-ensureAuth mp a = do
-  mk <- pure $ generateMasterKey mp (salt a)
-  b  <- validate mk (validator a)
+ensureAuth mp Auth{validator, salt} = do
+  mk <- pure $ generateMasterKey mp salt
+  b  <- validate mk validator
   if b
     then pure mk
     else throwError (AuthVerification "Can't re-generate MasterKey from given MasterPassword")
@@ -103,21 +103,21 @@ getPlainText
   => MasterKey
   -> Entry
   -> m Plaintext
-getPlainText mk e = do
-  (decrypted, tag) <- decryptM mk (nonce e) (description e) (ciphertext e)
-  if tag == authTag e
+getPlainText mk Entry{entryNonce, entryAuthTag, entryDescription, entryCiphertext} = do
+  (decrypted, tag) <- decryptM mk entryNonce entryDescription entryCiphertext
+  if tag == entryAuthTag
     then return decrypted
     else throwError (Integrity "Tags do not match")
 
 withUpdateTimestamp :: MonadIO m => (Entry -> Entry) -> Entry -> m Entry
 withUpdateTimestamp f e = f <$> g
   where
-    g = (\ts -> e {timestamp = ts}) <$> liftIO getCurrentTime
+    g = (\ts -> e{entryTimestamp = ts}) <$> liftIO getCurrentTime
 
 updateIdentity :: MonadIO m => Maybe Identity -> Entry -> m Entry
 updateMetadata :: MonadIO m => Maybe Metadata -> Entry -> m Entry
-updateIdentity i = withUpdateTimestamp $ \ue -> ue {identity = i}
-updateMetadata m = withUpdateTimestamp $ \ue -> ue {meta = m}
+updateIdentity i = withUpdateTimestamp $ \ue -> ue{entryIdentity = i}
+updateMetadata m = withUpdateTimestamp $ \ue -> ue{entryMeta = m}
 
 updateDescription
   :: (MonadIO m, MonadError AppError m)
@@ -125,9 +125,9 @@ updateDescription
   -> Description
   -> Entry
   -> m Entry
-updateDescription mk d e = do
+updateDescription mk d e@Entry{entryIdentity, entryMeta} = do
   pt <- getPlainText mk e
-  entry mk d (identity e) pt (meta e)
+  entry mk d entryIdentity pt entryMeta
 
 updateCiphertext
   :: (MonadIO m, MonadError AppError m)
@@ -135,8 +135,8 @@ updateCiphertext
   -> Plaintext
   -> Entry
   -> m Entry
-updateCiphertext mk pt e =
-  entry mk (description e) (identity e) pt (meta e)
+updateCiphertext mk pt Entry{entryDescription, entryIdentity, entryMeta} =
+  entry mk entryDescription entryIdentity pt entryMeta
 
 flushStr :: String -> IO ()
 flushStr s = putStr s >> hFlush stdout
@@ -192,8 +192,8 @@ verifiedQuery
 verifiedQuery authFile d = authorize authFile >> pure (queryFromDescription d)
 
 entryToDisplayEntry :: Entry -> Plaintext -> DisplayEntry
-entryToDisplayEntry Entry {timestamp, description, identity, meta} p =
-  DisplayEntry timestamp description identity p meta
+entryToDisplayEntry Entry{entryTimestamp, entryDescription, entryIdentity, entryMeta} p =
+  DisplayEntry entryTimestamp entryDescription entryIdentity p entryMeta
 
 getDisplayEntry
   :: (MonadIO m, MonadError AppError m)
@@ -224,19 +224,19 @@ evalCommand
   :: (MonadIO m, MonadError AppError m, MonadReader AppContext m)
   => Command
   -> m Response
-evalCommand a@Add{}    = do
+evalCommand Add{addDescription, addIdentity, addMeta}    = do
   ctx <- ask
-  e   <- makeEntry (_authFile ctx) (addDescription a) (addIdentity a) (addMeta a)
+  e   <- makeEntry (_authFile ctx) addDescription addIdentity addMeta
   _   <- DB.put (_conn ctx) e
   return Added
-evalCommand r@Remove{} = do
+evalCommand Remove{removeDescription} = do
   ctx <- ask
-  q   <- verifiedQuery (_authFile ctx) (removeDescription r)
+  q   <- verifiedQuery (_authFile ctx) removeDescription
   es  <- DB.query (_conn ctx) q
   _   <- mapM_ (DB.delete (_conn ctx)) es
   return Removed
-evalCommand l@Lookup{} = do
+evalCommand Lookup{lookupDescription} = do
   ctx <- ask
-  q   <- pure $ queryFromDescription (lookupDescription l)
+  q   <- pure $ queryFromDescription lookupDescription
   es  <- DB.query (_conn ctx) q
   MultipleEntries <$> decryptEntries (_authFile ctx) es

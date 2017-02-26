@@ -29,7 +29,7 @@ put conn e = liftIO $ SQLite.execute conn s e
         \  VALUES (?, ?, ?, ?, ?, ?, ?)"
 
 delete :: MonadIO m => SQLite.Connection -> Entry -> m ()
-delete conn e = liftIO $ SQLite.executeNamed conn s [":nonce" := nonce e]
+delete conn e = liftIO $ SQLite.executeNamed conn s [":nonce" := entryNonce e]
   where
     s = "DELETE FROM entries WHERE nonce = :nonce"
 

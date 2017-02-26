@@ -227,13 +227,13 @@ instance FromField Metadata where
 -- | An 'Entry' is a record that stores an encrypted value along with associated
 -- information
 data Entry = Entry
-  { nonce       :: Nonce
-  , authTag     :: AuthTag
-  , timestamp   :: UTCTime
-  , description :: Description
-  , identity    :: Maybe Identity
-  , ciphertext  :: Ciphertext
-  , meta        :: Maybe Metadata
+  { entryNonce       :: Nonce
+  , entryAuthTag     :: AuthTag
+  , entryTimestamp   :: UTCTime
+  , entryDescription :: Description
+  , entryIdentity    :: Maybe Identity
+  , entryCiphertext  :: Ciphertext
+  , entryMeta        :: Maybe Metadata
   } deriving (Generic, Show, Eq)
 
 instance ToJSON Entry where

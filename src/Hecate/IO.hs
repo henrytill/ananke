@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Hecate.IO where
 
@@ -62,7 +63,7 @@ ensureAuth
   => MasterPassword
   -> Auth
   -> m MasterKey
-ensureAuth mp Auth{validator, salt} = do
+ensureAuth mp Auth{..} = do
   mk <- pure $ generateMasterKey mp salt
   b  <- validate mk validator
   if b
@@ -201,7 +202,7 @@ verifiedQuery
 verifiedQuery authFile d = authorize authFile >> pure (queryFromDescription d)
 
 entryToDisplayEntry :: Entry -> Plaintext -> DisplayEntry
-entryToDisplayEntry Entry{entryTimestamp, entryDescription, entryIdentity, entryMeta} p =
+entryToDisplayEntry Entry{..} p =
   DisplayEntry entryTimestamp entryDescription entryIdentity p entryMeta
 
 getDisplayEntry
@@ -234,7 +235,7 @@ inputEntryToEntry
   => MasterKey
   -> InputEntry
   -> m Entry
-inputEntryToEntry mk InputEntry{inputDescription, inputIdentity, inputPlaintext, inputMeta} =
+inputEntryToEntry mk InputEntry{..} =
   entry mk inputDescription inputIdentity inputPlaintext inputMeta
 
 importCSV :: (MonadIO m, MonadError AppError m) => FilePath -> FilePath -> m [Entry]
@@ -249,18 +250,18 @@ evalCommand
   :: (MonadIO m, MonadError AppError m, MonadReader AppContext m)
   => Command
   -> m Response
-evalCommand Add{addDescription, addIdentity, addMeta}    = do
+evalCommand Add{..}    = do
   ctx <- ask
   e   <- makeEntry (_authFile ctx) addDescription addIdentity addMeta
   _   <- DB.put (_conn ctx) e
   return Added
-evalCommand Remove{removeDescription} = do
+evalCommand Remove{..} = do
   ctx <- ask
   q   <- verifiedQuery (_authFile ctx) removeDescription
   es  <- DB.query (_conn ctx) q
   _   <- mapM_ (DB.delete (_conn ctx)) es
   return Removed
-evalCommand Lookup{lookupDescription} = do
+evalCommand Lookup{..} = do
   ctx <- ask
   q   <- pure $ queryFromDescription lookupDescription
   es  <- DB.query (_conn ctx) q

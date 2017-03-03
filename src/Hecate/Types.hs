@@ -13,7 +13,6 @@ import Data.Aeson (ToJSON (..), FromJSON (..), genericToEncoding, defaultOptions
 import Data.Data
 import Data.Text.Encoding
 import Data.Time.Clock (UTCTime)
-import Data.Time.Format
 import Database.SQLite.Simple.FromField
 import Database.SQLite.Simple.ToField
 import GHC.Generics
@@ -298,20 +297,8 @@ data DisplayEntry = DisplayEntry
   , displayIdentity    :: Maybe Identity
   , displayPlaintext   :: Plaintext
   , displayMeta        :: Maybe Metadata
-  } deriving Eq
+  } deriving (Eq, Show)
 
-showTime :: UTCTime -> String
-showTime = formatTime defaultTimeLocale "%c"
-
-instance Show DisplayEntry where
-  show (DisplayEntry ts d (Just i) t (Just m)) =
-    unwords [showTime ts, show d, show i, show t, show m]
-  show (DisplayEntry ts d Nothing t (Just m)) =
-    unwords [showTime ts, show d, show t, show m]
-  show (DisplayEntry ts d (Just i) t Nothing) =
-    unwords [showTime ts, show d, show i, show t]
-  show (DisplayEntry ts d Nothing t Nothing) =
-    unwords [showTime ts, show d, show t]
 
 -- | A 'Query' represents a database query
 data Query = Query
@@ -381,14 +368,6 @@ data Command
 data Response
   = SingleEntry DisplayEntry
   | MultipleEntries [DisplayEntry]
-  | SinglePlainText Plaintext
   | Added
   | Removed
-  deriving (Eq)
-
-instance Show Response where
-  show (SingleEntry e)      = show e
-  show (MultipleEntries es) = show es
-  show (SinglePlainText p)  = show p
-  show Added                = "added"
-  show Removed              = "removed"
+  deriving (Eq, Show)

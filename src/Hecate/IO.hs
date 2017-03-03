@@ -264,8 +264,11 @@ evalCommand Remove{..} = do
 evalCommand Lookup{..} = do
   ctx <- ask
   q   <- pure $ queryFromDescription lookupDescription
-  es  <- DB.query (_conn ctx) q
-  MultipleEntries <$> decryptEntries (_authFile ctx) es
+  res <- DB.query (_conn ctx) q
+  case res of
+    []  -> MultipleEntries <$> pure []
+    [e] -> SingleEntry     <$> decryptEntry   (_authFile ctx) e
+    es  -> MultipleEntries <$> decryptEntries (_authFile ctx) es
 evalCommand Import{importFile} = do
   ctx <- ask
   es  <- importCSV (_authFile ctx) importFile

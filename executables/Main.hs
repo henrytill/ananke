@@ -5,10 +5,12 @@ import Control.Monad
 import Hecate.Database (initDatabase)
 import Hecate.IO (evalCommand, getHome)
 import Hecate.IO.Parser (runCLIParser)
+import Hecate.Printing
 import Hecate.Types (AppContext (..), runAppM)
 import System.Directory (createDirectory, doesDirectoryExist)
 import System.Exit
 import System.IO
+import Text.PrettyPrint.ANSI.Leijen
 import qualified Database.SQLite.Simple as SQLite
 
 createContext :: IO AppContext
@@ -21,14 +23,13 @@ createContext = do
   _          <- initDatabase connection
   return $ AppContext (home ++ "/.hecate/auth.json") connection
 
-{-# ANN runApp "HLint: ignore Use print" #-}
 runApp :: AppContext -> IO ExitCode
 runApp ctx = do
   command  <- runCLIParser
   response <- runAppM ctx (evalCommand command)
   case response of
-    Left err  -> hPrint stderr err >> return (ExitFailure 1)
-    Right out -> hPrint stdout out >> return ExitSuccess
+    Left err  -> hPutDoc stderr (ppAppError command err) >> return (ExitFailure 1)
+    Right out -> hPutDoc stdout (ppResponse command out) >> return ExitSuccess
 
 finalize :: AppContext -> IO ()
 finalize ctx = SQLite.close (_conn ctx)

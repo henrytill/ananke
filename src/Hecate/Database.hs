@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Hecate.Database where
 
@@ -12,8 +13,7 @@ initDatabase :: MonadIO m => SQLite.Connection -> m ()
 initDatabase conn = liftIO $ SQLite.execute_ conn s
   where
     s = "CREATE TABLE IF NOT EXISTS entries (\
-        \  nonce       BLOB UNIQUE NOT NULL, \
-        \  auth_tag    BLOB NOT NULL,        \
+        \  id          TEXT UNIQUE NOT NULL, \
         \  timestamp   TEXT NOT NULL,        \
         \  description TEXT NOT NULL,        \
         \  identity    TEXT,                 \
@@ -25,24 +25,24 @@ put :: MonadIO m => SQLite.Connection -> Entry -> m ()
 put conn e = liftIO $ SQLite.execute conn s e
   where
     s = "INSERT OR REPLACE INTO entries \
-        \  (nonce, auth_tag, timestamp, description, identity, ciphertext, meta) \
-        \  VALUES (?, ?, ?, ?, ?, ?, ?)"
+        \  (id, timestamp, description, identity, ciphertext, meta) \
+        \  VALUES (?, ?, ?, ?, ?, ?)"
 
 delete :: MonadIO m => SQLite.Connection -> Entry -> m ()
-delete conn e = liftIO $ SQLite.executeNamed conn s [":nonce" := entryNonce e]
+delete conn Entry{..} = liftIO $ SQLite.executeNamed conn s [":id" := entryId]
   where
-    s = "DELETE FROM entries WHERE nonce = :nonce"
+    s = "DELETE FROM entries WHERE id = :id"
 
 selectAll :: MonadIO m => SQLite.Connection -> m [Entry]
 selectAll conn = liftIO $ SQLite.query_ conn q
   where
     q = "SELECT * FROM entries"
 
-nonceMatcher       :: Nonce       -> (SQLite.Query, [SQLite.NamedParam])
+idMatcher          :: Id          -> (SQLite.Query, [SQLite.NamedParam])
 descriptionMatcher :: Description -> (SQLite.Query, [SQLite.NamedParam])
 identityMatcher    :: Identity    -> (SQLite.Query, [SQLite.NamedParam])
 metadataMatcher    :: Metadata    -> (SQLite.Query, [SQLite.NamedParam])
-nonceMatcher       (Nonce n)       = ("nonce = :nonce",                [":nonce"       := n])
+idMatcher          (Id n)          = ("id = :id",                      [":id"          := n])
 descriptionMatcher (Description d) = ("description LIKE :description", [":description" := d])
 identityMatcher    (Identity i)    = ("identity LIKE :identity",       [":identity"    := i])
 metadataMatcher    (Metadata m)    = ("meta LIKE :meta",               [":meta"        := m])
@@ -57,7 +57,7 @@ queryFolder (accQs, accNp) Nothing         = (accQs, accNp)
 
 queryParts :: Query -> [Maybe (SQLite.Query, [SQLite.NamedParam])]
 queryParts q =
-  [ nonceMatcher       <$> queryNonce q
+  [ idMatcher          <$> queryId q
   , descriptionMatcher <$> queryDescription q
   , identityMatcher    <$> queryIdentity q
   , metadataMatcher    <$> queryMeta q

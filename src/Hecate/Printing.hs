@@ -1,19 +1,16 @@
 {-# LANGUAGE RecordWildCards #-}
 
 module Hecate.Printing
-  ( ppResponse
-  , ppAppError
+  ( ansiPrettyResponse
+  , ansiPrettyError
+  , prettyResponse
+  , prettyError
   ) where
 
-import Data.Time.Clock (UTCTime)
-import Data.Time.Format
 import Hecate.Types
 import Prelude hiding ((<$>))
 import Text.PrettyPrint.ANSI.Leijen
 import qualified Data.Text as T
-
-showTime :: UTCTime -> String
-showTime = formatTime defaultTimeLocale "%c"
 
 prettyText :: T.Text -> Doc
 prettyText = text . T.unpack
@@ -23,14 +20,14 @@ prettyDescription (Description d) = prettyText d
 
 prettyIdentity :: Maybe Identity -> Doc
 prettyIdentity (Just (Identity i)) = prettyText i
-prettyIdentity Nothing             = empty
+prettyIdentity Nothing             = text "<none>"
 
 prettyPlaintext :: Plaintext -> Doc
 prettyPlaintext (Plaintext t) = prettyText t
 
 prettyMeta :: Maybe Metadata -> Doc
 prettyMeta (Just (Metadata m)) = prettyText m
-prettyMeta Nothing             = empty
+prettyMeta Nothing             = text "<none>"
 
 printOne :: DisplayEntry -> Doc
 printOne DisplayEntry{..} =
@@ -39,17 +36,32 @@ printOne DisplayEntry{..} =
   prettyPlaintext   displayPlaintext   <+>
   prettyMeta        displayMeta
 
-ppResponse :: Command -> Response -> Doc
-ppResponse _ (SingleEntry de) =
-  green (text "Found:") <+> printOne de <> linebreak
-ppResponse _ (MultipleEntries []) =
-  red (text "Not found.") <> linebreak
-ppResponse _ (MultipleEntries ds) =
-  green (text "Found:") <$> foldl (\ acc b -> printOne b <$> acc) empty ds
-ppResponse _ Added =
-  blue (text "Added") <> linebreak
-ppResponse _ Removed =
-  blue (text "Removed") <> linebreak
+prettyResponse :: Command -> Response -> Doc
+prettyResponse _ (SingleEntry de) =
+  printOne de <> linebreak
+prettyResponse _ (MultipleEntries []) =
+  text "Not found" <> linebreak
+prettyResponse _ (MultipleEntries ds) =
+  foldl (\ acc b -> printOne b <$> acc) empty ds
+prettyResponse _ Added =
+  text "Added" <> linebreak
+prettyResponse _ Removed =
+  text "Removed" <> linebreak
 
-ppAppError :: Command -> AppError -> Doc
-ppAppError _ e = red (text (show e))
+ansiPrettyResponse :: Command -> Response -> Doc
+ansiPrettyResponse _ (SingleEntry de) =
+  printOne de <> linebreak
+ansiPrettyResponse _ (MultipleEntries []) =
+  red (text "Not found") <> linebreak
+ansiPrettyResponse _ (MultipleEntries ds) =
+  foldl (\ acc b -> printOne b <$> acc) empty ds
+ansiPrettyResponse _ Added =
+  green (text "Added") <> linebreak
+ansiPrettyResponse _ Removed =
+  green (text "Removed") <> linebreak
+
+prettyError :: Command -> AppError -> Doc
+prettyError _ e = text (show e)
+
+ansiPrettyError :: Command -> AppError -> Doc
+ansiPrettyError _ e = red (text (show e))

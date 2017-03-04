@@ -2,3 +2,4 @@ dist/
 shell.nix
 *result*
 *.drv
+example/gnupg/random_seed

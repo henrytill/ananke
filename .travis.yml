@@ -28,6 +28,7 @@ before_install:
  - export HAPPYVER=1.19.5
  - export ALEXVER=3.1.7
  - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:/opt/happy/$HAPPYVER/bin:/opt/alex/$ALEXVER/bin:$PATH
+ - export GNUPGHOME="$TRAVIS_BUILD_DIR/example/gnupg"
 
 install:
  - cabal --version

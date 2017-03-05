@@ -46,7 +46,8 @@ instance Show Fingerprint where
 
 -- | An 'AppConfig' represents values read from a configuration file
 data AppConfig = AppConfig
-  { appConfigFingerprint :: Fingerprint
+  { appConfigDataDirectory :: FilePath
+  , appConfigFingerprint   :: Fingerprint
   } deriving (Show, Eq)
 
 -- | A 'Plaintext' represents a decrypted value
@@ -208,6 +209,7 @@ newtype Ok = Ok { msg :: String }
 data AppError
   = AuthVerification String
   | CsvDecoding String
+  | TomlParsing String
   | GPG String
   | FileSystem String
   | Default String

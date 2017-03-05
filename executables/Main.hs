@@ -1,34 +1,28 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Main where
 
+import Control.Monad.Except
 import Control.Exception
-import Control.Monad
 import Hecate.Database (initDatabase)
-import Hecate.IO (evalCommand, getHome)
-import Hecate.IO.Config (getAppConfig)
+import Hecate.IO (evalCommand)
+import Hecate.IO.Config (configure)
 import Hecate.IO.Parser (runCLIParser)
 import Hecate.Printing
-import Hecate.Types (AppConfig(..), AppContext(..), runAppM)
+import Hecate.Types (AppConfig(..), AppContext(..), AppError(..), runAppM)
 import System.Console.ANSI (hSupportsANSI)
-import System.Directory (createDirectory, doesDirectoryExist)
 import System.Exit
 import System.IO
 import Text.PrettyPrint.ANSI.Leijen
 import qualified Database.SQLite.Simple as SQLite
 
-createContext :: IO AppContext
-createContext = do
-  home          <- getHome >>= maybe (error "Can't find my way HOME") pure
-  let dataDir    = home ++ "/.hecate"
-      configFile = dataDir ++ "/hecate.toml"
-  dirExists     <- doesDirectoryExist dataDir
-  unless dirExists (createDirectory dataDir)
-  connection    <- SQLite.open (dataDir ++ "/data.db")
-  _             <- initDatabase connection
-  AppConfig{..} <- getAppConfig configFile
-  return $ AppContext appConfigFingerprint connection
+configToContext :: (MonadIO m, MonadError AppError m) => AppConfig -> m AppContext
+configToContext AppConfig{..} = do
+  connection <- liftIO (SQLite.open (appConfigDataDirectory ++ "/data.db"))
+  _          <- initDatabase connection
+  return (AppContext appConfigFingerprint connection)
 
 hPutDocWrapper :: Handle -> Doc -> Doc -> IO ()
 hPutDocWrapper h f g = do
@@ -36,6 +30,13 @@ hPutDocWrapper h f g = do
   if supportsANSI
     then hPutDoc h f
     else hPutDoc h g
+
+initialize :: IO AppContext
+initialize = do
+  errOrCtx <- runExceptT (configure >>= configToContext)
+  case errOrCtx of
+    Left err  -> hPrint stderr err >> exitFailure
+    Right ctx -> return ctx
 
 runApp :: AppContext -> IO ExitCode
 runApp ctx = do
@@ -53,4 +54,4 @@ finalize :: AppContext -> IO ()
 finalize ctx = SQLite.close (_conn ctx)
 
 main :: IO ()
-main = bracket createContext finalize runApp >>= exitWith
+main = bracket initialize finalize runApp >>= exitWith

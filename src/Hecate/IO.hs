@@ -15,7 +15,6 @@ import Hecate.GPG
 import Hecate.Types
 import System.Directory (doesFileExist)
 import System.IO
-import System.Posix.Env (getEnv)
 import qualified Data.Text as T
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.Csv as CSV
@@ -31,9 +30,6 @@ ensureFile file = do
   if exists
     then pure file
     else throwError (FileSystem "File does not exist")
-
-getHome :: MonadIO m => m (Maybe FilePath)
-getHome = liftIO $ getEnv "HOME"
 
 ider :: T.Text -> Id
 ider = Id . T.pack . showDigest . sha1 . BSL.fromStrict . encodeUtf8

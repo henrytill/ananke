@@ -32,6 +32,7 @@ executable hecate
                      , ansi-terminal        >=0.6.2  && <0.7
                      , ansi-wl-pprint       >=0.6.7  && <0.7
                      , directory            >=1.2    && <1.4
+                     , mtl                  >=2.2    && <2.3
                      , sqlite-simple        >=0.4.12
                      , hecate
   hs-source-dirs:      executables

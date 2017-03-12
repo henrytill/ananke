@@ -207,13 +207,19 @@ newtype Ok = Ok { msg :: String }
 
 -- | 'AppError' represents application errors
 data AppError
-  = AuthVerification String
-  | CsvDecoding String
+  = CsvDecoding String
   | TomlParsing String
   | GPG String
   | FileSystem String
   | Default String
-  deriving (Show, Eq)
+  deriving Eq
+
+instance Show AppError where
+  show (CsvDecoding s) = "CSV Decoding Error: " ++ s
+  show (TomlParsing s) = "TOML Parsing Error: " ++ s
+  show (GPG s)         = "GPG Error: " ++ s
+  show (FileSystem s)  = "Filesystem Error: " ++ s
+  show (Default s)     = "Error: " ++ s
 
 -- | 'AppContext' represents the shared environment for computations which occur
 -- within an 'AppM'

@@ -44,7 +44,7 @@ runApp ctx = do
   response <- runAppM ctx (evalCommand command)
   case response of
     Left err  ->
-      hPutDocWrapper stderr (ansiPrettyError command err) (prettyError command err) >>
+      hPutDoc stderr (prettyError command err) >>
       return (ExitFailure 1)
     Right out ->
       hPutDocWrapper stdout (ansiPrettyResponse command out) (prettyResponse command out) >>

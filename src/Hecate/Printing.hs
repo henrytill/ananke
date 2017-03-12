@@ -2,7 +2,6 @@
 
 module Hecate.Printing
   ( ansiPrettyResponse
-  , ansiPrettyError
   , prettyResponse
   , prettyError
   ) where
@@ -62,6 +61,3 @@ ansiPrettyResponse _ Removed =
 
 prettyError :: Command -> AppError -> Doc
 prettyError _ e = text (show e)
-
-ansiPrettyError :: Command -> AppError -> Doc
-ansiPrettyError _ e = red (text (show e))

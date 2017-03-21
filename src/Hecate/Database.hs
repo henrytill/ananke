@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Hecate.Database where
 
@@ -7,19 +8,44 @@ import Control.Monad.Except
 import Data.Monoid
 import Hecate.Types
 import Database.SQLite.Simple (NamedParam ((:=)))
+import System.Directory (doesFileExist)
 import qualified Database.SQLite.Simple as SQLite
 
-initDatabase :: MonadIO m => SQLite.Connection -> m ()
-initDatabase conn = liftIO $ SQLite.execute_ conn s
-  where
-    s = "CREATE TABLE IF NOT EXISTS entries (\
-        \  id          TEXT UNIQUE NOT NULL, \
-        \  timestamp   TEXT NOT NULL,        \
-        \  description TEXT NOT NULL,        \
-        \  identity    TEXT,                 \
-        \  ciphertext  BLOB NOT NULL,        \
-        \  meta        TEXT                  \
-        \)"
+currentSchemaVersion :: SchemaVersion
+currentSchemaVersion = SchemaVersion 1
+
+currentSchema :: SQLite.Query
+currentSchema =
+  "CREATE TABLE IF NOT EXISTS entries (\
+  \  id          TEXT UNIQUE NOT NULL, \
+  \  timestamp   TEXT NOT NULL,        \
+  \  description TEXT NOT NULL,        \
+  \  identity    TEXT,                 \
+  \  ciphertext  BLOB NOT NULL,        \
+  \  meta        TEXT                  \
+  \)"
+
+createSchemaFile :: MonadIO m => FilePath -> m ()
+createSchemaFile path = liftIO (writeFile path (show currentSchemaVersion))
+
+getSchemaVersionFromFile :: MonadIO m => FilePath -> m SchemaVersion
+getSchemaVersionFromFile path = (SchemaVersion . read) <$> liftIO (readFile path)
+
+getSchemaVersion :: MonadIO m => FilePath -> m SchemaVersion
+getSchemaVersion path = do
+  exists <- liftIO $ doesFileExist path
+  if exists
+    then getSchemaVersionFromFile path
+    else createSchemaFile path >> pure currentSchemaVersion
+
+migrate :: MonadIO m => SQLite.Connection -> SchemaVersion -> m ()
+migrate _ _ = pure ()
+
+initDatabase :: (MonadIO m, MonadError AppError m) => SQLite.Connection -> SchemaVersion -> m ()
+initDatabase conn schemaVersion =
+  if schemaVersion == currentSchemaVersion
+  then liftIO $ SQLite.execute_ conn currentSchema
+  else migrate conn schemaVersion
 
 put :: MonadIO m => SQLite.Connection -> Entry -> m ()
 put conn e = liftIO $ SQLite.execute conn s e

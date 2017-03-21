@@ -6,7 +6,7 @@ module Main where
 
 import Control.Monad.Except
 import Control.Exception
-import Hecate.Database (initDatabase)
+import Hecate.Database (getSchemaVersion, initDatabase)
 import Hecate.IO (evalCommand)
 import Hecate.IO.Config (configure)
 import Hecate.IO.Parser (runCLIParser)
@@ -20,8 +20,9 @@ import qualified Database.SQLite.Simple as SQLite
 
 configToContext :: (MonadIO m, MonadError AppError m) => AppConfig -> m AppContext
 configToContext AppConfig{..} = do
-  connection <- liftIO (SQLite.open (appConfigDataDirectory ++ "/data.db"))
-  _          <- initDatabase connection
+  connection    <- liftIO (SQLite.open (appConfigDataDirectory ++ "/db/db.sqlite"))
+  schemaVersion <- getSchemaVersion (appConfigDataDirectory ++ "/db/schema")
+  _             <- initDatabase connection schemaVersion
   return (AppContext appConfigFingerprint connection)
 
 hPutDocWrapper :: Handle -> Doc -> Doc -> IO ()

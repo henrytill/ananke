@@ -221,6 +221,12 @@ instance Show AppError where
   show (FileSystem s)  = "Filesystem Error: " ++ s
   show (Default s)     = "Error: " ++ s
 
+newtype SchemaVersion = SchemaVersion { unSchemaVersion :: Int }
+  deriving Eq
+
+instance Show SchemaVersion where
+  show = show . unSchemaVersion
+
 -- | 'AppContext' represents the shared environment for computations which occur
 -- within an 'AppM'
 data AppContext = AppContext

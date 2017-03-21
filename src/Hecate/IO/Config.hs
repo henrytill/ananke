@@ -39,6 +39,7 @@ configure = do
   dataDir   <- getEnvOrDefault "HECATE_DATA_DIR" (home ++ "/.hecate")
   dirExists <- liftIO (doesDirectoryExist dataDir)
   unless dirExists (liftIO (createDirectory dataDir))
+  unless dirExists (liftIO (createDirectory (dataDir ++ "/db")))
   txt       <- liftIO (TIO.readFile (dataDir ++ "/hecate.toml"))
   tbl       <- either (throwError . TomlParsing . show) pure (parseTomlDoc "" txt)
   dfing     <- either throwError pure (parseFingerprint tbl)

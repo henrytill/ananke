@@ -12,6 +12,7 @@ import Hecate.IO
 import Hecate.Types
 import Hecate.Orphans ()
 import Hecate.Database
+import System.Directory (createDirectory)
 import System.Posix.Temp
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
@@ -51,10 +52,12 @@ dbTests = [ prop_roundTripEntriesToDatabase ]
 
 doDatabaseProperties :: IO [Result]
 doDatabaseProperties = do
-  dir       <- mkdtemp "/tmp/hecate-tests-"
-  c         <- open $ dir ++ "/test.db"
-  _         <- initDatabase c
-  ctx       <- pure $ AppContext (Fingerprint "371C136C") c
-  results   <- mapM (\p -> quickCheckWithResult stdArgs (p ctx)) dbTests
-  _         <- close c
+  dir           <- mkdtemp "/tmp/hecate-tests-"
+  _             <- createDirectory (dir ++ "/db")
+  c             <- open (dir ++ "/db/db.sqlite")
+  schemaVersion <- getSchemaVersion (dir ++ "/db/schema")
+  _             <- runExceptT $ initDatabase c schemaVersion
+  ctx           <- pure $ AppContext (Fingerprint "371C136C") c
+  results       <- mapM (\p -> quickCheckWithResult stdArgs (p ctx)) dbTests
+  _             <- close c
   return results

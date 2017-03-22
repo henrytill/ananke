@@ -13,8 +13,8 @@ import qualified System.Process.ByteString as BSP
 
 gpgEncrypt :: String -> BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)
 gpgDecrypt ::           BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)
-gpgEncrypt fp = BSP.readProcessWithExitCode "gpg" ["--batch", "-q", "-e", "-r", fp]
-gpgDecrypt    = BSP.readProcessWithExitCode "gpg" ["--batch", "-q", "-d"]
+gpgEncrypt keyid = BSP.readProcessWithExitCode "gpg" ["--batch", "-q", "-e", "-r", keyid]
+gpgDecrypt       = BSP.readProcessWithExitCode "gpg" ["--batch", "-q", "-d"]
 
 convertResult
   :: (MonadIO m, MonadError AppError m)
@@ -51,8 +51,8 @@ encryptM
   -> m Ciphertext
 encryptM (Plaintext pt) = do
   ctx <- ask
-  let (Fingerprint fp) = _fingerprint ctx
-  encryptWrapper (gpgEncrypt (T.unpack fp)) pt
+  let (KeyId keyid) = _keyId ctx
+  encryptWrapper (gpgEncrypt (T.unpack keyid)) pt
 
 decryptM
   :: (MonadIO m, MonadError AppError m)

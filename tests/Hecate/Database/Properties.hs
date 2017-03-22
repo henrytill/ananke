@@ -57,7 +57,7 @@ doDatabaseProperties = do
   c             <- open (dir ++ "/db/db.sqlite")
   schemaVersion <- getSchemaVersion (dir ++ "/db/schema")
   _             <- runExceptT $ initDatabase c schemaVersion
-  ctx           <- pure $ AppContext (Fingerprint "371C136C") c
+  ctx           <- pure $ AppContext (KeyId "371C136C") c
   results       <- mapM (\p -> quickCheckWithResult stdArgs (p ctx)) dbTests
   _             <- close c
   return results

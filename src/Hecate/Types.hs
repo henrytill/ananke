@@ -37,17 +37,17 @@ instance FromField ByteString64 where
   fromField f =
     fromField f >>= either fail (pure . ByteString64) . Base64.decode . encodeUtf8
 
--- | A 'Fingerprint' represents a GPG Fingerprint
-newtype Fingerprint = Fingerprint T.Text
+-- | A 'KeyId' represents a GPG Key Id
+newtype KeyId = KeyId T.Text
   deriving Eq
 
-instance Show Fingerprint where
-  show (Fingerprint a) = show a
+instance Show KeyId where
+  show (KeyId a) = show a
 
 -- | An 'AppConfig' represents values read from a configuration file
 data AppConfig = AppConfig
   { appConfigDataDirectory :: FilePath
-  , appConfigFingerprint   :: Fingerprint
+  , appConfigKeyId         :: KeyId
   } deriving (Show, Eq)
 
 -- | A 'Plaintext' represents a decrypted value
@@ -230,8 +230,8 @@ instance Show SchemaVersion where
 -- | 'AppContext' represents the shared environment for computations which occur
 -- within an 'AppM'
 data AppContext = AppContext
-  { _fingerprint :: Fingerprint
-  , _conn        :: SQLite.Connection
+  { _keyId :: KeyId
+  , _conn  :: SQLite.Connection
   }
 
 -- | 'AppM' is the application monad

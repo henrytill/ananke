@@ -5,7 +5,7 @@ module Hecate.IO.Config where
 
 import Control.Monad.Except
 import Data.Maybe (fromMaybe)
-import Hecate.Types (AppConfig(..), AppError(..), Fingerprint(..))
+import Hecate.Types (AppConfig(..), AppError(..), KeyId(..))
 import System.Directory (createDirectory, doesDirectoryExist)
 import System.Posix.Env (getEnv)
 import Text.Toml
@@ -19,16 +19,16 @@ lup hm key = maybe err pure (HM.lookup key hm)
   where
     err = Left (TomlParsing ("could't find key: " ++ T.unpack key))
 
-parseFingerprint :: Table -> Either AppError String
-parseFingerprint tbl = unpackTop tbl >>= unpackRecipient >>= unpackFingerprint
+parseKeyId :: Table -> Either AppError String
+parseKeyId tbl = unpackTop tbl >>= unpackRecipient >>= unpackKeyId
   where
     unpackTop t = lup t "recipient"
 
-    unpackRecipient (VTable r) = lup r "fingerprint"
+    unpackRecipient (VTable r) = lup r "keyid"
     unpackRecipient _          = Left (TomlParsing "recipient is wrong type")
 
-    unpackFingerprint (VString f) = pure (T.unpack f)
-    unpackFingerprint _           = Left (TomlParsing "fingerprint is wrong type")
+    unpackKeyId (VString f) = pure (T.unpack f)
+    unpackKeyId _           = Left (TomlParsing "keyid is wrong type")
 
 getEnvOrDefault :: MonadIO m => String -> String -> m String
 getEnvOrDefault env d = fromMaybe d <$> liftIO (getEnv env)
@@ -42,8 +42,8 @@ configure = do
   unless dirExists (liftIO (createDirectory (dataDir ++ "/db")))
   txt       <- liftIO (TIO.readFile (dataDir ++ "/hecate.toml"))
   tbl       <- either (throwError . TomlParsing . show) pure (parseTomlDoc "" txt)
-  dfing     <- either throwError pure (parseFingerprint tbl)
-  fprint    <- Fingerprint . T.pack <$> getEnvOrDefault "HECATE_FINGERPRINT" dfing
+  dfing     <- either throwError pure (parseKeyId tbl)
+  keyId     <- KeyId . T.pack <$> getEnvOrDefault "HECATE_KEYID" dfing
   return AppConfig { appConfigDataDirectory = dataDir
-                   , appConfigFingerprint = fprint
+                   , appConfigKeyId = keyId
                    }

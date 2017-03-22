@@ -23,7 +23,7 @@ configToContext AppConfig{..} = do
   connection    <- liftIO (SQLite.open (appConfigDataDirectory ++ "/db/db.sqlite"))
   schemaVersion <- getSchemaVersion (appConfigDataDirectory ++ "/db/schema")
   _             <- initDatabase connection schemaVersion
-  return (AppContext appConfigFingerprint connection)
+  return (AppContext appConfigKeyId connection)
 
 hPutDocWrapper :: Handle -> Doc -> Doc -> IO ()
 hPutDocWrapper h f g = do

@@ -53,7 +53,7 @@ master :: Parser Command
 master = hsubparser (cmdAdd <> cmdRemove <> cmdLookup <> cmdImport)
 
 opts :: ParserInfo Command
-opts = info (master <**> helper) (fullDesc <> progDesc "A simple password manager")
+opts = info (master <**> helper) (fullDesc <> progDesc "A minimal password manager")
 
 runCLIParser :: IO Command
 runCLIParser = execParser opts

@@ -20,12 +20,12 @@ lup hm key = maybe err pure (HM.lookup key hm)
     err = Left (TomlParsing ("could't find key: " ++ T.unpack key))
 
 parseKeyId :: Table -> Either AppError String
-parseKeyId tbl = unpackTop tbl >>= unpackRecipient >>= unpackKeyId
+parseKeyId tbl = unpackTop tbl >>= unpackGnupg >>= unpackKeyId
   where
-    unpackTop t = lup t "recipient"
+    unpackTop t = lup t "gnupg"
 
-    unpackRecipient (VTable r) = lup r "keyid"
-    unpackRecipient _          = Left (TomlParsing "recipient is wrong type")
+    unpackGnupg (VTable r) = lup r "keyid"
+    unpackGnupg _          = Left (TomlParsing "gnupg is wrong type")
 
     unpackKeyId (VString f) = pure (T.unpack f)
     unpackKeyId _           = Left (TomlParsing "keyid is wrong type")

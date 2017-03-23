@@ -1,7 +1,7 @@
 { mkDerivation, ansi-terminal, ansi-wl-pprint, base
 , base64-bytestring, bytestring, cassava, directory, filepath, gnupg1compat
 , hlint, htoml, memory, mtl, optparse-applicative, parsec, process
-, process-extras, QuickCheck, quickcheck-text, SHA, sqlite-simple
+, process-extras, QuickCheck, quickcheck-text, SHA, sqlite, sqlite-simple
 , stdenv, text, time, transformers, unix, unordered-containers
 , vector
 }:
@@ -17,15 +17,14 @@ mkDerivation {
     process-extras SHA sqlite-simple text time transformers unix
     unordered-containers vector
   ];
-  librarySystemDepends = [ gnupg1compat ];
   executableHaskellDepends = [
     ansi-terminal ansi-wl-pprint base directory mtl sqlite-simple
   ];
-  executableSystemDepends = [ gnupg1compat ];
+  executableSystemDepends = [ sqlite gnupg1compat ];
   testHaskellDepends = [
     base hlint mtl QuickCheck quickcheck-text sqlite-simple unix
   ];
-  testSystemDepends = [ gnupg1compat ];
+  testSystemDepends = [ sqlite gnupg1compat ];
   preCheck = ''
     export GNUPGHOME="$PWD/example/gnupg"
   '';

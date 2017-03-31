@@ -42,7 +42,6 @@ import Data.Digest.Pure.SHA (sha1, showDigest)
 import Data.Monoid ((<>))
 import Data.Text.Encoding (encodeUtf8)
 import Data.Time.Clock (UTCTime, getCurrentTime)
-
 import Data.Time.Format (defaultTimeLocale, formatTime)
 import Database.SQLite.Simple.FromField
 import Database.SQLite.Simple.ToField

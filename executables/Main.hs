@@ -3,9 +3,9 @@
 
 module Main where
 
+import Control.Exception
 import Control.Monad.Except
 import Control.Monad.Reader
-import Control.Exception
 import System.Console.ANSI (hSupportsANSI)
 import System.Exit
 import System.IO

@@ -1,9 +1,10 @@
 module Main where
 
 import Control.Monad
-import Hecate.Database.Properties
 import System.Exit
 import Test.QuickCheck
+
+import Hecate.Database.Properties
 
 isSuccess :: Result -> Bool
 isSuccess Success{} = True

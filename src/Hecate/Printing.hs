@@ -11,8 +11,8 @@ import Text.PrettyPrint.ANSI.Leijen
 import qualified Data.Text as T
 
 import Hecate.Data
-import Hecate.Evaluator
 import Hecate.Error
+import Hecate.Evaluator
 import Hecate.GPG
 
 

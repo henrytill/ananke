@@ -8,10 +8,10 @@ module Hecate.Database.Properties
 import Control.Monad.Except
 import Control.Monad.Reader
 import Data.List ((\\))
-import Database.SQLite.Simple hiding (Error)
 import Data.Text.Arbitrary ()
-import System.Posix.Temp
+import Database.SQLite.Simple hiding (Error)
 import System.Directory (copyFile, createDirectory)
+import System.Posix.Temp
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
 

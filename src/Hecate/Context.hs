@@ -8,7 +8,7 @@ module Hecate.Context
   , appConfigKeyId
   , KeyId
   , unKeyId
-  , getEnvOrDefault
+  , getDataDir
   , configure
   ) where
 
@@ -65,6 +65,14 @@ parseKeyId tbl = unpackTop tbl >>= unpackGnupg >>= unpackKeyId
 
 getEnvOrDefault :: MonadIO m => String -> String -> m String
 getEnvOrDefault env d = fromMaybe d <$> liftIO (getEnv env)
+
+getEnvOrError :: MonadIO m => String -> String -> m String
+getEnvOrError env msg = liftIO (getEnv env) >>= maybe (error msg) pure
+
+getDataDir :: MonadIO m => m FilePath
+getDataDir =
+  getEnvOrError "HOME" "Can't find my way HOME" >>= \home ->
+  getEnvOrDefault "HECATE_DATA_DIR" (home ++ "/.hecate")
 
 configure :: (MonadIO m, MonadError AppError m) => FilePath -> m AppConfig
 configure dataDir = do

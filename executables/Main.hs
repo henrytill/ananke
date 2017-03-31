@@ -9,7 +9,6 @@ import Control.Exception
 import System.Console.ANSI (hSupportsANSI)
 import System.Exit
 import System.IO
-import System.Posix.Env (getEnv)
 import Text.PrettyPrint.ANSI.Leijen
 import qualified Database.SQLite.Simple as SQLite
 
@@ -29,13 +28,10 @@ hPutDocWrapper h f g = do
     else hPutDoc h g
 
 initialize :: IO AppContext
-initialize = do
-  home     <- getEnv "HOME" >>= maybe (error "Can't find my way HOME") pure
-  dataDir  <- getEnvOrDefault "HECATE_DATA_DIR" (home ++ "/.hecate")
-  errOrCtx <- runExceptT (configure dataDir >>= createContext)
-  case errOrCtx of
-    Left err  -> hPrint stderr err >> exitFailure
-    Right ctx -> return ctx
+initialize = runExceptT (getDataDir >>= configure >>= createContext) >>= processResult
+  where
+    processResult (Left err)  = hPrint stderr err >> exitFailure
+    processResult (Right ctx) = return ctx
 
 runM :: AppContext -> ReaderT AppContext (ExceptT AppError IO) a -> IO (Either AppError a)
 runM ctx = runExceptT . flip runReaderT ctx

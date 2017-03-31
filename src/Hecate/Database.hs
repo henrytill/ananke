@@ -57,7 +57,7 @@ getSchemaVersion path = do
 migrate :: MonadIO m => SQLite.Connection -> SchemaVersion -> m ()
 migrate _ _ = pure ()
 
-initDatabase :: (MonadIO m, MonadError AppError m) => SQLite.Connection -> SchemaVersion -> m ()
+initDatabase :: MonadIO m => SQLite.Connection -> SchemaVersion -> m ()
 initDatabase conn schemaVersion =
   if schemaVersion == currentSchemaVersion
   then liftIO $ SQLite.execute_ conn currentSchema

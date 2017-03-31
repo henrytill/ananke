@@ -86,7 +86,7 @@ entryToDisplayEntry Entry{..} p =
   DisplayEntry entryTimestamp entryDescription entryIdentity p entryMeta
 
 getPlainText
-  :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
+  :: (MonadIO m, MonadError AppError m)
   => Entry
   -> m Plaintext
 getPlainText Entry{..} = decrypt entryCiphertext

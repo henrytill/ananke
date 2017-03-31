@@ -1,8 +1,12 @@
-module Hecate.IO.Parser (runCLIParser) where
+module Hecate.Parser
+  ( runCLIParser
+  ) where
 
 import Data.Monoid ((<>))
-import Hecate.Types
 import Options.Applicative
+
+import Hecate.Evaluator (Command(..))
+
 
 addParser :: Parser Command
 addParser = Add <$> descParser

@@ -1,15 +1,57 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Hecate.GPG where
+module Hecate.GPG
+  ( -- * Decrypted and encrypted values
+    Plaintext(..)
+  , Ciphertext
+    -- * Functions on them
+  , encrypt
+  , decrypt
+  ) where
 
 import Control.Monad.Except
 import Control.Monad.Reader
-import Data.Text.Encoding
-import Hecate.Types
+import Data.ByteString64
+import Data.Text.Encoding (decodeUtf8, encodeUtf8)
+import Database.SQLite.Simple.FromField
+import Database.SQLite.Simple.ToField
 import System.Exit
 import qualified Data.ByteString as BS
+import qualified Data.Csv as CSV
 import qualified Data.Text as T
 import qualified System.Process.ByteString as BSP
+
+import Hecate.Context
+import Hecate.Error
+
+
+-- * Decrypted and encrypted values
+
+-- | A 'Plaintext' represents a decrypted value
+newtype Plaintext = Plaintext T.Text
+  deriving Eq
+
+instance Show Plaintext where
+  show (Plaintext t) = show t
+
+instance CSV.ToField Plaintext where
+  toField (Plaintext bs) = CSV.toField bs
+
+instance CSV.FromField Plaintext where
+  parseField f = Plaintext <$> CSV.parseField f
+
+-- | A 'Ciphertext' represents an encrypted value
+newtype Ciphertext = Ciphertext ByteString64
+  deriving (Show, Eq)
+
+instance ToField Ciphertext where
+  toField (Ciphertext bs) = toField bs
+
+instance FromField Ciphertext where
+  fromField f = Ciphertext <$> fromField f
+
+
+-- * Functions on them
 
 gpgEncrypt :: String -> BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)
 gpgDecrypt ::           BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)
@@ -45,17 +87,17 @@ decryptWrapper
   -> m Plaintext
 decryptWrapper f = (Plaintext . decodeUtf8 <$>) . lifter . f . unByteString64
 
-encryptM
+encrypt
   :: (MonadIO m, MonadError AppError m, MonadReader AppContext m)
   => Plaintext
   -> m Ciphertext
-encryptM (Plaintext pt) = do
+encrypt (Plaintext pt) = do
   ctx <- ask
-  let (KeyId keyid) = _keyId ctx
+  let keyid = unKeyId (appContextKeyId ctx)
   encryptWrapper (gpgEncrypt (T.unpack keyid)) pt
 
-decryptM
+decrypt
   :: (MonadIO m, MonadError AppError m)
   => Ciphertext
   -> m Plaintext
-decryptM (Ciphertext ct) = decryptWrapper gpgDecrypt ct
+decrypt (Ciphertext ct) = decryptWrapper gpgDecrypt ct

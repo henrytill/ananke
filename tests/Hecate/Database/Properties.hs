@@ -1,21 +1,27 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Hecate.Database.Properties (doDatabaseProperties) where
+module Hecate.Database.Properties
+  ( doDatabaseProperties
+  ) where
 
 import Control.Monad.Except
 import Control.Monad.Reader
 import Data.List ((\\))
 import Database.SQLite.Simple hiding (Error)
 import Data.Text.Arbitrary ()
-import Hecate.IO
-import Hecate.Types
-import Hecate.Orphans ()
-import Hecate.Database
-import System.Directory (createDirectory)
 import System.Posix.Temp
+import System.Directory (copyFile, createDirectory)
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
+
+import Hecate.Context
+import Hecate.Data
+import Hecate.Database
+import Hecate.Error
+import Hecate.GPG (Plaintext)
+import Hecate.Orphans ()
+
 
 data TestData = TestData
   { testDescription :: Description
@@ -34,15 +40,15 @@ addEntryToDatabase
   -> [TestData]
   -> m [Entry]
 addEntryToDatabase c tds = do
-  es <- mapM (\td -> entry (testDescription td) (testIdentity td) (testPlainText td) (testMetadata td)) tds
+  es <- mapM (\td -> createEntry (testDescription td) (testIdentity td) (testPlainText td) (testMetadata td)) tds
   _  <- mapM (put c) es
   return es
 
 prop_roundTripEntriesToDatabase :: AppContext -> Property
 prop_roundTripEntriesToDatabase ctx = monadicIO $ do
   tds <- pick $ listOf1 arbitrary
-  es  <- run $ runExceptT $ flip runReaderT ctx $ addEntryToDatabase (_conn ctx) tds
-  res <- run $ selectAll (_conn ctx)
+  es  <- run $ runExceptT $ flip runReaderT ctx $ addEntryToDatabase (appContextConnection ctx) tds
+  res <- run $ selectAll (appContextConnection ctx)
   case es of
     Right xs -> assert $ null (xs \\ res)
     _        -> assert False
@@ -52,12 +58,10 @@ dbTests = [ prop_roundTripEntriesToDatabase ]
 
 doDatabaseProperties :: IO [Result]
 doDatabaseProperties = do
-  dir           <- mkdtemp "/tmp/hecate-tests-"
-  _             <- createDirectory (dir ++ "/db")
-  c             <- open (dir ++ "/db/db.sqlite")
-  schemaVersion <- getSchemaVersion (dir ++ "/db/schema")
-  _             <- runExceptT $ initDatabase c schemaVersion
-  ctx           <- pure $ AppContext (KeyId "371C136C") c
-  results       <- mapM (\p -> quickCheckWithResult stdArgs (p ctx)) dbTests
-  _             <- close c
+  dir         <- mkdtemp "/tmp/hecate-tests-"
+  _           <- copyFile "./example/hecate.toml" (dir ++ "/hecate.toml")
+  _           <- createDirectory (dir ++ "/db")
+  (Right ctx) <- runExceptT (configure dir >>= createContext)
+  results     <- mapM (\p -> quickCheckWithResult stdArgs (p ctx)) dbTests
+  _           <- close (appContextConnection ctx)
   return results

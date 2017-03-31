@@ -3,8 +3,11 @@
 module Hecate.Orphans where
 
 import Data.Text.Arbitrary ()
-import Hecate.Types
 import Test.QuickCheck
+
+import Hecate.Data
+import Hecate.GPG (Plaintext(..))
+
 
 instance Arbitrary Description where
   arbitrary               = Description <$> arbitrary

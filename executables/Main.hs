@@ -1,29 +1,25 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
 
 module Main where
 
 import Control.Monad.Except
+import Control.Monad.Reader
 import Control.Exception
-import Hecate.Database (getSchemaVersion, initDatabase)
-import Hecate.IO (evalCommand)
-import Hecate.IO.Config (configure)
-import Hecate.IO.Parser (runCLIParser)
-import Hecate.Printing
-import Hecate.Types (AppConfig(..), AppContext(..), AppError(..), runAppM)
 import System.Console.ANSI (hSupportsANSI)
 import System.Exit
 import System.IO
+import System.Posix.Env (getEnv)
 import Text.PrettyPrint.ANSI.Leijen
 import qualified Database.SQLite.Simple as SQLite
 
-configToContext :: (MonadIO m, MonadError AppError m) => AppConfig -> m AppContext
-configToContext AppConfig{..} = do
-  connection    <- liftIO (SQLite.open (appConfigDataDirectory ++ "/db/db.sqlite"))
-  schemaVersion <- getSchemaVersion (appConfigDataDirectory ++ "/db/schema")
-  _             <- initDatabase connection schemaVersion
-  return (AppContext appConfigKeyId connection)
+import Hecate.Context
+import Hecate.Database
+import Hecate.Error
+import Hecate.Evaluator
+import Hecate.Parser
+import Hecate.Printing
+
 
 hPutDocWrapper :: Handle -> Doc -> Doc -> IO ()
 hPutDocWrapper h f g = do
@@ -34,15 +30,20 @@ hPutDocWrapper h f g = do
 
 initialize :: IO AppContext
 initialize = do
-  errOrCtx <- runExceptT (configure >>= configToContext)
+  home     <- getEnv "HOME" >>= maybe (error "Can't find my way HOME") pure
+  dataDir  <- getEnvOrDefault "HECATE_DATA_DIR" (home ++ "/.hecate")
+  errOrCtx <- runExceptT (configure dataDir >>= createContext)
   case errOrCtx of
     Left err  -> hPrint stderr err >> exitFailure
     Right ctx -> return ctx
 
+runM :: AppContext -> ReaderT AppContext (ExceptT AppError IO) a -> IO (Either AppError a)
+runM ctx = runExceptT . flip runReaderT ctx
+
 runApp :: AppContext -> IO ExitCode
 runApp ctx = do
   command  <- runCLIParser
-  response <- runAppM ctx (evalCommand command)
+  response <- runM ctx (eval command)
   case response of
     Left err  ->
       hPutDoc stderr (prettyError command err) >>
@@ -52,7 +53,7 @@ runApp ctx = do
       return ExitSuccess
 
 finalize :: AppContext -> IO ()
-finalize ctx = SQLite.close (_conn ctx)
+finalize ctx = SQLite.close (appContextConnection ctx)
 
 main :: IO ()
 main = bracket initialize finalize runApp >>= exitWith

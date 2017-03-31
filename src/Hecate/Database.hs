@@ -1,15 +1,31 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts  #-}
 
-module Hecate.Database where
+module Hecate.Database
+  ( createContext
+  , put
+  , delete
+  , query
+  , selectAll
+  ) where
 
 import Control.Monad.Except
-import Data.Monoid
-import Hecate.Types
+import Data.Monoid ((<>))
 import Database.SQLite.Simple (NamedParam ((:=)))
 import System.Directory (doesFileExist)
 import qualified Database.SQLite.Simple as SQLite
+
+import Hecate.Context
+import Hecate.Data
+import Hecate.Error
+
+
+-- | A 'SchemaVersion' represents the database's schema version
+newtype SchemaVersion = SchemaVersion { unSchemaVersion :: Int }
+  deriving Eq
+
+instance Show SchemaVersion where
+  show = show . unSchemaVersion
 
 currentSchemaVersion :: SchemaVersion
 currentSchemaVersion = SchemaVersion 1
@@ -47,6 +63,13 @@ initDatabase conn schemaVersion =
   then liftIO $ SQLite.execute_ conn currentSchema
   else migrate conn schemaVersion
 
+createContext :: (MonadIO m, MonadError AppError m) => AppConfig -> m AppContext
+createContext config = do
+  connection    <- liftIO (SQLite.open (appConfigDataDirectory config ++ "/db/db.sqlite"))
+  schemaVersion <- getSchemaVersion (appConfigDataDirectory config ++ "/db/schema")
+  _             <- initDatabase connection schemaVersion
+  return (AppContext (appConfigKeyId config) connection)
+
 put :: MonadIO m => SQLite.Connection -> Entry -> m ()
 put conn e = liftIO $ SQLite.execute conn s e
   where
@@ -55,7 +78,7 @@ put conn e = liftIO $ SQLite.execute conn s e
         \  VALUES (?, ?, ?, ?, ?, ?)"
 
 delete :: MonadIO m => SQLite.Connection -> Entry -> m ()
-delete conn Entry{..} = liftIO $ SQLite.executeNamed conn s [":id" := entryId]
+delete conn e = liftIO $ SQLite.executeNamed conn s [":id" := entryId e]
   where
     s = "DELETE FROM entries WHERE id = :id"
 
@@ -68,7 +91,7 @@ idMatcher          :: Id          -> (SQLite.Query, [SQLite.NamedParam])
 descriptionMatcher :: Description -> (SQLite.Query, [SQLite.NamedParam])
 identityMatcher    :: Identity    -> (SQLite.Query, [SQLite.NamedParam])
 metadataMatcher    :: Metadata    -> (SQLite.Query, [SQLite.NamedParam])
-idMatcher          (Id n)          = ("id = :id",                      [":id"          := n])
+idMatcher          i               = ("id = :id",                      [":id"          := unId i])
 descriptionMatcher (Description d) = ("description LIKE :description", [":description" := d])
 identityMatcher    (Identity i)    = ("identity LIKE :identity",       [":identity"    := i])
 metadataMatcher    (Metadata m)    = ("meta LIKE :meta",               [":meta"        := m])
@@ -95,7 +118,9 @@ generateQuery = (select <>) . foldl queryFolder ("", []) . queryParts
     select = ("SELECT * FROM entries WHERE ", [])
 
 query :: MonadIO m => SQLite.Connection -> Query -> m [Entry]
-query conn (Query Nothing Nothing Nothing Nothing) = selectAll conn
-query conn q                                       = liftIO $ SQLite.queryNamed conn qs nps
+query conn q =
+  if queryIsEmpty q
+  then selectAll conn
+  else liftIO $ SQLite.queryNamed conn qs nps
   where
     (qs, nps) = generateQuery q

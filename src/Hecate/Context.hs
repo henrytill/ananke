@@ -1,11 +1,19 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Hecate.IO.Config where
+module Hecate.Context
+  ( AppContext(..)
+  , AppConfig
+  , appConfigDataDirectory
+  , appConfigKeyId
+  , KeyId
+  , unKeyId
+  , getEnvOrDefault
+  , configure
+  ) where
 
 import Control.Monad.Except
 import Data.Maybe (fromMaybe)
-import Hecate.Types (AppConfig(..), AppError(..), KeyId(..))
 import System.Directory (createDirectory, doesDirectoryExist)
 import System.Posix.Env (getEnv)
 import Text.Toml
@@ -13,7 +21,35 @@ import Text.Toml.Types
 import qualified Data.HashMap.Lazy as HM
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
+import qualified Database.SQLite.Simple as SQLite
 
+import Hecate.Error
+
+
+-- | 'AppContext' represents the shared environment for computations which occur
+-- within our application.  Values of this type are created by 'createContext'.
+data AppContext = AppContext
+  { appContextKeyId      :: KeyId
+  , appContextConnection :: SQLite.Connection
+  }
+
+-- | An 'AppConfig' represents values read from a configuration file
+data AppConfig = AppConfig
+  { appConfigDataDirectory :: FilePath
+  , appConfigKeyId         :: KeyId
+  } deriving (Show, Eq)
+
+-- | A 'KeyId' represents a GPG Key Id
+newtype KeyId = KeyId T.Text
+  deriving Eq
+
+instance Show KeyId where
+  show (KeyId a) = show a
+
+unKeyId :: KeyId -> T.Text
+unKeyId (KeyId keyid) = keyid
+
+-- | Look up values in a given HashMap
 lup :: HM.HashMap T.Text v -> T.Text -> Either AppError v
 lup hm key = maybe err pure (HM.lookup key hm)
   where
@@ -33,10 +69,8 @@ parseKeyId tbl = unpackTop tbl >>= unpackGnupg >>= unpackKeyId
 getEnvOrDefault :: MonadIO m => String -> String -> m String
 getEnvOrDefault env d = fromMaybe d <$> liftIO (getEnv env)
 
-configure :: (MonadIO m, MonadError AppError m) => m AppConfig
-configure = do
-  home      <- liftIO (getEnv "HOME") >>= maybe (error "Can't find my way HOME") pure
-  dataDir   <- getEnvOrDefault "HECATE_DATA_DIR" (home ++ "/.hecate")
+configure :: (MonadIO m, MonadError AppError m) => FilePath -> m AppConfig
+configure dataDir = do
   dirExists <- liftIO (doesDirectoryExist dataDir)
   unless dirExists (liftIO (createDirectory dataDir))
   unless dirExists (liftIO (createDirectory (dataDir ++ "/db")))

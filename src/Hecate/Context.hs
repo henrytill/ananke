@@ -40,14 +40,11 @@ data AppConfig = AppConfig
   } deriving (Show, Eq)
 
 -- | A 'KeyId' represents a GPG Key Id
-newtype KeyId = KeyId T.Text
+newtype KeyId = KeyId { unKeyId :: T.Text }
   deriving Eq
 
 instance Show KeyId where
   show (KeyId a) = show a
-
-unKeyId :: KeyId -> T.Text
-unKeyId (KeyId keyid) = keyid
 
 -- | Look up values in a given HashMap
 lup :: HM.HashMap T.Text v -> T.Text -> Either AppError v

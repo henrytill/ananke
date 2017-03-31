@@ -149,7 +149,8 @@ createEntry
 createEntry description identity plaintext meta = do
   timestamp <- liftIO getCurrentTime
   i         <- pure $ createId timestamp description identity
-  encrypted <- encrypt plaintext
+  ctx       <- ask
+  encrypted <- encrypt (appContextKeyId ctx) plaintext
   return $ Entry i timestamp description identity encrypted meta
 
 importEntryToEntry

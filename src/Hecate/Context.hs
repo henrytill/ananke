@@ -6,8 +6,6 @@ module Hecate.Context
   , AppConfig
   , appConfigDataDirectory
   , appConfigKeyId
-  , KeyId
-  , unKeyId
   , getDataDir
   , configure
   ) where
@@ -24,7 +22,7 @@ import qualified Data.Text.IO as TIO
 import qualified Database.SQLite.Simple as SQLite
 
 import Hecate.Error
-
+import Hecate.GPG (KeyId(..))
 
 -- | 'AppContext' represents the shared environment for computations which occur
 -- within our application.  Values of this type are created by 'createContext'.
@@ -38,13 +36,6 @@ data AppConfig = AppConfig
   { appConfigDataDirectory :: FilePath
   , appConfigKeyId         :: KeyId
   } deriving (Show, Eq)
-
--- | A 'KeyId' represents a GPG Key Id
-newtype KeyId = KeyId { unKeyId :: T.Text }
-  deriving Eq
-
-instance Show KeyId where
-  show (KeyId a) = show a
 
 -- | Look up values in a given HashMap
 lup :: HM.HashMap T.Text v -> T.Text -> Either AppError v

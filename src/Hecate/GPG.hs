@@ -1,8 +1,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module Hecate.GPG
-  ( -- * Decrypted and encrypted values
-    Plaintext(..)
+  ( KeyId(..)
+    -- * Decrypted and encrypted values
+  , Plaintext(..)
   , Ciphertext
     -- * Functions on them
   , encrypt
@@ -10,7 +11,6 @@ module Hecate.GPG
   ) where
 
 import Control.Monad.Except
-import Control.Monad.Reader
 import Data.ByteString64
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Database.SQLite.Simple.FromField
@@ -21,9 +21,14 @@ import qualified Data.Csv as CSV
 import qualified Data.Text as T
 import qualified System.Process.ByteString as BSP
 
-import Hecate.Context
 import Hecate.Error
 
+-- | A 'KeyId' represents a GPG Key Id
+newtype KeyId = KeyId { unKeyId :: T.Text }
+  deriving Eq
+
+instance Show KeyId where
+  show (KeyId a) = show a
 
 -- * Decrypted and encrypted values
 
@@ -88,13 +93,11 @@ decryptWrapper
 decryptWrapper f = (Plaintext . decodeUtf8 <$>) . lifter . f . unByteString64
 
 encrypt
-  :: (MonadIO m, MonadError AppError m, MonadReader AppContext m)
-  => Plaintext
+  :: (MonadIO m, MonadError AppError m)
+  => KeyId
+  -> Plaintext
   -> m Ciphertext
-encrypt (Plaintext pt) = do
-  ctx <- ask
-  let keyid = unKeyId (appContextKeyId ctx)
-  encryptWrapper (gpgEncrypt (T.unpack keyid)) pt
+encrypt (KeyId keyid) (Plaintext pt) = encryptWrapper (gpgEncrypt (T.unpack keyid)) pt
 
 decrypt
   :: (MonadIO m, MonadError AppError m)

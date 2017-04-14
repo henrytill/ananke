@@ -6,6 +6,8 @@ import Test.QuickCheck
 
 import Hecate.Database.Properties
 
+{-# ANN module "HLint: ignore Use module export list" #-}
+
 isSuccess :: Result -> Bool
 isSuccess Success{} = True
 isSuccess _         = False

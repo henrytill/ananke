@@ -1,4 +1,4 @@
-module Hecate.Error where
+module Hecate.Error (module Hecate.Error) where
 
 -- | 'AppError' represents application errors
 data AppError

@@ -8,6 +8,7 @@ import Test.QuickCheck
 import Hecate.Data
 import Hecate.GPG (Plaintext(..))
 
+{-# ANN module "HLint: ignore Use module export list" #-}
 
 instance Arbitrary Description where
   arbitrary               = Description <$> arbitrary

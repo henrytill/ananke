@@ -75,5 +75,31 @@ where `<user>` is usually the email address associated with the keypair.
 ## Usage
 
 ```
+$ hecate add http://notarealwebsite.com -i alice@notarealserver.com -m "This is some metadata"
+Enter text to encrypt: notarealpassword
+Added
+
+$ hecate lookup http://notarealwebsite.com
+http://notarealwebsite.com alice@notarealserver.com notarealpassword This is some metadata
+
+$ hecate rm http://notarealwebsite.com
+Removed
+```
+
+**NOTE**: The `hecate lookup` command will either cause `pinentry` to appear, after which it will only output the requested entry when you enter the correct passphrase, or it will simply output the requested entry if you have entered the correct passphrase recently.  This behavior depends on `gpg-agent`'s settings.  See the [`gpg-agent` manual](https://www.gnupg.org/documentation/manuals/gnupg/Invoking-GPG_002dAGENT.html) for more information.
+
+### Bash completion
+
+The `hecate` executable can produce a script suitable for use with Bash completion.
+
+To test this feature directly, you can use the following command:
+
+```
+$ source <(hecate --bash-completion-script `which hecate`)
+```
+
+### More info
+
+```
 $ hecate --help
 ```

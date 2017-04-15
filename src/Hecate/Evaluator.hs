@@ -3,7 +3,8 @@
 {-# LANGUAGE RecordWildCards  #-}
 
 module Hecate.Evaluator
-  ( Command(..)
+  ( Verbosity(..)
+  , Command(..)
   , Response(..)
   , eval
   ) where
@@ -24,6 +25,9 @@ import Hecate.GPG
 import Hecate.Error
 
 
+data Verbosity = Normal | Verbose
+  deriving (Show, Eq)
+
 -- | 'Command' represents CLI commands
 data Command
   = Add { addDescription :: String
@@ -31,14 +35,16 @@ data Command
         , addMeta        :: Maybe String
         }
   | Remove { removeDescription :: String }
-  | Lookup { lookupDescription :: String }
+  | Lookup { lookupDescription :: String
+           , verbosity         :: Verbosity
+           }
   | Import { importFile :: FilePath }
   deriving Show
 
 -- | 'Response' represents the response to a 'Command'
 data Response
-  = SingleEntry DisplayEntry
-  | MultipleEntries [DisplayEntry]
+  = SingleEntry DisplayEntry Verbosity
+  | MultipleEntries [DisplayEntry] Verbosity
   | Added
   | Removed
   deriving (Show, Eq)
@@ -100,9 +106,9 @@ eval Lookup{..} = do
   q   <- pure $ queryFromDescription lookupDescription
   res <- DB.query (appContextConnection ctx) q
   case res of
-    []  -> MultipleEntries <$> pure []
-    [e] -> SingleEntry     <$> decryptEntry e
-    es  -> MultipleEntries <$> decryptEntries es
+    []  -> MultipleEntries <$> pure []           <*> pure verbosity
+    [e] -> SingleEntry     <$> decryptEntry e    <*> pure verbosity
+    es  -> MultipleEntries <$> decryptEntries es <*> pure verbosity
 eval Import{importFile} = do
   ctx <- ask
   es  <- importCSV importFile

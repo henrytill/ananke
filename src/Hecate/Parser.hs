@@ -5,7 +5,7 @@ module Hecate.Parser
 import Data.Monoid ((<>))
 import Options.Applicative
 
-import Hecate.Evaluator (Command(..))
+import Hecate.Evaluator (Command(..), Verbosity(..))
 
 
 addParser :: Parser Command
@@ -34,9 +34,14 @@ removeParser = Remove <$> descParser
 
 lookupParser :: Parser Command
 lookupParser = Lookup <$> descParser
+                      <*> verbosityFlag
   where
     descParser = argument str $ metavar "DESCRIPTION"
                              <> help "Description of encrypted text to lookup"
+
+    verbosityFlag = flag Normal Verbose $ long "verbose"
+                                       <> short 'v'
+                                       <> help "Display verbose results"
 
 importParser :: Parser Command
 importParser = Import <$> pathParser

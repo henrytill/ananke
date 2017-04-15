@@ -6,6 +6,8 @@ module Hecate.Printing
   , prettyError
   ) where
 
+import Data.Time.Clock (UTCTime)
+import Data.Time.Format (defaultTimeLocale, formatTime)
 import Prelude hiding ((<$>))
 import Text.PrettyPrint.ANSI.Leijen
 import qualified Data.Text as T
@@ -18,6 +20,15 @@ import Hecate.GPG
 
 prettyText :: T.Text -> Doc
 prettyText = text . T.unpack
+
+prettyId :: Id -> Doc
+prettyId i = prettyText (unId i)
+
+prettyTimestamp :: UTCTime -> Doc
+prettyTimestamp t = prettyText (showTime t)
+  where
+    showTime :: UTCTime -> T.Text
+    showTime = T.pack . formatTime defaultTimeLocale "%c"
 
 prettyDescription :: Description -> Doc
 prettyDescription (Description d) = prettyText d
@@ -40,25 +51,42 @@ printOne DisplayEntry{..} =
   prettyPlaintext   displayPlaintext   <+>
   prettyMeta        displayMeta
 
+printOneVerbose :: DisplayEntry -> Doc
+printOneVerbose DisplayEntry{..} =
+  prettyId          displayId          <+>
+  prettyTimestamp   displayTimestamp   <+>
+  prettyDescription displayDescription <+>
+  prettyIdentity    displayIdentity    <+>
+  prettyPlaintext   displayPlaintext   <+>
+  prettyMeta        displayMeta
+
 prettyResponse :: Command -> Response -> Doc
-prettyResponse _ (SingleEntry de) =
+prettyResponse _ (SingleEntry de Normal) =
   printOne de <> linebreak
-prettyResponse _ (MultipleEntries []) =
+prettyResponse _ (SingleEntry de Verbose) =
+  printOneVerbose de <> linebreak
+prettyResponse _ (MultipleEntries [] _) =
   text "Not found" <> linebreak
-prettyResponse _ (MultipleEntries ds) =
+prettyResponse _ (MultipleEntries ds Normal) =
   foldl (\ acc b -> printOne b <$> acc) empty ds
+prettyResponse _ (MultipleEntries ds Verbose) =
+  foldl (\ acc b -> printOneVerbose b <$> acc) empty ds
 prettyResponse _ Added =
   text "Added" <> linebreak
 prettyResponse _ Removed =
   text "Removed" <> linebreak
 
 ansiPrettyResponse :: Command -> Response -> Doc
-ansiPrettyResponse _ (SingleEntry de) =
+ansiPrettyResponse _ (SingleEntry de Normal) =
   printOne de <> linebreak
-ansiPrettyResponse _ (MultipleEntries []) =
+ansiPrettyResponse _ (SingleEntry de Verbose) =
+  printOneVerbose de <> linebreak
+ansiPrettyResponse _ (MultipleEntries [] _) =
   red (text "Not found") <> linebreak
-ansiPrettyResponse _ (MultipleEntries ds) =
+ansiPrettyResponse _ (MultipleEntries ds Normal) =
   foldl (\ acc b -> printOne b <$> acc) empty ds
+ansiPrettyResponse _ (MultipleEntries ds Verbose) =
+  foldl (\ acc b -> printOneVerbose b <$> acc) empty ds
 ansiPrettyResponse _ Added =
   green (text "Added") <> linebreak
 ansiPrettyResponse _ Removed =

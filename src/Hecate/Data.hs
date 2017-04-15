@@ -74,7 +74,8 @@ instance CSV.ToRecord ImportEntry
 -- | A 'DisplayEntry' is a record that is displayed to the user in response to a
 -- command
 data DisplayEntry = DisplayEntry
-  { displayTimestamp   :: UTCTime
+  { displayId          :: Id
+  , displayTimestamp   :: UTCTime
   , displayDescription :: Description
   , displayIdentity    :: Maybe Identity
   , displayPlaintext   :: Plaintext
@@ -83,7 +84,7 @@ data DisplayEntry = DisplayEntry
 
 entryToDisplayEntry :: Entry -> Plaintext -> DisplayEntry
 entryToDisplayEntry Entry{..} p =
-  DisplayEntry entryTimestamp entryDescription entryIdentity p entryMeta
+  DisplayEntry entryId entryTimestamp entryDescription entryIdentity p entryMeta
 
 getPlainText
   :: (MonadIO m, MonadError AppError m)

@@ -16,7 +16,7 @@ import System.Directory (doesFileExist)
 import qualified Database.SQLite.Simple as SQLite
 
 import Hecate.Context
-import Hecate.Data
+import Hecate.Data hiding (query)
 import Hecate.Error
 
 

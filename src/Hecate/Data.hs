@@ -32,6 +32,7 @@ module Hecate.Data
   , queryDescription
   , queryMeta
     -- ** Query helpers
+  , query
   , queryFromDescription
   , queryIsEmpty
   ) where
@@ -277,6 +278,14 @@ data Query = Query
   , queryIdentity    :: Maybe Identity
   , queryMeta        :: Maybe Metadata
   } deriving (Show, Eq)
+
+query :: Maybe String -> Maybe String -> Maybe String -> Maybe String -> Query
+query i d iden m =
+  Query { queryId          = (Id          . T.pack) <$> i
+        , queryDescription = (Description . T.pack) <$> d
+        , queryIdentity    = (Identity    . T.pack) <$> iden
+        , queryMeta        = (Metadata    . T.pack) <$> m
+        }
 
 queryFromDescription :: String -> Query
 queryFromDescription d =

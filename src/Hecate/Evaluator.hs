@@ -4,6 +4,7 @@
 
 module Hecate.Evaluator
   ( Verbosity(..)
+  , Removal(..)
   , Command(..)
   , Response(..)
   , eval
@@ -28,17 +29,22 @@ import Hecate.Error
 data Verbosity = Normal | Verbose
   deriving (Show, Eq)
 
+data Removal
+  = RemoveId String
+  | RemoveDescription String
+  deriving (Show, Eq)
+
 -- | 'Command' represents CLI commands
 data Command
   = Add { addDescription :: String
         , addIdentity    :: Maybe String
         , addMeta        :: Maybe String
         }
-  | Remove { removeDescription :: String }
   | Lookup { lookupDescription :: String
            , verbosity         :: Verbosity
            }
   | Import { importFile :: FilePath }
+  | Remove Removal
   deriving Show
 
 -- | 'Response' represents the response to a 'Command'
@@ -85,6 +91,17 @@ createEntryWrapper d i m t =
               (Plaintext   . T.pack  $  t)
               (Metadata    . T.pack <$> m)
 
+removeOnlySingletons :: (MonadIO m, MonadError AppError m) => AppContext -> [Entry] -> m ()
+removeOnlySingletons ctx [e] = DB.delete (appContextConnection ctx) e
+removeOnlySingletons _   _   = throwError (AmbiguousInput "There are multiple entries matching your input criteria.")
+
+findAndRemove :: (MonadIO m, MonadError AppError m) => AppContext -> Query -> m Response
+findAndRemove ctx q = DB.query (appContextConnection ctx) q >>= removeOnlySingletons ctx >> return Removed
+
+remove :: (MonadIO m, MonadError AppError m) => Removal -> AppContext -> m Response
+remove (RemoveId rid)            ctx = findAndRemove ctx (query (Just rid) Nothing      Nothing Nothing)
+remove (RemoveDescription rdesc) ctx = findAndRemove ctx (query Nothing    (Just rdesc) Nothing Nothing)
+
 eval
   :: (MonadIO m, MonadError AppError m, MonadReader AppContext m)
   => Command
@@ -95,12 +112,6 @@ eval Add{..}    = do
   e   <- createEntryWrapper addDescription addIdentity addMeta t
   _   <- DB.put (appContextConnection ctx) e
   return Added
-eval Remove{..} = do
-  ctx <- ask
-  q   <- pure $ queryFromDescription removeDescription
-  es  <- DB.query (appContextConnection ctx) q
-  _   <- mapM_ (DB.delete (appContextConnection ctx)) es
-  return Removed
 eval Lookup{..} = do
   ctx <- ask
   q   <- pure $ queryFromDescription lookupDescription
@@ -114,3 +125,4 @@ eval Import{importFile} = do
   es  <- importCSV importFile
   _   <- mapM_ (DB.put (appContextConnection ctx)) es
   return Added
+eval (Remove r) = ask >>= remove r

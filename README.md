@@ -82,7 +82,7 @@ Added
 $ hecate lookup http://notarealwebsite.com
 http://notarealwebsite.com alice@notarealserver.com notarealpassword This is some metadata
 
-$ hecate rm http://notarealwebsite.com
+$ hecate rm -d http://notarealwebsite.com
 Removed
 ```
 

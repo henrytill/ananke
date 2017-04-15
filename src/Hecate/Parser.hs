@@ -5,7 +5,7 @@ module Hecate.Parser
 import Data.Monoid ((<>))
 import Options.Applicative
 
-import Hecate.Evaluator (Command(..), Verbosity(..))
+import Hecate.Evaluator (Command(..), Verbosity(..), Removal(..))
 
 
 addParser :: Parser Command
@@ -27,10 +27,19 @@ addParser = Add <$> descParser
                           <> help "Metadata associated with encrypted text"
 
 removeParser :: Parser Command
-removeParser = Remove <$> descParser
+removeParser = Remove <$> removalParser
   where
-    descParser = argument str $ metavar "DESCRIPTION"
-                             <> help "Description of encrypted text to remove"
+    removalParser = (RemoveId <$> hashParser) <|> (RemoveDescription <$> descParser)
+
+    hashParser = strOption $ long "hash"
+                          <> short 'h'
+                          <> metavar "HASH"
+                          <> help "SHA1 Hash of entry to remove"
+
+    descParser = strOption $ long "description"
+                          <> short 'd'
+                          <> metavar "DESCRIPTION"
+                          <> help "Description of entry to remove"
 
 lookupParser :: Parser Command
 lookupParser = Lookup <$> descParser

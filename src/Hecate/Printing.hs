@@ -73,6 +73,10 @@ prettyResponse _ (MultipleEntries ds Verbose) =
   foldl (\ acc b -> printOneVerbose b <$> acc) empty ds
 prettyResponse _ Added =
   text "Added" <> linebreak
+prettyResponse _ Modified =
+  text "Modified" <> linebreak
+prettyResponse _ Redescribed =
+  text "Redescribed" <> linebreak
 prettyResponse _ Removed =
   text "Removed" <> linebreak
 
@@ -89,6 +93,10 @@ ansiPrettyResponse _ (MultipleEntries ds Verbose) =
   foldl (\ acc b -> printOneVerbose b <$> acc) empty ds
 ansiPrettyResponse _ Added =
   green (text "Added") <> linebreak
+ansiPrettyResponse _ Modified =
+  green (text "Modified") <> linebreak
+ansiPrettyResponse _ Redescribed =
+  green (text "Redescribed") <> linebreak
 ansiPrettyResponse _ Removed =
   green (text "Removed") <> linebreak
 

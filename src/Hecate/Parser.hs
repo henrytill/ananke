@@ -5,70 +5,87 @@ module Hecate.Parser
 import Data.Monoid ((<>))
 import Options.Applicative
 
-import Hecate.Evaluator (Command(..), Verbosity(..), Removal(..))
+import Hecate.Evaluator hiding (eval)
 
 
-addParser :: Parser Command
-addParser = Add <$> descParser
-                <*> optional idenParser
-                <*> optional metaParser
+descArgP :: Parser String
+descArgP = argument str $ metavar "DESC" <> help "Description of encrypted text"
+
+pathArgP :: Parser String
+pathArgP = argument str $ metavar "PATH" <> help "Path of CSV file"
+
+hashOptP :: Parser String
+hashOptP = strOption $ long "hash"
+                    <> short 'h'
+                    <> metavar "HASH"
+                    <> help "SHA1 Hash of entry to remove"
+
+descOptP :: Parser String
+descOptP = strOption $ long "description"
+                    <> short 'd'
+                    <> metavar "DESC"
+                    <> help "Description of entry to remove"
+
+idenOptP :: Parser String
+idenOptP = strOption $ long "identity"
+                    <> short 'i'
+                    <> metavar "ID"
+                    <> help "Identity associated with encrypted text"
+
+metaOptP :: Parser String
+metaOptP = strOption $ long "metadata"
+                    <> short 'm'
+                    <> metavar "META"
+                    <> help "Metadata associated with encrypted text"
+
+targetP :: Parser Target
+targetP = (TargetId <$> hashOptP) <|> (TargetDescription <$> descOptP)
+
+ciphertextFlagP :: Parser ModifyAction
+ciphertextFlagP = flag Keep Change $ long "ciphertext"
+                                  <> short 'c'
+                                  <> help "Modify ciphertext"
+
+verbosityFlagP :: Parser Verbosity
+verbosityFlagP = flag Normal Verbose $ long "verbose"
+                                    <> short 'v'
+                                    <> help "Display verbose results"
+
+addP :: Parser Command
+addP = Add <$> descArgP <*> optional idenOptP <*> optional metaOptP
+
+lookupP :: Parser Command
+lookupP = Lookup <$> descArgP <*> verbosityFlagP
+
+importP :: Parser Command
+importP = Import <$> pathArgP
+
+modifyP :: Parser Command
+modifyP = Modify <$> modificationP <*> ciphertextFlagP <*> optional idenOptP <*> optional metaOptP
   where
-    descParser = argument str $ metavar "DESCRIPTION"
-                             <> help "Description of encrypted text"
+    modificationP = (TargetId <$> hashOptP) <|> (TargetDescription <$> descOptP)
 
-    idenParser = strOption $ long "identity"
-                          <> short 'i'
-                          <> metavar "ID"
-                          <> help "Identity associated with encrypted text"
+redescribeP :: Parser Command
+redescribeP = Redescribe <$> targetP <*> descArgP
 
-    metaParser = strOption $ long "metadata"
-                          <> short 'm'
-                          <> metavar "METADATA"
-                          <> help "Metadata associated with encrypted text"
+removeP :: Parser Command
+removeP = Remove <$> targetP
 
-removeParser :: Parser Command
-removeParser = Remove <$> removalParser
-  where
-    removalParser = (RemoveId <$> hashParser) <|> (RemoveDescription <$> descParser)
-
-    hashParser = strOption $ long "hash"
-                          <> short 'h'
-                          <> metavar "HASH"
-                          <> help "SHA1 Hash of entry to remove"
-
-    descParser = strOption $ long "description"
-                          <> short 'd'
-                          <> metavar "DESCRIPTION"
-                          <> help "Description of entry to remove"
-
-lookupParser :: Parser Command
-lookupParser = Lookup <$> descParser
-                      <*> verbosityFlag
-  where
-    descParser = argument str $ metavar "DESCRIPTION"
-                             <> help "Description of encrypted text to lookup"
-
-    verbosityFlag = flag Normal Verbose $ long "verbose"
-                                       <> short 'v'
-                                       <> help "Display verbose results"
-
-importParser :: Parser Command
-importParser = Import <$> pathParser
-  where
-    pathParser = argument str $ metavar "PATH"
-                             <> help "Path of CSV file"
-
-cmdAdd    :: Mod CommandFields Command
-cmdRemove :: Mod CommandFields Command
-cmdLookup :: Mod CommandFields Command
-cmdImport :: Mod CommandFields Command
-cmdAdd    = command "add"    $ info addParser    (progDesc "Encrypt a piece of text and add it to the store")
-cmdRemove = command "rm"     $ info removeParser (progDesc "Remove a piece of encrypted text from the store")
-cmdLookup = command "lookup" $ info lookupParser (progDesc "Lookup a piece of encrypted text from the store")
-cmdImport = command "import" $ info importParser (progDesc "Import a CSV file")
+cmdAdd        :: Mod CommandFields Command
+cmdLookup     :: Mod CommandFields Command
+cmdImport     :: Mod CommandFields Command
+cmdModify     :: Mod CommandFields Command
+cmdRedescribe :: Mod CommandFields Command
+cmdRemove     :: Mod CommandFields Command
+cmdAdd        = command "add"        $ info addP        (progDesc "Encrypt a piece of text and add it to the store")
+cmdLookup     = command "lookup"     $ info lookupP     (progDesc "Lookup a piece of encrypted text in the store")
+cmdImport     = command "import"     $ info importP     (progDesc "Import a CSV file")
+cmdModify     = command "modify"     $ info modifyP     (progDesc "Modify a piece of encrypted text in the store")
+cmdRedescribe = command "redescribe" $ info redescribeP (progDesc "Modify the description of a piece of encrypted text in the store")
+cmdRemove     = command "rm"         $ info removeP     (progDesc "Remove a piece of encrypted text from the store")
 
 master :: Parser Command
-master = hsubparser (cmdAdd <> cmdRemove <> cmdLookup <> cmdImport)
+master = hsubparser (cmdAdd <> cmdLookup <> cmdImport <> cmdModify <> cmdRedescribe <> cmdRemove)
 
 opts :: ParserInfo Command
 opts = info (master <**> helper) (fullDesc <> progDesc "A minimal password manager")

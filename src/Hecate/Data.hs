@@ -31,9 +31,7 @@ module Hecate.Data
   , queryIdentity
   , queryDescription
   , queryMeta
-    -- ** Query helpers
   , query
-  , queryFromDescription
   , queryIsEmpty
   ) where
 
@@ -155,6 +153,18 @@ createEntry description identity plaintext meta = do
   encrypted <- encrypt (appContextKeyId ctx) plaintext
   return $ Entry i timestamp description identity encrypted meta
 
+updateEntry
+  :: (MonadIO m, MonadError AppError m)
+  => Description
+  -> Maybe Identity
+  -> Ciphertext
+  -> Maybe Metadata
+  -> m Entry
+updateEntry description identity ciphertext meta = do
+  timestamp <- liftIO getCurrentTime
+  i         <- pure $ createId timestamp description identity
+  return $ Entry i timestamp description identity ciphertext meta
+
 importEntryToEntry
   :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
   => ImportEntry
@@ -241,32 +251,37 @@ instance CSV.FromField Metadata where
 
 -- ** And some updaters
 
-withUpdateTimestamp :: MonadIO m => (Entry -> Entry) -> Entry -> m Entry
-withUpdateTimestamp f e = f <$> g
-  where
-    g = (\ts -> e{entryTimestamp = ts}) <$> liftIO getCurrentTime
-
-updateIdentity :: MonadIO m => Maybe Identity -> Entry -> m Entry
-updateMetadata :: MonadIO m => Maybe Metadata -> Entry -> m Entry
-updateIdentity i = withUpdateTimestamp $ \ue -> ue{entryIdentity = i}
-updateMetadata m = withUpdateTimestamp $ \ue -> ue{entryMeta = m}
-
 updateDescription
-  :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
+  :: (MonadIO m, MonadError AppError m)
   => Description
   -> Entry
   -> m Entry
-updateDescription d e@Entry{entryIdentity, entryMeta} = do
-  pt <- getPlainText e
-  createEntry d entryIdentity pt entryMeta
+updateDescription d Entry{..} =
+  updateEntry d entryIdentity entryCiphertext entryMeta
+
+updateIdentity
+  :: (MonadIO m, MonadError AppError m)
+  => Maybe Identity
+  -> Entry
+  -> m Entry
+updateIdentity iden Entry{..} =
+  updateEntry entryDescription iden entryCiphertext entryMeta
 
 updateCiphertext
   :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
   => Plaintext
   -> Entry
   -> m Entry
-updateCiphertext pt Entry{entryDescription, entryIdentity, entryMeta} =
+updateCiphertext pt Entry{..} =
   createEntry entryDescription entryIdentity pt entryMeta
+
+updateMetadata
+  :: (MonadIO m, MonadError AppError m)
+  => Maybe Metadata
+  -> Entry
+  -> m Entry
+updateMetadata m Entry{..} =
+  updateEntry entryDescription entryIdentity entryCiphertext m
 
 
 -- * Queries
@@ -285,14 +300,6 @@ query i d iden m =
         , queryDescription = (Description . T.pack) <$> d
         , queryIdentity    = (Identity    . T.pack) <$> iden
         , queryMeta        = (Metadata    . T.pack) <$> m
-        }
-
-queryFromDescription :: String -> Query
-queryFromDescription d =
-  Query { queryId          = Nothing
-        , queryDescription = Just . Description $ T.pack d
-        , queryIdentity    = Nothing
-        , queryMeta        = Nothing
         }
 
 queryIsEmpty :: Query -> Bool

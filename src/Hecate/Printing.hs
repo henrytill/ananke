@@ -93,4 +93,4 @@ ansiPrettyResponse _ Removed =
   green (text "Removed") <> linebreak
 
 prettyError :: Command -> AppError -> Doc
-prettyError _ e = text (show e)
+prettyError _ e = text (show e) <> linebreak

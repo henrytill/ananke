@@ -9,7 +9,7 @@ import Hecate.Evaluator hiding (eval)
 
 
 descArgP :: Parser String
-descArgP = argument str $ metavar "DESC" <> help "Description of encrypted text"
+descArgP = argument str $ metavar "DESC" <> help "Description of ciphertext"
 
 pathArgP :: Parser String
 pathArgP = argument str $ metavar "PATH" <> help "Path of CSV file"
@@ -30,13 +30,13 @@ idenOptP :: Parser String
 idenOptP = strOption $ long "identity"
                     <> short 'i'
                     <> metavar "ID"
-                    <> help "Identity associated with encrypted text"
+                    <> help "Identity associated with ciphertext"
 
 metaOptP :: Parser String
 metaOptP = strOption $ long "metadata"
                     <> short 'm'
                     <> metavar "META"
-                    <> help "Metadata associated with encrypted text"
+                    <> help "Metadata associated with ciphertext"
 
 targetP :: Parser Target
 targetP = (TargetId <$> hashOptP) <|> (TargetDescription <$> descOptP)
@@ -78,11 +78,11 @@ cmdModify     :: Mod CommandFields Command
 cmdRedescribe :: Mod CommandFields Command
 cmdRemove     :: Mod CommandFields Command
 cmdAdd        = command "add"        $ info addP        (progDesc "Encrypt a piece of text and add it to the store")
-cmdLookup     = command "lookup"     $ info lookupP     (progDesc "Lookup a piece of encrypted text in the store")
+cmdLookup     = command "lookup"     $ info lookupP     (progDesc "Lookup a piece of ciphertext in the store")
 cmdImport     = command "import"     $ info importP     (progDesc "Import a CSV file")
-cmdModify     = command "modify"     $ info modifyP     (progDesc "Modify a piece of encrypted text in the store")
-cmdRedescribe = command "redescribe" $ info redescribeP (progDesc "Modify the description of a piece of encrypted text in the store")
-cmdRemove     = command "rm"         $ info removeP     (progDesc "Remove a piece of encrypted text from the store")
+cmdModify     = command "modify"     $ info modifyP     (progDesc "Modify a piece of ciphertext in the store")
+cmdRedescribe = command "redescribe" $ info redescribeP (progDesc "Modify the description of a piece of ciphertext in the store")
+cmdRemove     = command "rm"         $ info removeP     (progDesc "Remove a piece of ciphertext from the store")
 
 master :: Parser Command
 master = hsubparser (cmdAdd <> cmdLookup <> cmdImport <> cmdModify <> cmdRedescribe <> cmdRemove)

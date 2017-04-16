@@ -18,13 +18,13 @@ hashOptP :: Parser String
 hashOptP = strOption $ long "hash"
                     <> short 'h'
                     <> metavar "HASH"
-                    <> help "SHA1 Hash of entry to remove"
+                    <> help "SHA1 Hash of desired entry"
 
 descOptP :: Parser String
 descOptP = strOption $ long "description"
                     <> short 'd'
                     <> metavar "DESC"
-                    <> help "Description of entry to remove"
+                    <> help "Description of desired entry"
 
 idenOptP :: Parser String
 idenOptP = strOption $ long "identity"
@@ -41,10 +41,10 @@ metaOptP = strOption $ long "metadata"
 targetP :: Parser Target
 targetP = (TargetId <$> hashOptP) <|> (TargetDescription <$> descOptP)
 
-ciphertextFlagP :: Parser ModifyAction
-ciphertextFlagP = flag Keep Change $ long "ciphertext"
-                                  <> short 'c'
-                                  <> help "Modify ciphertext"
+modifyCiphertextFlagP :: Parser ModifyAction
+modifyCiphertextFlagP = flag Keep Change $ long "ciphertext"
+                                        <> short 'c'
+                                        <> help "Modify ciphertext"
 
 verbosityFlagP :: Parser Verbosity
 verbosityFlagP = flag Normal Verbose $ long "verbose"
@@ -52,18 +52,22 @@ verbosityFlagP = flag Normal Verbose $ long "verbose"
                                     <> help "Display verbose results"
 
 addP :: Parser Command
-addP = Add <$> descArgP <*> optional idenOptP <*> optional metaOptP
+addP = Add <$> descArgP
+           <*> optional idenOptP
+           <*> optional metaOptP
 
 lookupP :: Parser Command
-lookupP = Lookup <$> descArgP <*> verbosityFlagP
+lookupP = Lookup <$> descArgP
+                 <*> verbosityFlagP
 
 importP :: Parser Command
 importP = Import <$> pathArgP
 
 modifyP :: Parser Command
-modifyP = Modify <$> modificationP <*> ciphertextFlagP <*> optional idenOptP <*> optional metaOptP
-  where
-    modificationP = (TargetId <$> hashOptP) <|> (TargetDescription <$> descOptP)
+modifyP = Modify <$> targetP
+                 <*> modifyCiphertextFlagP
+                 <*> optional idenOptP
+                 <*> optional metaOptP
 
 redescribeP :: Parser Command
 redescribeP = Redescribe <$> targetP <*> descArgP

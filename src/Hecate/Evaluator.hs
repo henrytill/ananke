@@ -45,7 +45,7 @@ data Command
         , addMeta        :: Maybe String
         }
   | Lookup { lookupDescription :: String
-           , verbosity         :: Verbosity
+           , lookupVerbosity   :: Verbosity
            }
   | Import { importFile :: FilePath }
   | Modify { modifyTarget     :: Target
@@ -137,7 +137,8 @@ modifyOnlySingletons [e] miden mmeta = do
   _   <- DB.put (appContextConnection ctx) ue2
   _   <- DB.delete (appContextConnection ctx) e
   return Modified
-modifyOnlySingletons _ _ _ = throwError (AmbiguousInput "There are multiple entries matching your input criteria.")
+modifyOnlySingletons _ _ _ =
+  throwError (AmbiguousInput "There are multiple entries matching your input criteria.")
 
 findAndModify
   :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
@@ -157,10 +158,14 @@ modify
   -> Maybe String
   -> Maybe String
   -> m Response
-modify (TargetId mid)            Change miden mmeta = findAndModify (query (Just mid) Nothing      Nothing Nothing) miden mmeta
-modify (TargetDescription mdesc) Change miden mmeta = findAndModify (query Nothing    (Just mdesc) Nothing Nothing) miden mmeta
-modify (TargetId mid)            Keep   miden mmeta = findAndModify (query (Just mid) Nothing      Nothing Nothing) miden mmeta
-modify (TargetDescription mdesc) Keep   miden mmeta = findAndModify (query Nothing    (Just mdesc) Nothing Nothing) miden mmeta
+modify (TargetId mid) Change miden mmeta =
+  findAndModify (query (Just mid) Nothing Nothing Nothing) miden mmeta
+modify (TargetDescription mdesc) Change miden mmeta =
+  findAndModify (query Nothing (Just mdesc) Nothing Nothing) miden mmeta
+modify (TargetId mid) Keep miden mmeta =
+  findAndModify (query (Just mid) Nothing Nothing Nothing) miden mmeta
+modify (TargetDescription mdesc) Keep miden mmeta =
+  findAndModify (query Nothing (Just mdesc) Nothing Nothing) miden mmeta
 
 redescribeOnlySingletons
   :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
@@ -173,7 +178,8 @@ redescribeOnlySingletons [e] s = do
   _   <- DB.put (appContextConnection ctx) ue
   _   <- DB.delete (appContextConnection ctx) e
   return Redescribed
-redescribeOnlySingletons _ _ = throwError (AmbiguousInput "There are multiple entries matching your input criteria.")
+redescribeOnlySingletons _ _ =
+  throwError (AmbiguousInput "There are multiple entries matching your input criteria.")
 
 findAndRedescribe
   :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
@@ -190,25 +196,39 @@ redescribe
   => Target
   -> String
   -> m Response
-redescribe (TargetId tid)            s = findAndRedescribe (query (Just tid) Nothing      Nothing Nothing) s
-redescribe (TargetDescription tdesc) s = findAndRedescribe (query Nothing    (Just tdesc) Nothing Nothing) s
+redescribe (TargetId tid) s =
+  findAndRedescribe (query (Just tid) Nothing Nothing Nothing) s
+redescribe (TargetDescription tdesc) s =
+  findAndRedescribe (query Nothing (Just tdesc) Nothing Nothing) s
 
-removeOnlySingletons :: (MonadIO m, MonadReader AppContext m, MonadError AppError m) => [Entry] -> m Response
+removeOnlySingletons
+  :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
+  => [Entry]
+  -> m Response
 removeOnlySingletons [e] = do
   ctx <- ask
   _   <- DB.delete (appContextConnection ctx) e
   return Removed
-removeOnlySingletons _   = throwError (AmbiguousInput "There are multiple entries matching your input criteria.")
+removeOnlySingletons _ =
+  throwError (AmbiguousInput "There are multiple entries matching your input criteria.")
 
-findAndRemove :: (MonadIO m, MonadReader AppContext m,  MonadError AppError m) => Query -> m Response
+findAndRemove
+  :: (MonadIO m, MonadReader AppContext m,  MonadError AppError m)
+  => Query
+  -> m Response
 findAndRemove q = do
   ctx <- ask
   rs  <- DB.query (appContextConnection ctx) q
   removeOnlySingletons rs
 
-remove :: (MonadIO m, MonadReader AppContext m, MonadError AppError m) => Target -> m Response
-remove (TargetId rid)            = findAndRemove (query (Just rid) Nothing      Nothing Nothing)
-remove (TargetDescription rdesc) = findAndRemove (query Nothing    (Just rdesc) Nothing Nothing)
+remove
+  :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
+  => Target
+  -> m Response
+remove (TargetId rid) =
+  findAndRemove (query (Just rid) Nothing Nothing Nothing)
+remove (TargetDescription rdesc) =
+  findAndRemove (query Nothing (Just rdesc) Nothing Nothing)
 
 eval
   :: (MonadIO m, MonadError AppError m, MonadReader AppContext m)
@@ -225,9 +245,9 @@ eval Lookup{..} = do
   q   <- pure $ query Nothing (Just lookupDescription) Nothing Nothing
   res <- DB.query (appContextConnection ctx) q
   case res of
-    []  -> MultipleEntries <$> pure []           <*> pure verbosity
-    [e] -> SingleEntry     <$> decryptEntry e    <*> pure verbosity
-    es  -> MultipleEntries <$> decryptEntries es <*> pure verbosity
+    []  -> MultipleEntries <$> pure []           <*> pure lookupVerbosity
+    [e] -> SingleEntry     <$> decryptEntry e    <*> pure lookupVerbosity
+    es  -> MultipleEntries <$> decryptEntries es <*> pure lookupVerbosity
 eval Import{importFile} = do
   ctx <- ask
   es  <- importCSV importFile

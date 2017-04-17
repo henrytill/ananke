@@ -31,21 +31,20 @@ You should have a basic understanding of how to use GnuPG and have a keypair to 
 
 ## Installation
 
+Currently, the recommended way of getting `hecate` is to build and install it from the [latest release](https://github.com/henrytill/hecate/releases/latest).
+
 ### with Nix
 
 ```
-$ git clone https://github.com/henrytill/hecate.git
-  ...
-$ cd hecate
-$ nix-env -f default.nix -i hecate
+$ nix-env -f https://github.com/henrytill/hecate/archive/<version>.tar.gz -i hecate
 ```
 
 ### with Cabal
 
+After downloading and decompressing the [latest release](https://github.com/henrytill/hecate/releases/latest),
+
 ```
-$ git clone https://github.com/henrytill/hecate.git
-  ...
-$ cd hecate
+$ cd hecate-<version>
 $ cabal sandbox init
   ...
 $ cabal install --enable-relocatable
@@ -53,7 +52,7 @@ $ cabal install --enable-relocatable
 
 You can then move the resultant `hecate` executable to a desired location.  For example:
 ```
-$ mv <path to hecate clone>/.cabal-sandbox/bin/hecate /usr/local/bin
+$ mv <path to hecate dir>/.cabal-sandbox/bin/hecate /usr/local/bin
 ```
 
 ## Setup

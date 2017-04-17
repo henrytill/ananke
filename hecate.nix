@@ -1,9 +1,9 @@
 { mkDerivation, ansi-terminal, ansi-wl-pprint, base
-, base64-bytestring, bytestring, cassava, directory, filepath, gnupg1compat
-, hlint, htoml, memory, mtl, optparse-applicative, parsec, process
-, process-extras, QuickCheck, quickcheck-text, SHA, sqlite, sqlite-simple
-, stdenv, text, time, transformers, unix, unordered-containers
-, vector
+, base64-bytestring, bytestring, cassava, directory, filepath
+, hlint, htoml, mtl, optparse-applicative, process, process-extras
+, QuickCheck, quickcheck-text, SHA, sqlite-simple, stdenv, text
+, time, unix, unordered-containers, vector
+, gnupg1compat, sqlite
 }:
 mkDerivation {
   pname = "hecate";
@@ -13,16 +13,16 @@ mkDerivation {
   isExecutable = true;
   libraryHaskellDepends = [
     ansi-wl-pprint base base64-bytestring bytestring cassava directory
-    filepath htoml memory mtl optparse-applicative parsec process
-    process-extras SHA sqlite-simple text time transformers unix
-    unordered-containers vector
+    filepath htoml mtl optparse-applicative process process-extras SHA
+    sqlite-simple text time unix unordered-containers vector
   ];
   executableHaskellDepends = [
     ansi-terminal ansi-wl-pprint base directory mtl sqlite-simple
   ];
   executableSystemDepends = [ sqlite gnupg1compat ];
   testHaskellDepends = [
-    base hlint mtl QuickCheck quickcheck-text sqlite-simple unix
+    base directory hlint mtl QuickCheck quickcheck-text sqlite-simple
+    unix
   ];
   testSystemDepends = [ sqlite gnupg1compat ];
   preCheck = ''

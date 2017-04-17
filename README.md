@@ -35,7 +35,7 @@ Currently, the recommended way of getting `hecate` is to build and install it fr
 
 ### with Nix
 
-```
+```sh
 $ nix-env -f https://github.com/henrytill/hecate/archive/<version>.tar.gz -i hecate
 ```
 
@@ -43,7 +43,7 @@ $ nix-env -f https://github.com/henrytill/hecate/archive/<version>.tar.gz -i hec
 
 After downloading and decompressing the [latest release](https://github.com/henrytill/hecate/releases/latest),
 
-```
+```sh
 $ cd hecate-<version>
 $ cabal sandbox init
   ...
@@ -51,7 +51,8 @@ $ cabal install --enable-relocatable
 ```
 
 You can then move the resultant `hecate` executable to a desired location.  For example:
-```
+
+```sh
 $ mv <path to hecate dir>/.cabal-sandbox/bin/hecate /usr/local/bin
 ```
 
@@ -65,7 +66,7 @@ Your configuration file should look like the example given [here](example/hecate
 
 You can find the keyid of your public key with the following command:
 
-```
+```sh
 $ gpg --keyid-format LONG -k <user>
 ```
 
@@ -73,7 +74,7 @@ where `<user>` is usually the email address associated with the keypair.
 
 ## Usage
 
-```
+```sh
 $ hecate add http://notarealwebsite.com -i alice@notarealserver.com -m "This is some metadata"
 Enter text to encrypt: notarealpassword
 Added
@@ -93,12 +94,12 @@ The `hecate` executable can produce a script suitable for use with Bash completi
 
 To test this feature directly, you can use the following command:
 
-```
+```sh
 $ source <(hecate --bash-completion-script `which hecate`)
 ```
 
 ### More info
 
-```
+```sh
 $ hecate --help
 ```

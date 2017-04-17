@@ -75,14 +75,47 @@ where `<user>` is usually the email address associated with the keypair.
 ## Usage
 
 ```sh
+# Add an entry to the database, consisting of a description of the entry, a piece of text to encrypt,
+# an optional accompanying identity, and an optional piece of metadata
 $ hecate add http://notarealwebsite.com -i alice@notarealserver.com -m "This is some metadata"
 Enter text to encrypt: notarealpassword
 Added
 
+# Retrieve an entry from the database and display its ciphertext as plaintext (see NOTE below)
 $ hecate lookup http://notarealwebsite.com
 http://notarealwebsite.com alice@notarealserver.com notarealpassword This is some metadata
 
-$ hecate rm -d http://notarealwebsite.com
+# Modify the ciphertext of a given entry
+$ hecate modify -d http://notarealwebsite.com -c
+Enter text to encrypt: anotherfakepassword
+Modified
+
+# Modify the identity of a given entry
+$ hecate modify -d http://notarealwebsite.com -i alice_alt@notarealserver.com
+Modified
+
+# Modify the metadata of a given entry
+$ hecate modify -d http://notarealwebsite.com -m "My alternate account"
+Modified
+
+# Retrieve the modified entry
+$ hecate lookup http://notarealwebsite.com
+http://notarealwebsite.com alice_alt@notarealserver.com anotherfakepassword My alternate account
+
+# Change the description of an entry
+$ hecate redescribe -d http://notarealwebsite.com http://notarealwebsite.net
+Redescribed
+
+# Check if the old entry still exists
+$ hecate lookup http://notarealwebsite.com
+Not found
+
+# Retrieve the newly-redescribed entry
+$ hecate lookup http://notarealwebsite.net
+http://notarealwebsite.net alice_alt@notarealserver.com anotherfakepassword My alternate account
+
+# Remove an entry from the database
+$ hecate rm -d http://notarealwebsite.net
 Removed
 ```
 

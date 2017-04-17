@@ -115,41 +115,56 @@ updateWrapper Nothing Nothing e =
   pure e
 updateWrapper (Just "") Nothing e =
   updateIdentity Nothing e
-updateWrapper Nothing   (Just "") e =
+updateWrapper miden Nothing e =
+  updateIdentity (Identity . T.pack <$> miden) e
+updateWrapper Nothing (Just "") e =
   updateMetadata Nothing e
+updateWrapper Nothing mmeta e =
+  updateMetadata (Metadata . T.pack <$> mmeta) e
 updateWrapper (Just "") (Just "") e =
   updateIdentity Nothing e >>= updateMetadata Nothing
 updateWrapper miden mmeta e =
   updateIdentity (Identity . T.pack <$> miden) e >>=
   updateMetadata (Metadata . T.pack <$> mmeta)
 
+updateCiphertextWrapper
+  :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
+  => ModifyAction
+  -> Entry
+  -> m Entry
+updateCiphertextWrapper Change e =
+  promptText "Enter text to encrypt: " >>= \t -> updateCiphertext (Plaintext . T.pack $ t) e
+updateCiphertextWrapper Keep e =
+  pure e
+
 modifyOnlySingletons
   :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
   => [Entry]
+  -> ModifyAction
   -> Maybe String
   -> Maybe String
   -> m Response
-modifyOnlySingletons [e] miden mmeta = do
+modifyOnlySingletons [e] maction miden mmeta = do
   ctx <- ask
-  t   <- promptText "Enter text to encrypt: "
   ue1 <- updateWrapper miden mmeta e
-  ue2 <- updateCiphertext (Plaintext . T.pack $ t) ue1
+  ue2 <- updateCiphertextWrapper maction ue1
   _   <- DB.put (appContextConnection ctx) ue2
   _   <- DB.delete (appContextConnection ctx) e
   return Modified
-modifyOnlySingletons _ _ _ =
+modifyOnlySingletons _ _ _ _ =
   throwError (AmbiguousInput "There are multiple entries matching your input criteria.")
 
 findAndModify
   :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
   => Query
+  -> ModifyAction
   -> Maybe String
   -> Maybe String
   -> m Response
-findAndModify q miden mmeta = do
+findAndModify q maction miden mmeta = do
   ctx <- ask
   rs  <- DB.query (appContextConnection ctx) q
-  modifyOnlySingletons rs miden mmeta
+  modifyOnlySingletons rs maction miden mmeta
 
 modify
   :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
@@ -158,14 +173,10 @@ modify
   -> Maybe String
   -> Maybe String
   -> m Response
-modify (TargetId mid) Change miden mmeta =
-  findAndModify (query (Just mid) Nothing Nothing Nothing) miden mmeta
-modify (TargetDescription mdesc) Change miden mmeta =
-  findAndModify (query Nothing (Just mdesc) Nothing Nothing) miden mmeta
-modify (TargetId mid) Keep miden mmeta =
-  findAndModify (query (Just mid) Nothing Nothing Nothing) miden mmeta
-modify (TargetDescription mdesc) Keep miden mmeta =
-  findAndModify (query Nothing (Just mdesc) Nothing Nothing) miden mmeta
+modify (TargetId mid) maction miden mmeta =
+  findAndModify (query (Just mid) Nothing Nothing Nothing) maction miden mmeta
+modify (TargetDescription mdesc) maction miden mmeta =
+  findAndModify (query Nothing (Just mdesc) Nothing Nothing) maction miden mmeta
 
 redescribeOnlySingletons
   :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)

@@ -86,7 +86,7 @@ cmdLookup     = command "lookup"     $ info lookupP     (progDesc "Lookup a piec
 cmdImport     = command "import"     $ info importP     (progDesc "Import a CSV file")
 cmdModify     = command "modify"     $ info modifyP     (progDesc "Modify a piece of ciphertext in the store")
 cmdRedescribe = command "redescribe" $ info redescribeP (progDesc "Modify the description of a piece of ciphertext in the store")
-cmdRemove     = command "rm"         $ info removeP     (progDesc "Remove a piece of ciphertext from the store")
+cmdRemove     = command "remove"     $ info removeP     (progDesc "Remove a piece of ciphertext from the store")
 
 master :: Parser Command
 master = hsubparser (cmdAdd <> cmdLookup <> cmdImport <> cmdModify <> cmdRedescribe <> cmdRemove)

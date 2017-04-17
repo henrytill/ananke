@@ -115,7 +115,7 @@ $ hecate lookup http://notarealwebsite.net
 http://notarealwebsite.net alice_alt@notarealserver.com anotherfakepassword My alternate account
 
 # Remove an entry from the database
-$ hecate rm -d http://notarealwebsite.net
+$ hecate remove -d http://notarealwebsite.net
 Removed
 ```
 

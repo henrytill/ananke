@@ -9,8 +9,10 @@ mkDerivation {
   pname = "hecate";
   version = "0.2.0.0";
   src = ./.;
-  isLibrary = true;
+  isLibrary = false;
   isExecutable = true;
+  enableSharedExecutables = false;
+  doHaddock = false;
   libraryHaskellDepends = [
     ansi-wl-pprint base base64-bytestring bytestring cassava directory
     filepath htoml mtl optparse-applicative process process-extras SHA
@@ -28,6 +30,7 @@ mkDerivation {
   preCheck = ''
     export GNUPGHOME="$PWD/example/gnupg"
   '';
+  postFixup = "rm -rf $out/lib $out/nix-support $out/share/doc";
   description = "A simple password manager";
   license = stdenv.lib.licenses.asl20;
 }

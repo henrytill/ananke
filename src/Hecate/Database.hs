@@ -85,7 +85,8 @@ delete conn e = liftIO $ SQLite.executeNamed conn s [":id" := entryId e]
 selectAll :: MonadIO m => SQLite.Connection -> m [Entry]
 selectAll conn = liftIO $ SQLite.query_ conn q
   where
-    q = "SELECT * FROM entries"
+    q = "SELECT id, timestamp, description, identity, ciphertext, meta \
+        \FROM entries"
 
 idMatcher          :: Id          -> (SQLite.Query, [SQLite.NamedParam])
 descriptionMatcher :: Description -> (SQLite.Query, [SQLite.NamedParam])
@@ -115,7 +116,10 @@ queryParts q =
 generateQuery :: Query -> (SQLite.Query, [SQLite.NamedParam])
 generateQuery = (select <>) . foldl queryFolder ("", []) . queryParts
   where
-    select = ("SELECT * FROM entries WHERE ", [])
+    q = "SELECT id, timestamp, description, identity, ciphertext, meta \
+        \FROM entries \
+        \WHERE "
+    select = (q, [])
 
 query :: MonadIO m => SQLite.Connection -> Query -> m [Entry]
 query conn q =

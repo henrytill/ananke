@@ -31,6 +31,6 @@ mkDerivation {
     export GNUPGHOME="$PWD/example/gnupg"
   '';
   postFixup = "rm -rf $out/lib $out/nix-support $out/share/doc";
-  description = "A simple password manager";
+  description = "A minimal password manager";
   license = stdenv.lib.licenses.asl20;
 }

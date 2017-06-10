@@ -67,13 +67,13 @@ getDataDir =
 
 configure :: (MonadIO m, MonadError AppError m) => FilePath -> m AppConfig
 configure dataDir = do
-  dirExists <- liftIO (doesDirectoryExist dataDir)
-  unless dirExists (liftIO (createDirectory dataDir))
-  unless dirExists (liftIO (createDirectory (dataDir ++ "/db")))
-  txt       <- liftIO (TIO.readFile (dataDir ++ "/hecate.toml"))
-  tbl       <- either (throwError . TomlParsing . show) pure (parseTomlDoc "" txt)
-  dfing     <- either throwError pure (parseKeyId tbl)
-  keyId     <- KeyId . T.pack <$> getEnvOrDefault "HECATE_KEYID" dfing
+  txt   <- liftIO (TIO.readFile (dataDir ++ "/hecate.toml"))
+  tbl   <- either (throwError . TomlParsing . show) pure (parseTomlDoc "" txt)
+  dfing <- either throwError pure (parseKeyId tbl)
+  keyId <- KeyId . T.pack <$> getEnvOrDefault "HECATE_KEYID" dfing
+  let dbDir = dataDir ++ "/db"
+  dbDirExists <- liftIO (doesDirectoryExist dbDir)
+  unless dbDirExists (liftIO (createDirectory dbDir))
   return AppConfig { appConfigDataDirectory = dataDir
                    , appConfigKeyId = keyId
                    }

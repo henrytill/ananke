@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts  #-}
 
-module Main where
+module Main (main) where
 
 import Control.Exception
 import Control.Monad.Except
@@ -17,8 +17,6 @@ import Hecate.Error
 import Hecate.Evaluator
 import Hecate.Parser
 import Hecate.Printing
-
-{-# ANN module "HLint: ignore Use module export list" #-}
 
 hPutDocWrapper :: Handle -> Doc -> Doc -> IO ()
 hPutDocWrapper h f g = do

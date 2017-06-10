@@ -1,12 +1,10 @@
-module Main where
+module Main (main) where
 
 import Control.Monad
 import System.Exit
 import Test.QuickCheck
 
 import Hecate.Database.Properties
-
-{-# ANN module "HLint: ignore Use module export list" #-}
 
 isSuccess :: Result -> Bool
 isSuccess Success{} = True

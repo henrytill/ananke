@@ -10,7 +10,7 @@ import Control.Monad.Reader
 import Data.List ((\\))
 import Data.Text.Arbitrary ()
 import Database.SQLite.Simple hiding (Error)
-import System.Directory (copyFile, createDirectory)
+import System.Directory (copyFile)
 import System.Posix.Temp
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
@@ -60,7 +60,6 @@ doDatabaseProperties :: IO [Result]
 doDatabaseProperties = do
   dir         <- mkdtemp "/tmp/hecate-tests-"
   _           <- copyFile "./example/hecate.toml" (dir ++ "/hecate.toml")
-  _           <- createDirectory (dir ++ "/db")
   (Right ctx) <- runExceptT (configure dir >>= createContext)
   results     <- mapM (\p -> quickCheckWithResult stdArgs (p ctx)) dbTests
   _           <- close (appContextConnection ctx)

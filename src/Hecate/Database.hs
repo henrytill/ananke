@@ -14,10 +14,12 @@ import Data.Monoid ((<>))
 import Database.SQLite.Simple (NamedParam ((:=)))
 import System.Directory (doesFileExist)
 import qualified Database.SQLite.Simple as SQLite
+import qualified Data.Text as T
 
 import Hecate.Context
 import Hecate.Data hiding (query)
 import Hecate.Error
+import Hecate.GPG (KeyId)
 
 
 -- | A 'SchemaVersion' represents the database's schema version
@@ -28,18 +30,20 @@ instance Show SchemaVersion where
   show = show . unSchemaVersion
 
 currentSchemaVersion :: SchemaVersion
-currentSchemaVersion = SchemaVersion 1
+currentSchemaVersion = SchemaVersion 2
 
-currentSchema :: SQLite.Query
-currentSchema =
-  "CREATE TABLE IF NOT EXISTS entries (\
-  \  id          TEXT UNIQUE NOT NULL, \
-  \  timestamp   TEXT NOT NULL,        \
-  \  description TEXT NOT NULL,        \
-  \  identity    TEXT,                 \
-  \  ciphertext  BLOB NOT NULL,        \
-  \  meta        TEXT                  \
-  \)"
+currentSchema :: T.Text -> SQLite.Query
+currentSchema name = SQLite.Query t
+  where
+    t = "CREATE TABLE IF NOT EXISTS " `T.append` name `T.append` " (\
+        \  id          TEXT UNIQUE NOT NULL,                        \
+        \  keyid       TEXT NOT NULL,                               \
+        \  timestamp   TEXT NOT NULL,                               \
+        \  description TEXT NOT NULL,                               \
+        \  identity    TEXT,                                        \
+        \  ciphertext  TEXT NOT NULL,                               \
+        \  meta        TEXT                                         \
+        \)"
 
 createSchemaFile :: MonadIO m => FilePath -> m ()
 createSchemaFile path = liftIO (writeFile path (show currentSchemaVersion))
@@ -54,28 +58,67 @@ getSchemaVersion path = do
     then getSchemaVersionFromFile path
     else createSchemaFile path >> pure currentSchemaVersion
 
-migrate :: MonadIO m => SQLite.Connection -> SchemaVersion -> m ()
-migrate _ _ = pure ()
+addKeyId :: SQLite.Connection -> KeyId -> IO ()
+addKeyId conn keyId = SQLite.execute conn s (SQLite.Only keyId)
+  where
+    s = "INSERT INTO new_entries \
+        \  (id, keyid, timestamp, description, identity, ciphertext, meta)  \
+        \  SELECT id, ?, timestamp, description, identity, ciphertext, meta \
+        \  FROM entries"
 
-initDatabase :: MonadIO m => SQLite.Connection -> SchemaVersion -> m ()
-initDatabase conn schemaVersion =
+migrate
+  :: (MonadIO m, MonadError AppError m)
+  => SQLite.Connection
+  -> FilePath
+  -> SchemaVersion
+  -> KeyId
+  -> m ()
+migrate conn path (SchemaVersion 1) keyId = do
+  liftIO $ SQLite.withTransaction conn $ do
+    SQLite.execute_ conn (currentSchema "new_entries")
+    addKeyId conn keyId
+    SQLite.execute_ conn "DROP TABLE entries"
+    SQLite.execute_ conn "ALTER TABLE new_entries RENAME TO entries"
+  reencryptAll conn keyId
+  createSchemaFile path
+migrate _ _ (SchemaVersion v) _ =
+  throwError $ MigrationError ("no supported migration path for schema version " ++ show v)
+
+initDatabase
+  :: (MonadIO m, MonadError AppError m)
+  => SQLite.Connection
+  -> FilePath
+  -> SchemaVersion
+  -> KeyId
+  -> m ()
+initDatabase conn path schemaVersion keyId =
   if schemaVersion == currentSchemaVersion
-  then liftIO $ SQLite.execute_ conn currentSchema
-  else migrate conn schemaVersion
+  then liftIO $ SQLite.execute_ conn (currentSchema "entries")
+  else do
+    liftIO $ putStrLn ("Migrating database from schema version "
+                       ++ show schemaVersion
+                       ++ " to version "
+                       ++ show currentSchemaVersion
+                       ++ "...")
+    migrate conn path schemaVersion keyId
 
 createContext :: (MonadIO m, MonadError AppError m) => AppConfig -> m AppContext
 createContext config = do
-  connection    <- liftIO (SQLite.open (appConfigDataDirectory config ++ "/db/db.sqlite"))
-  schemaVersion <- getSchemaVersion (appConfigDataDirectory config ++ "/db/schema")
-  _             <- initDatabase connection schemaVersion
-  return (AppContext (appConfigKeyId config) connection)
+  connection    <- liftIO $ SQLite.open dbFile
+  schemaVersion <- getSchemaVersion schemaFile
+  initDatabase connection schemaFile schemaVersion keyId
+  return $ AppContext keyId connection
+  where
+    schemaFile = appConfigDataDirectory config ++ "/db/schema"
+    dbFile     = appConfigDataDirectory config ++ "/db/db.sqlite"
+    keyId      = appConfigKeyId config
 
 put :: MonadIO m => SQLite.Connection -> Entry -> m ()
 put conn e = liftIO $ SQLite.execute conn s e
   where
     s = "INSERT OR REPLACE INTO entries \
-        \  (id, timestamp, description, identity, ciphertext, meta) \
-        \  VALUES (?, ?, ?, ?, ?, ?)"
+        \  (id, keyid, timestamp, description, identity, ciphertext, meta) \
+        \  VALUES (?, ?, ?, ?, ?, ?, ?)"
 
 delete :: MonadIO m => SQLite.Connection -> Entry -> m ()
 delete conn e = liftIO $ SQLite.executeNamed conn s [":id" := entryId e]
@@ -85,8 +128,15 @@ delete conn e = liftIO $ SQLite.executeNamed conn s [":id" := entryId e]
 selectAll :: MonadIO m => SQLite.Connection -> m [Entry]
 selectAll conn = liftIO $ SQLite.query_ conn q
   where
-    q = "SELECT id, timestamp, description, identity, ciphertext, meta \
+    q = "SELECT id, keyid, timestamp, description, identity, ciphertext, meta \
         \FROM entries"
+
+reencryptAll :: (MonadIO m, MonadError AppError m) => SQLite.Connection -> KeyId -> m ()
+reencryptAll conn keyId = do
+  es  <- selectAll conn
+  ues <- mapM (updateKeyId keyId) es
+  mapM_ (put conn) ues
+  mapM_ (delete conn) es
 
 idMatcher          :: Id          -> (SQLite.Query, [SQLite.NamedParam])
 descriptionMatcher :: Description -> (SQLite.Query, [SQLite.NamedParam])
@@ -116,7 +166,7 @@ queryParts q =
 generateQuery :: Query -> (SQLite.Query, [SQLite.NamedParam])
 generateQuery = (select <>) . foldl queryFolder ("", []) . queryParts
   where
-    q = "SELECT id, timestamp, description, identity, ciphertext, meta \
+    q = "SELECT id, keyid, timestamp, description, identity, ciphertext, meta \
         \FROM entries \
         \WHERE "
     select = (q, [])

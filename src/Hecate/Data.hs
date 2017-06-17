@@ -21,6 +21,7 @@ module Hecate.Data
   , Identity(..)
   , Metadata(..)
     -- ** And some updaters
+  , updateKeyId
   , updateDescription
   , updateIdentity
   , updateCiphertext
@@ -110,6 +111,7 @@ decryptEntries = mapM decryptEntry
 -- information
 data Entry = Entry
   { entryId          :: Id
+  , entryKeyId       :: KeyId
   , entryTimestamp   :: UTCTime
   , entryDescription :: Description
   , entryIdentity    :: Maybe Identity
@@ -124,10 +126,18 @@ instance SQLite.FromRow Entry where
                   <*> SQLite.field
                   <*> SQLite.field
                   <*> SQLite.field
+                  <*> SQLite.field
 
 instance SQLite.ToRow Entry where
   toRow Entry{..} =
-    SQLite.toRow (entryId, entryTimestamp, entryDescription, entryIdentity, entryCiphertext, entryMeta)
+    SQLite.toRow ( entryId
+                 , entryKeyId
+                 , entryTimestamp
+                 , entryDescription
+                 , entryIdentity
+                 , entryCiphertext
+                 , entryMeta
+                 )
 
 showTime :: UTCTime -> T.Text
 showTime = T.pack . formatTime defaultTimeLocale "%s%Q"
@@ -135,9 +145,25 @@ showTime = T.pack . formatTime defaultTimeLocale "%s%Q"
 ider :: T.Text -> Id
 ider = Id . T.pack . showDigest . sha1 . BSL.fromStrict . encodeUtf8
 
-createId :: UTCTime -> Description -> Maybe Identity -> Id
-createId ts (Description d) (Just (Identity i)) = ider $ showTime ts <> d <> i
-createId ts (Description d) Nothing             = ider $ showTime ts <> d
+createId :: KeyId -> UTCTime -> Description -> Maybe Identity -> Id
+createId (KeyId k) ts (Description d) (Just (Identity i)) =
+  ider $ k <> showTime ts <> d <> i
+createId (KeyId k) ts (Description d) Nothing =
+  ider $ k <> showTime ts <> d
+
+createEntryImpl
+  :: (MonadIO m, MonadError AppError m)
+  => KeyId
+  -> UTCTime
+  -> Description
+  -> Maybe Identity
+  -> Plaintext
+  -> Maybe Metadata
+  -> m Entry
+createEntryImpl keyId timestamp description identity plaintext meta = do
+  i         <- pure $ createId keyId timestamp description identity
+  encrypted <- encrypt keyId plaintext
+  return $ Entry i keyId timestamp description identity encrypted meta
 
 createEntry
   :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
@@ -147,23 +173,22 @@ createEntry
   -> Maybe Metadata
   -> m Entry
 createEntry description identity plaintext meta = do
-  timestamp <- liftIO getCurrentTime
-  i         <- pure $ createId timestamp description identity
   ctx       <- ask
-  encrypted <- encrypt (appContextKeyId ctx) plaintext
-  return $ Entry i timestamp description identity encrypted meta
+  timestamp <- liftIO getCurrentTime
+  createEntryImpl (appContextKeyId ctx) timestamp description identity plaintext meta
 
 updateEntry
   :: (MonadIO m, MonadError AppError m)
-  => Description
+  => KeyId
+  -> Description
   -> Maybe Identity
   -> Ciphertext
   -> Maybe Metadata
   -> m Entry
-updateEntry description identity ciphertext meta = do
+updateEntry keyId description identity ciphertext meta = do
   timestamp <- liftIO getCurrentTime
-  i         <- pure $ createId timestamp description identity
-  return $ Entry i timestamp description identity ciphertext meta
+  i         <- pure $ createId keyId timestamp description identity
+  return $ Entry i keyId timestamp description identity ciphertext meta
 
 importEntryToEntry
   :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
@@ -251,13 +276,22 @@ instance CSV.FromField Metadata where
 
 -- ** And some updaters
 
+updateKeyId
+  :: (MonadIO m, MonadError AppError m)
+  => KeyId
+  -> Entry
+  -> m Entry
+updateKeyId keyId entry@Entry{..} =
+  getPlainText entry >>= \ pt ->
+  createEntryImpl keyId entryTimestamp entryDescription entryIdentity pt entryMeta
+
 updateDescription
   :: (MonadIO m, MonadError AppError m)
   => Description
   -> Entry
   -> m Entry
 updateDescription d Entry{..} =
-  updateEntry d entryIdentity entryCiphertext entryMeta
+  updateEntry entryKeyId d entryIdentity entryCiphertext entryMeta
 
 updateIdentity
   :: (MonadIO m, MonadError AppError m)
@@ -265,7 +299,7 @@ updateIdentity
   -> Entry
   -> m Entry
 updateIdentity iden Entry{..} =
-  updateEntry entryDescription iden entryCiphertext entryMeta
+  updateEntry entryKeyId entryDescription iden entryCiphertext entryMeta
 
 updateCiphertext
   :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
@@ -281,7 +315,7 @@ updateMetadata
   -> Entry
   -> m Entry
 updateMetadata m Entry{..} =
-  updateEntry entryDescription entryIdentity entryCiphertext m
+  updateEntry entryKeyId entryDescription entryIdentity entryCiphertext m
 
 
 -- * Queries

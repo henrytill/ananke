@@ -30,6 +30,12 @@ newtype KeyId = KeyId { unKeyId :: T.Text }
 instance Show KeyId where
   show (KeyId a) = show a
 
+instance ToField KeyId where
+  toField (KeyId bs) = toField bs
+
+instance FromField KeyId where
+  fromField f = KeyId <$> fromField f
+
 -- * Decrypted and encrypted values
 
 -- | A 'Plaintext' represents a decrypted value

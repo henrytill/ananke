@@ -7,6 +7,7 @@ data AppError
   | GPG String
   | FileSystem String
   | AmbiguousInput String
+  | MigrationError String
   | Default String
   deriving Eq
 
@@ -16,4 +17,5 @@ instance Show AppError where
   show (GPG s)            = "GPG Error: " ++ s
   show (FileSystem s)     = "Filesystem Error: " ++ s
   show (AmbiguousInput s) = "Ambiguous Input: " ++ s
+  show (MigrationError s) = "Migration Error: " ++ s
   show (Default s)        = "Error: " ++ s

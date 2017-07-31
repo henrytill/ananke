@@ -34,6 +34,9 @@ module Hecate.Data
   , queryMeta
   , query
   , queryIsEmpty
+  -- * Count
+  , Count
+  , unCount
   ) where
 
 import Control.Monad.Except
@@ -339,3 +342,12 @@ query i d iden m =
 queryIsEmpty :: Query -> Bool
 queryIsEmpty (Query Nothing Nothing Nothing Nothing) = True
 queryIsEmpty _                                       = False
+
+-- * Count
+
+-- | A 'Count' represents the results of a count query
+data Count = Count { unCount :: Int }
+  deriving (Show, Eq)
+
+instance SQLite.FromRow Count where
+  fromRow = Count <$> SQLite.field

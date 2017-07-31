@@ -57,6 +57,7 @@ data Command
                , redescribeDescription :: String
                }
   | Remove Target
+  | Check
   deriving Show
 
 -- | 'Response' represents the response to a 'Command'
@@ -67,6 +68,7 @@ data Response
   | Modified
   | Redescribed
   | Removed
+  | Checked
   deriving (Show, Eq)
 
 flushStr :: String -> IO ()
@@ -241,6 +243,16 @@ remove (TargetId rid) =
 remove (TargetDescription rdesc) =
   findAndRemove (query Nothing (Just rdesc) Nothing Nothing)
 
+check
+  :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
+  => m Response
+check = do
+  ctx <- ask
+  r   <- DB.checkEntries (appContextConnection ctx) (appContextKeyId ctx)
+  if r
+    then return Checked
+    else throwError (CheckError "failed")
+
 eval
   :: (MonadIO m, MonadError AppError m, MonadReader AppContext m)
   => Command
@@ -267,3 +279,4 @@ eval Import{importFile} = do
 eval (Modify t c i m) = modify t c i m
 eval (Redescribe t s) = redescribe t s
 eval (Remove t)       = remove t
+eval Check            = check

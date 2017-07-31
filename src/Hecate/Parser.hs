@@ -75,21 +75,26 @@ redescribeP = Redescribe <$> targetP <*> descArgP
 removeP :: Parser Command
 removeP = Remove <$> targetP
 
+checkP :: Parser Command
+checkP = pure Check
+
 cmdAdd        :: Mod CommandFields Command
 cmdLookup     :: Mod CommandFields Command
 cmdImport     :: Mod CommandFields Command
 cmdModify     :: Mod CommandFields Command
 cmdRedescribe :: Mod CommandFields Command
 cmdRemove     :: Mod CommandFields Command
+cmdCheck      :: Mod CommandFields Command
 cmdAdd        = command "add"        $ info addP        (progDesc "Encrypt a piece of text and add it to the store")
 cmdLookup     = command "lookup"     $ info lookupP     (progDesc "Lookup a piece of ciphertext in the store")
 cmdImport     = command "import"     $ info importP     (progDesc "Import a CSV file")
 cmdModify     = command "modify"     $ info modifyP     (progDesc "Modify a piece of ciphertext in the store")
 cmdRedescribe = command "redescribe" $ info redescribeP (progDesc "Modify the description of a piece of ciphertext in the store")
 cmdRemove     = command "remove"     $ info removeP     (progDesc "Remove a piece of ciphertext from the store")
+cmdCheck      = command "check"      $ info checkP      (progDesc "Check entries")
 
 master :: Parser Command
-master = hsubparser (cmdAdd <> cmdLookup <> cmdImport <> cmdModify <> cmdRedescribe <> cmdRemove)
+master = hsubparser (cmdAdd <> cmdLookup <> cmdImport <> cmdModify <> cmdRedescribe <> cmdRemove <> cmdCheck)
 
 opts :: ParserInfo Command
 opts = info (master <**> helper) (fullDesc <> progDesc "A minimal password manager")

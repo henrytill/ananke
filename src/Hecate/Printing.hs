@@ -79,6 +79,8 @@ prettyResponse _ Redescribed =
   text "Redescribed" <> linebreak
 prettyResponse _ Removed =
   text "Removed" <> linebreak
+prettyResponse _ Checked =
+  text "Checked" <> linebreak
 
 ansiPrettyResponse :: Command -> Response -> Doc
 ansiPrettyResponse _ (SingleEntry de Normal) =
@@ -99,6 +101,8 @@ ansiPrettyResponse _ Redescribed =
   green (text "Redescribed") <> linebreak
 ansiPrettyResponse _ Removed =
   green (text "Removed") <> linebreak
+ansiPrettyResponse _ Checked =
+  green (text "Checked") <> linebreak
 
 prettyError :: Command -> AppError -> Doc
 prettyError _ e = text (show e) <> linebreak

@@ -7,6 +7,7 @@ module Hecate.Database
   , delete
   , query
   , selectAll
+  , checkEntries
   ) where
 
 import Control.Monad.Except
@@ -130,6 +131,16 @@ selectAll conn = liftIO $ SQLite.query_ conn q
   where
     q = "SELECT id, keyid, timestamp, description, identity, ciphertext, meta \
         \FROM entries"
+
+checkEntries :: (MonadIO m, MonadError AppError m) => SQLite.Connection -> KeyId -> m Bool
+checkEntries conn keyId = liftIO $ SQLite.queryNamed conn q r >>= p
+  where
+    q = "SELECT count(keyid)  \
+        \FROM entries         \
+        \WHERE keyid != :keyid"
+    r = [":keyid" := keyId]
+    p [count] = return (unCount count == 0)
+    p _       = return False
 
 reencryptAll :: (MonadIO m, MonadError AppError m) => SQLite.Connection -> KeyId -> m ()
 reencryptAll conn keyId = do

@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NamedFieldPuns   #-}
-{-# LANGUAGE RecordWildCards  #-}
 
 module Hecate.Evaluator
   ( ModifyAction(..)
@@ -257,13 +256,13 @@ eval
   :: (MonadIO m, MonadError AppError m, MonadReader AppContext m)
   => Command
   -> m Response
-eval Add{..}    = do
+eval Add{addDescription, addIdentity, addMeta} = do
   ctx <- ask
   t   <- promptText "Enter text to encrypt: "
   e   <- createEntryWrapper addDescription addIdentity addMeta t
   _   <- DB.put (appContextConnection ctx) e
   return Added
-eval Lookup{..} = do
+eval Lookup{lookupDescription, lookupVerbosity} = do
   ctx <- ask
   q   <- pure $ query Nothing (Just lookupDescription) Nothing Nothing
   res <- DB.query (appContextConnection ctx) q

@@ -1,7 +1,6 @@
 {-# LANGUAGE DeriveGeneric    #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NamedFieldPuns   #-}
-{-# LANGUAGE RecordWildCards  #-}
 
 module Hecate.Data
   ( -- * Import & Display Entries
@@ -86,14 +85,14 @@ data DisplayEntry = DisplayEntry
   } deriving (Show, Eq)
 
 entryToDisplayEntry :: Entry -> Plaintext -> DisplayEntry
-entryToDisplayEntry Entry{..} p =
+entryToDisplayEntry Entry{entryId, entryTimestamp, entryDescription, entryIdentity, entryMeta} p =
   DisplayEntry entryId entryTimestamp entryDescription entryIdentity p entryMeta
 
 getPlainText
   :: (MonadIO m, MonadError AppError m)
   => Entry
   -> m Plaintext
-getPlainText Entry{..} = decrypt entryCiphertext
+getPlainText Entry{entryCiphertext} = decrypt entryCiphertext
 
 decryptEntry
   :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
@@ -132,7 +131,7 @@ instance SQLite.FromRow Entry where
                   <*> SQLite.field
 
 instance SQLite.ToRow Entry where
-  toRow Entry{..} =
+  toRow Entry{entryId, entryKeyId, entryTimestamp, entryDescription, entryIdentity, entryCiphertext, entryMeta} =
     SQLite.toRow ( entryId
                  , entryKeyId
                  , entryTimestamp
@@ -197,7 +196,7 @@ importEntryToEntry
   :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
   => ImportEntry
   -> m Entry
-importEntryToEntry ImportEntry{..} =
+importEntryToEntry ImportEntry{importDescription, importIdentity, importPlaintext, importMeta} =
   createEntry importDescription importIdentity importPlaintext importMeta
 
 
@@ -284,7 +283,7 @@ updateKeyId
   => KeyId
   -> Entry
   -> m Entry
-updateKeyId keyId entry@Entry{..} =
+updateKeyId keyId entry@Entry{entryTimestamp, entryDescription, entryIdentity, entryMeta} =
   getPlainText entry >>= \ pt ->
   createEntryImpl keyId entryTimestamp entryDescription entryIdentity pt entryMeta
 
@@ -293,7 +292,7 @@ updateDescription
   => Description
   -> Entry
   -> m Entry
-updateDescription d Entry{..} =
+updateDescription d Entry{entryKeyId, entryIdentity, entryCiphertext, entryMeta} =
   updateEntry entryKeyId d entryIdentity entryCiphertext entryMeta
 
 updateIdentity
@@ -301,7 +300,7 @@ updateIdentity
   => Maybe Identity
   -> Entry
   -> m Entry
-updateIdentity iden Entry{..} =
+updateIdentity iden Entry{entryKeyId, entryDescription, entryCiphertext, entryMeta} =
   updateEntry entryKeyId entryDescription iden entryCiphertext entryMeta
 
 updateCiphertext
@@ -309,7 +308,7 @@ updateCiphertext
   => Plaintext
   -> Entry
   -> m Entry
-updateCiphertext pt Entry{..} =
+updateCiphertext pt Entry{entryDescription, entryIdentity, entryMeta} =
   createEntry entryDescription entryIdentity pt entryMeta
 
 updateMetadata
@@ -317,7 +316,7 @@ updateMetadata
   => Maybe Metadata
   -> Entry
   -> m Entry
-updateMetadata m Entry{..} =
+updateMetadata m Entry{entryKeyId, entryDescription, entryIdentity, entryCiphertext} =
   updateEntry entryKeyId entryDescription entryIdentity entryCiphertext m
 
 

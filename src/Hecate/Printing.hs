@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Hecate.Printing
   ( ansiPrettyResponse
@@ -45,14 +45,14 @@ prettyMeta (Just (Metadata m)) = prettyText m
 prettyMeta Nothing             = text "<none>"
 
 printOne :: DisplayEntry -> Doc
-printOne DisplayEntry{..} =
+printOne DisplayEntry{displayDescription, displayIdentity, displayPlaintext, displayMeta} =
   prettyDescription displayDescription <+>
   prettyIdentity    displayIdentity    <+>
   prettyPlaintext   displayPlaintext   <+>
   prettyMeta        displayMeta
 
 printOneVerbose :: DisplayEntry -> Doc
-printOneVerbose DisplayEntry{..} =
+printOneVerbose DisplayEntry{displayId, displayTimestamp, displayDescription, displayIdentity, displayPlaintext, displayMeta} =
   prettyId          displayId          <+>
   prettyTimestamp   displayTimestamp   <+>
   prettyDescription displayDescription <+>

@@ -19,6 +19,10 @@ extra-source-files:
   .gitignore
   .travis.yml
   README.md
+  example/hecate.toml
+  example/gnupg/pubring.gpg
+  example/gnupg/secring.gpg
+  example/gnupg/trustdb.gpg
 
 source-repository head
   type:     git
@@ -75,6 +79,8 @@ library
 test-suite tests
   type:                exitcode-stdio-1.0
   main-is:             Main.hs
+  other-modules:       Hecate.Orphans
+                     , Hecate.Database.Properties
   build-depends:       base            >=4.8    && <4.11
                      , QuickCheck      >=2.8    && <2.10
                      , directory       >=1.2    && <1.4

@@ -10,20 +10,20 @@ module Hecate.Evaluator
   , eval
   ) where
 
-import Control.Monad.Except
-import Control.Monad.Reader
-import System.Directory (doesFileExist)
-import System.IO (hFlush, stdout)
+import           Control.Monad.Except
+import           Control.Monad.Reader
 import qualified Data.ByteString.Lazy as BSL
-import qualified Data.Csv as CSV
-import qualified Data.Text as T
-import qualified Data.Vector as Vector
-import qualified Hecate.Database as DB
+import qualified Data.Csv             as CSV
+import qualified Data.Text            as T
+import qualified Data.Vector          as Vector
+import           System.Directory     (doesFileExist)
+import           System.IO            (hFlush, stdout)
 
-import Hecate.Context
-import Hecate.Data
-import Hecate.GPG
-import Hecate.Error
+import           Hecate.Context
+import qualified Hecate.Database      as DB
+import           Hecate.Data
+import           Hecate.GPG
+import           Hecate.Error
 
 
 data ModifyAction = Keep | Change

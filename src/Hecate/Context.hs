@@ -10,17 +10,17 @@ module Hecate.Context
   , configure
   ) where
 
-import Control.Monad.Except
-import Data.Maybe (fromMaybe)
-import System.Directory (createDirectory, doesDirectoryExist)
-import System.Posix.Env (getEnv)
-import qualified TOML
-import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
+import           Control.Monad.Except
+import           Data.Maybe             (fromMaybe)
+import qualified Data.Text              as T
+import qualified Data.Text.IO           as TIO
 import qualified Database.SQLite.Simple as SQLite
+import           System.Directory       (createDirectory, doesDirectoryExist)
+import           System.Posix.Env       (getEnv)
+import qualified TOML
 
-import Hecate.Error
-import Hecate.GPG (KeyId(..))
+import           Hecate.Error
+import           Hecate.GPG             (KeyId(..))
 
 -- | 'AppContext' represents the shared environment for computations which occur
 -- within our application.  Values of this type are created by 'createContext'.

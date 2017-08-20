@@ -7,10 +7,10 @@ module Hecate.Database.Properties
 
 import Control.Monad.Except
 import Control.Monad.Reader
-import Data.List ((\\))
-import Data.Text.Arbitrary ()
-import Database.SQLite.Simple hiding (Error)
-import System.Directory (copyFile)
+import Data.List               ((\\))
+import Data.Text.Arbitrary     ()
+import Database.SQLite.Simple  hiding (Error)
+import System.Directory        (copyFile)
 import System.Posix.Temp
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
@@ -19,8 +19,8 @@ import Hecate.Context
 import Hecate.Data
 import Hecate.Database
 import Hecate.Error
-import Hecate.GPG (Plaintext)
-import Hecate.Orphans ()
+import Hecate.GPG              (Plaintext)
+import Hecate.Orphans          ()
 
 
 data TestData = TestData

@@ -10,18 +10,18 @@ module Hecate.GPG
   , decrypt
   ) where
 
-import Control.Monad.Except
-import Data.ByteString64
-import Data.Text.Encoding (decodeUtf8, encodeUtf8)
-import Database.SQLite.Simple.FromField
-import Database.SQLite.Simple.ToField
-import System.Exit
-import qualified Data.ByteString as BS
-import qualified Data.Csv as CSV
-import qualified Data.Text as T
-import qualified System.Process.ByteString as BSP
+import           Control.Monad.Except
+import qualified Data.ByteString                  as BS
+import           Data.ByteString64
+import qualified Data.Csv                         as CSV
+import qualified Data.Text                        as T
+import           Data.Text.Encoding               (decodeUtf8, encodeUtf8)
+import           Database.SQLite.Simple.FromField
+import           Database.SQLite.Simple.ToField
+import           System.Exit
+import qualified System.Process.ByteString        as BSP
 
-import Hecate.Error
+import           Hecate.Error
 
 -- | A 'KeyId' represents a GPG Key Id
 newtype KeyId = KeyId { unKeyId :: T.Text }

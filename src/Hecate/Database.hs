@@ -10,17 +10,17 @@ module Hecate.Database
   , checkEntries
   ) where
 
-import Control.Monad.Except
-import Data.Monoid ((<>))
-import Database.SQLite.Simple (NamedParam ((:=)))
-import System.Directory (doesFileExist)
+import           Control.Monad.Except
+import           Data.Monoid            ((<>))
+import qualified Data.Text              as T
 import qualified Database.SQLite.Simple as SQLite
-import qualified Data.Text as T
+import           Database.SQLite.Simple (NamedParam ((:=)))
+import           System.Directory       (doesFileExist)
 
-import Hecate.Context
-import Hecate.Data hiding (query)
-import Hecate.Error
-import Hecate.GPG (KeyId)
+import           Hecate.Context
+import           Hecate.Data            hiding (query)
+import           Hecate.Error
+import           Hecate.GPG (KeyId)
 
 
 -- | A 'SchemaVersion' represents the database's schema version

@@ -4,13 +4,13 @@ module Data.ByteString64
   ( ByteString64(..)
   ) where
 
-import Data.Text.Encoding
-import Database.SQLite.Simple.FromField
-import Database.SQLite.Simple.ToField
-import GHC.Generics
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Base64 as Base64
-import qualified Data.Text as T
+import qualified Data.ByteString                  as BS
+import qualified Data.ByteString.Base64           as Base64
+import qualified Data.Text                        as T
+import           Data.Text.Encoding
+import           Database.SQLite.Simple.FromField
+import           Database.SQLite.Simple.ToField
+import           GHC.Generics
 
 -- | Represents a ByteString which is displayed and stored in its base64-encoded
 -- version

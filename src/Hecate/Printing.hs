@@ -6,16 +6,16 @@ module Hecate.Printing
   , prettyError
   ) where
 
-import Data.Time.Clock (UTCTime)
-import Data.Time.Format (defaultTimeLocale, formatTime)
-import Prelude hiding ((<$>))
-import Text.PrettyPrint.ANSI.Leijen
-import qualified Data.Text as T
+import qualified Data.Text                    as T
+import           Data.Time.Clock              (UTCTime)
+import           Data.Time.Format             (defaultTimeLocale, formatTime)
+import           Prelude                      hiding ((<$>))
+import           Text.PrettyPrint.ANSI.Leijen
 
-import Hecate.Data
-import Hecate.Error
-import Hecate.Evaluator
-import Hecate.GPG
+import           Hecate.Data
+import           Hecate.Error
+import           Hecate.Evaluator
+import           Hecate.GPG
 
 
 prettyText :: T.Text -> Doc

@@ -2,21 +2,21 @@
 
 module Main (main) where
 
-import Control.Exception
-import Control.Monad.Except
-import Control.Monad.Reader
-import System.Console.ANSI (hSupportsANSI)
-import System.Exit
-import System.IO
-import Text.PrettyPrint.ANSI.Leijen
-import qualified Database.SQLite.Simple as SQLite
+import           Control.Exception
+import           Control.Monad.Except
+import           Control.Monad.Reader
+import qualified Database.SQLite.Simple       as SQLite
+import           System.Console.ANSI          (hSupportsANSI)
+import           System.Exit
+import           System.IO
+import           Text.PrettyPrint.ANSI.Leijen
 
-import Hecate.Context
-import Hecate.Database
-import Hecate.Error
-import Hecate.Evaluator
-import Hecate.Parser
-import Hecate.Printing
+import           Hecate.Context
+import           Hecate.Database
+import           Hecate.Error
+import           Hecate.Evaluator
+import           Hecate.Parser
+import           Hecate.Printing
 
 hPutDocWrapper :: Handle -> Doc -> Doc -> IO ()
 hPutDocWrapper h f g = do

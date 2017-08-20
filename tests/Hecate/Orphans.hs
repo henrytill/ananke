@@ -6,7 +6,7 @@ import Data.Text.Arbitrary ()
 import Test.QuickCheck
 
 import Hecate.Data
-import Hecate.GPG (Plaintext(..))
+import Hecate.GPG          (Plaintext(..))
 
 {-# ANN module "HLint: ignore Use module export list" #-}
 

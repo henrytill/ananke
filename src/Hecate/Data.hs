@@ -38,24 +38,24 @@ module Hecate.Data
   , unCount
   ) where
 
-import Control.Monad.Except
-import Control.Monad.Reader
-import Data.Digest.Pure.SHA (sha1, showDigest)
-import Data.Monoid ((<>))
-import Data.Text.Encoding (encodeUtf8)
-import Data.Time.Clock (UTCTime, getCurrentTime)
-import Data.Time.Format (defaultTimeLocale, formatTime)
-import Database.SQLite.Simple.FromField
-import Database.SQLite.Simple.ToField
-import GHC.Generics
-import qualified Data.ByteString.Lazy as BSL
-import qualified Data.Csv as CSV
-import qualified Data.Text as T
-import qualified Database.SQLite.Simple as SQLite
+import           Control.Monad.Except
+import           Control.Monad.Reader
+import qualified Data.ByteString.Lazy             as BSL
+import qualified Data.Csv                         as CSV
+import           Data.Digest.Pure.SHA             (sha1, showDigest)
+import           Data.Monoid                      ((<>))
+import qualified Data.Text                        as T
+import           Data.Text.Encoding               (encodeUtf8)
+import           Data.Time.Clock                  (UTCTime, getCurrentTime)
+import           Data.Time.Format                 (defaultTimeLocale, formatTime)
+import qualified Database.SQLite.Simple           as SQLite
+import           Database.SQLite.Simple.FromField
+import           Database.SQLite.Simple.ToField
+import           GHC.Generics
 
-import Hecate.Context
-import Hecate.Error
-import Hecate.GPG
+import           Hecate.Context
+import           Hecate.Error
+import           Hecate.GPG
 
 {-# ANN module "HLint: ignore Use newtype instead of data" #-}
 

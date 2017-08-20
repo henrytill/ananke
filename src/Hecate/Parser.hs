@@ -2,10 +2,10 @@ module Hecate.Parser
   ( runCLIParser
   ) where
 
-import Data.Monoid ((<>))
+import Data.Monoid         ((<>))
 import Options.Applicative
 
-import Hecate.Evaluator hiding (eval)
+import Hecate.Evaluator    hiding (eval)
 
 
 descArgP :: Parser String

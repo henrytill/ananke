@@ -14,9 +14,7 @@ import Control.Monad.Except
 import Data.Maybe (fromMaybe)
 import System.Directory (createDirectory, doesDirectoryExist)
 import System.Posix.Env (getEnv)
-import Text.Toml
-import Text.Toml.Types
-import qualified Data.HashMap.Lazy as HM
+import qualified TOML
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import qualified Database.SQLite.Simple as SQLite
@@ -37,22 +35,22 @@ data AppConfig = AppConfig
   , appConfigKeyId         :: KeyId
   } deriving (Show, Eq)
 
--- | Look up values in a given HashMap
-lup :: HM.HashMap T.Text v -> T.Text -> Either AppError v
-lup hm key = maybe err pure (HM.lookup key hm)
+-- | Look up values in a given association list
+lup :: [(T.Text, TOML.Value)] -> T.Text -> Either AppError TOML.Value
+lup alist key = maybe err pure (lookup key alist)
   where
     err = Left (TomlParsing ("could't find key: " ++ T.unpack key))
 
-parseKeyId :: Table -> Either AppError String
+parseKeyId :: [(T.Text, TOML.Value)] -> Either AppError String
 parseKeyId tbl = unpackTop tbl >>= unpackGnupg >>= unpackKeyId
   where
     unpackTop t = lup t "gnupg"
 
-    unpackGnupg (VTable r) = lup r "keyid"
-    unpackGnupg _          = Left (TomlParsing "gnupg is wrong type")
+    unpackGnupg (TOML.Table r) = lup r "keyid"
+    unpackGnupg _              = Left (TomlParsing "gnupg is wrong type")
 
-    unpackKeyId (VString f) = pure (T.unpack f)
-    unpackKeyId _           = Left (TomlParsing "keyid is wrong type")
+    unpackKeyId (TOML.String f) = pure (T.unpack f)
+    unpackKeyId _               = Left (TomlParsing "keyid is wrong type")
 
 getEnvOrDefault :: MonadIO m => String -> String -> m String
 getEnvOrDefault env d = fromMaybe d <$> liftIO (getEnv env)
@@ -68,7 +66,7 @@ getDataDir =
 configure :: (MonadIO m, MonadError AppError m) => FilePath -> m AppConfig
 configure dataDir = do
   txt   <- liftIO (TIO.readFile (dataDir ++ "/hecate.toml"))
-  tbl   <- either (throwError . TomlParsing . show) pure (parseTomlDoc "" txt)
+  tbl   <- either (throwError . TomlParsing . show) pure (TOML.parseTOML txt)
   dfing <- either throwError pure (parseKeyId tbl)
   keyId <- KeyId . T.pack <$> getEnvOrDefault "HECATE_KEYID" dfing
   let dbDir = dataDir ++ "/db"

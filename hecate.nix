@@ -1,13 +1,13 @@
 { mkDerivation, ansi-terminal, ansi-wl-pprint, base
 , base64-bytestring, bytestring, cassava, directory, filepath
-, hlint, htoml, mtl, optparse-applicative, process, process-extras
+, hlint, mtl, optparse-applicative, process, process-extras
 , QuickCheck, quickcheck-text, SHA, sqlite-simple, stdenv, text
-, time, unix, unordered-containers, vector
+, time, toml-parser, unix, vector
 , gnupg1compat, sqlite
 }:
 mkDerivation {
   pname = "hecate";
-  version = "0.4.1.1";
+  version = "0.4.1.2";
   src = ./.;
   isLibrary = false;
   isExecutable = true;
@@ -15,8 +15,8 @@ mkDerivation {
   doHaddock = false;
   libraryHaskellDepends = [
     ansi-wl-pprint base base64-bytestring bytestring cassava directory
-    filepath htoml mtl optparse-applicative process process-extras SHA
-    sqlite-simple text time unix unordered-containers vector
+    filepath mtl optparse-applicative process process-extras SHA
+    sqlite-simple text time toml-parser unix vector
   ];
   executableHaskellDepends = [
     ansi-terminal ansi-wl-pprint base directory mtl sqlite-simple

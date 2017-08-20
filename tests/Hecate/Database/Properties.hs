@@ -40,7 +40,7 @@ addEntryToDatabase
   -> [TestData]
   -> m [Entry]
 addEntryToDatabase c tds = do
-  es <- mapM (\td -> createEntry (testDescription td) (testIdentity td) (testPlainText td) (testMetadata td)) tds
+  es <- mapM (\ td -> createEntry (testDescription td) (testIdentity td) (testPlainText td) (testMetadata td)) tds
   _  <- mapM (put c) es
   return es
 
@@ -61,6 +61,6 @@ doDatabaseProperties = do
   dir         <- mkdtemp "/tmp/hecate-tests-"
   _           <- copyFile "./example/hecate.toml" (dir ++ "/hecate.toml")
   (Right ctx) <- runExceptT (configure dir >>= createContext)
-  results     <- mapM (\p -> quickCheckWithResult stdArgs (p ctx)) dbTests
+  results     <- mapM (\ p -> quickCheckWithResult stdArgs (p ctx)) dbTests
   _           <- close (appContextConnection ctx)
   return results

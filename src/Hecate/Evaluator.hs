@@ -134,7 +134,7 @@ updateCiphertextWrapper
   -> Entry
   -> m Entry
 updateCiphertextWrapper Change e =
-  promptText "Enter text to encrypt: " >>= \t -> updateCiphertext (Plaintext . T.pack $ t) e
+  promptText "Enter text to encrypt: " >>= \ t -> updateCiphertext (Plaintext . T.pack $ t) e
 updateCiphertextWrapper Keep e =
   pure e
 

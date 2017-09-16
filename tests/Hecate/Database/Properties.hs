@@ -1,11 +1,10 @@
-{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Hecate.Database.Properties
   ( doDatabaseProperties
   ) where
 
-import Control.Monad.Except
+import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Data.List               ((\\))
 import Data.Text.Arbitrary     ()
@@ -18,7 +17,6 @@ import Test.QuickCheck.Monadic
 import Hecate.Context
 import Hecate.Data
 import Hecate.Database
-import Hecate.Error
 import Hecate.GPG              (Plaintext)
 import Hecate.Orphans          ()
 
@@ -35,7 +33,7 @@ instance Arbitrary TestData where
   shrink (TestData as bs cs ds) = TestData <$> shrink as <*> shrink bs <*> shrink cs <*> shrink ds
 
 addEntryToDatabase
-  :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
+  :: (MonadIO m, MonadReader r m, HasAppContext r)
   => Connection
   -> [TestData]
   -> m [Entry]
@@ -47,11 +45,9 @@ addEntryToDatabase c tds = do
 prop_roundTripEntriesToDatabase :: AppContext -> Property
 prop_roundTripEntriesToDatabase ctx = monadicIO $ do
   tds <- pick $ listOf1 arbitrary
-  es  <- run $ runExceptT $ flip runReaderT ctx $ addEntryToDatabase (_appContextConnection ctx) tds
+  es  <- run $ flip runReaderT ctx $ addEntryToDatabase (_appContextConnection ctx) tds
   res <- run $ selectAll (_appContextConnection ctx)
-  case es of
-    Right xs -> assert $ null (xs \\ res)
-    _        -> assert False
+  assert $ null (es \\ res)
 
 dbTests :: [AppContext -> Property]
 dbTests = [ prop_roundTripEntriesToDatabase ]
@@ -60,7 +56,7 @@ doDatabaseProperties :: IO [Result]
 doDatabaseProperties = do
   dir         <- mkdtemp "/tmp/hecate-tests-"
   _           <- copyFile "./example/hecate.toml" (dir ++ "/hecate.toml")
-  (Right ctx) <- runExceptT (configure dir >>= createContext)
+  ctx         <- configure dir >>= createContext
   results     <- mapM (\ p -> quickCheckWithResult stdArgs (p ctx)) dbTests
   _           <- close (_appContextConnection ctx)
   return results

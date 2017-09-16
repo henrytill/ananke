@@ -1,9 +1,6 @@
-{-# LANGUAGE FlexibleContexts  #-}
-
 module Main (main) where
 
 import           Control.Exception
-import           Control.Monad.Except
 import           Control.Monad.Reader
 import qualified Database.SQLite.Simple       as SQLite
 import           System.Console.ANSI          (hSupportsANSI)
@@ -26,25 +23,25 @@ hPutDocWrapper h f g = do
     else hPutDoc h g
 
 initialize :: IO AppContext
-initialize = runExceptT (getDataDir >>= configure >>= createContext) >>= processResult
-  where
-    processResult (Left err)  = hPrint stderr err >> exitFailure
-    processResult (Right ctx) = return ctx
+initialize = getDataDir >>= configure >>= createContext
 
-runM :: AppContext -> ReaderT AppContext (ExceptT AppError IO) a -> IO (Either AppError a)
-runM ctx = runExceptT . flip runReaderT ctx
+runM :: AppContext -> ReaderT AppContext IO a -> IO a
+runM = flip runReaderT
+
+exceptionHandler :: Command -> AppError -> IO ExitCode
+exceptionHandler command err =
+  hPutDoc stderr (prettyError command err) >>
+  return (ExitFailure 1)
+
+resultHandler :: Command -> Response -> IO ExitCode
+resultHandler command res =
+  hPutDocWrapper stdout (ansiPrettyResponse command res) (prettyResponse command res) >>
+  return ExitSuccess
 
 runApp :: AppContext -> IO ExitCode
-runApp ctx = do
-  command  <- runCLIParser
-  response <- runM ctx (eval command)
-  case response of
-    Left err  ->
-      hPutDoc stderr (prettyError command err) >>
-      return (ExitFailure 1)
-    Right out ->
-      hPutDocWrapper stdout (ansiPrettyResponse command out) (prettyResponse command out) >>
-      return ExitSuccess
+runApp ctx =
+  runCLIParser >>= \command ->
+  catch (runM ctx (eval command) >>= resultHandler command) (exceptionHandler command)
 
 finalize :: AppContext -> IO ()
 finalize ctx = SQLite.close (_appContextConnection ctx)

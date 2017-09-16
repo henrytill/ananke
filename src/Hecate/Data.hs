@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveGeneric    #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NamedFieldPuns   #-}
 
 module Hecate.Data
@@ -38,7 +37,7 @@ module Hecate.Data
   , unCount
   ) where
 
-import           Control.Monad.Except
+import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import qualified Data.ByteString.Lazy             as BSL
 import qualified Data.Csv                         as CSV
@@ -52,9 +51,9 @@ import qualified Database.SQLite.Simple           as SQLite
 import           Database.SQLite.Simple.FromField
 import           Database.SQLite.Simple.ToField
 import           GHC.Generics
+import           Lens.Simple                      hiding (Identity)
 
 import           Hecate.Context
-import           Hecate.Error
 import           Hecate.GPG
 
 {-# ANN module "HLint: ignore Use newtype instead of data" #-}
@@ -89,19 +88,19 @@ entryToDisplayEntry Entry{_entryId, _entryTimestamp, _entryDescription, _entryId
   DisplayEntry _entryId _entryTimestamp _entryDescription _entryIdentity p _entryMeta
 
 getPlainText
-  :: (MonadIO m, MonadError AppError m)
+  :: MonadIO m
   => Entry
   -> m Plaintext
 getPlainText Entry{_entryCiphertext} = decrypt _entryCiphertext
 
 decryptEntry
-  :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
+  :: MonadIO m
   => Entry
   -> m DisplayEntry
 decryptEntry e = entryToDisplayEntry e <$> getPlainText e
 
 decryptEntries
-  :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
+  :: MonadIO m
   => [Entry]
   -> m [DisplayEntry]
 decryptEntries = mapM decryptEntry
@@ -154,7 +153,7 @@ createId (KeyId k) ts (Description d) Nothing =
   ider $ k <> showTime ts <> d
 
 createEntryImpl
-  :: (MonadIO m, MonadError AppError m)
+  :: MonadIO m
   => KeyId
   -> UTCTime
   -> Description
@@ -168,7 +167,7 @@ createEntryImpl keyId timestamp description identity plaintext meta = do
   return $ Entry i keyId timestamp description identity encrypted meta
 
 createEntry
-  :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
+  :: (MonadIO m, MonadReader r m, HasAppContext r)
   => Description
   -> Maybe Identity
   -> Plaintext
@@ -177,10 +176,10 @@ createEntry
 createEntry description identity plaintext meta = do
   ctx       <- ask
   timestamp <- liftIO getCurrentTime
-  createEntryImpl (_appContextKeyId ctx) timestamp description identity plaintext meta
+  createEntryImpl (view appContextKeyId ctx) timestamp description identity plaintext meta
 
 updateEntry
-  :: (MonadIO m, MonadError AppError m)
+  :: MonadIO m
   => KeyId
   -> Description
   -> Maybe Identity
@@ -193,7 +192,7 @@ updateEntry keyId description identity ciphertext meta = do
   return $ Entry i keyId timestamp description identity ciphertext meta
 
 importEntryToEntry
-  :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
+  :: (MonadIO m, MonadReader r m, HasAppContext r)
   => ImportEntry
   -> m Entry
 importEntryToEntry ImportEntry{_importDescription, _importIdentity, _importPlaintext, _importMeta} =
@@ -279,7 +278,7 @@ instance CSV.FromField Metadata where
 -- ** And some updaters
 
 updateKeyId
-  :: (MonadIO m, MonadError AppError m)
+  :: MonadIO m
   => KeyId
   -> Entry
   -> m Entry
@@ -288,7 +287,7 @@ updateKeyId keyId entry@Entry{_entryTimestamp, _entryDescription, _entryIdentity
   createEntryImpl keyId _entryTimestamp _entryDescription _entryIdentity pt _entryMeta
 
 updateDescription
-  :: (MonadIO m, MonadError AppError m)
+  :: MonadIO m
   => Description
   -> Entry
   -> m Entry
@@ -296,7 +295,7 @@ updateDescription d Entry{_entryKeyId, _entryIdentity, _entryCiphertext, _entryM
   updateEntry _entryKeyId d _entryIdentity _entryCiphertext _entryMeta
 
 updateIdentity
-  :: (MonadIO m, MonadError AppError m)
+  :: MonadIO m
   => Maybe Identity
   -> Entry
   -> m Entry
@@ -304,7 +303,7 @@ updateIdentity iden Entry{_entryKeyId, _entryDescription, _entryCiphertext, _ent
   updateEntry _entryKeyId _entryDescription iden _entryCiphertext _entryMeta
 
 updateCiphertext
-  :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
+  :: (MonadIO m, MonadReader r m, HasAppContext r)
   => Plaintext
   -> Entry
   -> m Entry
@@ -312,7 +311,7 @@ updateCiphertext pt Entry{_entryDescription, _entryIdentity, _entryMeta} =
   createEntry _entryDescription _entryIdentity pt _entryMeta
 
 updateMetadata
-  :: (MonadIO m, MonadError AppError m)
+  :: MonadIO m
   => Maybe Metadata
   -> Entry
   -> m Entry

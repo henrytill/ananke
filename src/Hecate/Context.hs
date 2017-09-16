@@ -1,8 +1,11 @@
-{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Hecate.Context
   ( AppContext(..)
+  , HasAppContext
+  , appContext
+  , appContextKeyId
+  , appContextConnection
   , AppConfig
   , _appConfigDataDirectory
   , _appConfigKeyId
@@ -10,6 +13,7 @@ module Hecate.Context
   , configure
   ) where
 
+import           Control.Exception
 import           Control.Monad.Except
 import qualified Data.Map.Lazy          as Map
 import           Data.Maybe             (fromMaybe)
@@ -31,6 +35,18 @@ data AppContext = AppContext
   { _appContextKeyId      :: KeyId
   , _appContextConnection :: SQLite.Connection
   }
+
+class HasAppContext t where
+  appContext           :: Lens' t AppContext
+  appContextKeyId      :: Lens' t KeyId
+  appContextConnection :: Lens' t SQLite.Connection
+  appContextKeyId      = appContext . appContextKeyId
+  appContextConnection = appContext . appContextConnection
+
+instance HasAppContext AppContext where
+  appContext           = id
+  appContextKeyId      = lens _appContextKeyId      (\ a k -> a{_appContextKeyId      = k})
+  appContextConnection = lens _appContextConnection (\ a c -> a{_appContextConnection = c})
 
 -- | An 'AppConfig' represents values read from a configuration file
 data AppConfig = AppConfig
@@ -71,11 +87,11 @@ getDataDir =
   getEnvOrError "HOME" "Can't find my way HOME" >>= \ home ->
   getEnvOrDefault "HECATE_DATA_DIR" (home ++ "/.hecate")
 
-configure :: (MonadIO m, MonadError AppError m) => FilePath -> m AppConfig
+configure :: MonadIO m => FilePath -> m AppConfig
 configure dataDir = do
   txt   <- liftIO (TIO.readFile (dataDir ++ "/hecate.toml"))
-  tbl   <- either (throwError . TomlParsing . show) pure (TOML.parseTOML txt)
-  dfing <- either (throwError . TomlParsing)        pure (getKeyId tbl)
+  tbl   <- either (throw . TomlParsing . show) pure (TOML.parseTOML txt)
+  dfing <- either (throw . TomlParsing)        pure (getKeyId tbl)
   keyId <- KeyId . T.pack <$> getEnvOrDefault "HECATE_KEYID" dfing
   let dbDir = dataDir ++ "/db"
   dbDirExists <- liftIO (doesDirectoryExist dbDir)

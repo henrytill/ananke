@@ -1,5 +1,8 @@
 module Hecate.Error (module Hecate.Error) where
 
+import Control.Exception
+import Data.Typeable
+
 -- | 'AppError' represents application errors
 data AppError
   = CsvDecoding String
@@ -10,7 +13,7 @@ data AppError
   | MigrationError String
   | CheckError String
   | Default String
-  deriving Eq
+  deriving (Eq, Typeable)
 
 instance Show AppError where
   show (CsvDecoding s)    = "CSV Decoding Error: " ++ s
@@ -21,3 +24,5 @@ instance Show AppError where
   show (MigrationError s) = "Migration Error: " ++ s
   show (CheckError s)     = "Check Error: " ++ s
   show (Default s)        = "Error: " ++ s
+
+instance Exception AppError

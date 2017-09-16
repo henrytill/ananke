@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FlexibleContexts  #-}
 
 module Hecate.Database
   ( createContext
@@ -10,7 +9,8 @@ module Hecate.Database
   , checkEntries
   ) where
 
-import           Control.Monad.Except
+import           Control.Exception
+import           Control.Monad.IO.Class
 import           Data.Monoid            ((<>))
 import qualified Data.Text              as T
 import qualified Database.SQLite.Simple as SQLite
@@ -68,7 +68,7 @@ addKeyId conn keyId = SQLite.execute conn s (SQLite.Only keyId)
         \  FROM entries"
 
 migrate
-  :: (MonadIO m, MonadError AppError m)
+  :: MonadIO m
   => SQLite.Connection
   -> FilePath
   -> SchemaVersion
@@ -83,10 +83,10 @@ migrate conn path (SchemaVersion 1) keyId = do
   reencryptAll conn keyId
   createSchemaFile path
 migrate _ _ (SchemaVersion v) _ =
-  throwError $ MigrationError ("no supported migration path for schema version " ++ show v)
+  throw (MigrationError ("no supported migration path for schema version " ++ show v))
 
 initDatabase
-  :: (MonadIO m, MonadError AppError m)
+  :: MonadIO m
   => SQLite.Connection
   -> FilePath
   -> SchemaVersion
@@ -103,7 +103,7 @@ initDatabase conn path schemaVersion keyId =
                        ++ "...")
     migrate conn path schemaVersion keyId
 
-createContext :: (MonadIO m, MonadError AppError m) => AppConfig -> m AppContext
+createContext :: MonadIO m => AppConfig -> m AppContext
 createContext config = do
   connection    <- liftIO $ SQLite.open dbFile
   schemaVersion <- getSchemaVersion schemaFile
@@ -132,7 +132,7 @@ selectAll conn = liftIO $ SQLite.query_ conn q
     q = "SELECT id, keyid, timestamp, description, identity, ciphertext, meta \
         \FROM entries"
 
-checkEntries :: (MonadIO m, MonadError AppError m) => SQLite.Connection -> KeyId -> m Bool
+checkEntries :: MonadIO m => SQLite.Connection -> KeyId -> m Bool
 checkEntries conn keyId = liftIO $ SQLite.queryNamed conn q r >>= p
   where
     q = "SELECT count(keyid)  \
@@ -142,7 +142,7 @@ checkEntries conn keyId = liftIO $ SQLite.queryNamed conn q r >>= p
     p [count] = return (unCount count == 0)
     p _       = return False
 
-reencryptAll :: (MonadIO m, MonadError AppError m) => SQLite.Connection -> KeyId -> m ()
+reencryptAll :: MonadIO m => SQLite.Connection -> KeyId -> m ()
 reencryptAll conn keyId = do
   es  <- selectAll conn
   ues <- mapM (updateKeyId keyId) es

@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleContexts #-}
-
 module Hecate.GPG
   ( KeyId(..)
     -- * Decrypted and encrypted values
@@ -10,7 +8,8 @@ module Hecate.GPG
   , decrypt
   ) where
 
-import           Control.Monad.Except
+import           Control.Exception
+import           Control.Monad.IO.Class
 import qualified Data.ByteString                  as BS
 import           Data.ByteString64
 import qualified Data.Csv                         as CSV
@@ -70,43 +69,43 @@ gpgEncrypt keyid = BSP.readProcessWithExitCode "gpg" ["--batch", "-q", "-e", "-r
 gpgDecrypt       = BSP.readProcessWithExitCode "gpg" ["--batch", "-q", "-d"]
 
 convertResult
-  :: (MonadIO m, MonadError AppError m)
+  :: MonadIO m
   => (ExitCode, BS.ByteString, BS.ByteString)
   -> m BS.ByteString
 convertResult (ExitSuccess  , stdout, _     ) = pure stdout
 convertResult (ExitFailure _, _     , stderr) = perr stderr
   where
-    perr = throwError . GPG . T.unpack . decodeUtf8
+    perr x = throw (GPG (T.unpack (decodeUtf8 x)))
 
 lifter
-  :: (MonadIO m, MonadError AppError m)
+  :: MonadIO m
   => IO (ExitCode, BS.ByteString, BS.ByteString)
   -> m BS.ByteString
 lifter x = liftIO x >>= convertResult
 
 encryptWrapper
-  :: (MonadIO m, MonadError AppError m)
+  :: MonadIO m
   => (BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString))
   -> T.Text
   -> m Ciphertext
 encryptWrapper f = (Ciphertext . ByteString64 <$>) . lifter . f . encodeUtf8
 
 decryptWrapper
-  :: (MonadIO m, MonadError AppError m)
+  :: MonadIO m
   => (BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString))
   -> ByteString64
   -> m Plaintext
 decryptWrapper f = (Plaintext . decodeUtf8 <$>) . lifter . f . unByteString64
 
 encrypt
-  :: (MonadIO m, MonadError AppError m)
+  :: MonadIO m
   => KeyId
   -> Plaintext
   -> m Ciphertext
 encrypt (KeyId keyid) (Plaintext pt) = encryptWrapper (gpgEncrypt (T.unpack keyid)) pt
 
 decrypt
-  :: (MonadIO m, MonadError AppError m)
+  :: MonadIO m
   => Ciphertext
   -> m Plaintext
 decrypt (Ciphertext ct) = decryptWrapper gpgDecrypt ct

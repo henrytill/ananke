@@ -1,4 +1,6 @@
 dist/
+dist-newstyle/
+cabal.project.local
 *result*
 *.drv
 example/gnupg/random_seed

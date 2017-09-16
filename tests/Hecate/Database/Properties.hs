@@ -47,8 +47,8 @@ addEntryToDatabase c tds = do
 prop_roundTripEntriesToDatabase :: AppContext -> Property
 prop_roundTripEntriesToDatabase ctx = monadicIO $ do
   tds <- pick $ listOf1 arbitrary
-  es  <- run $ runExceptT $ flip runReaderT ctx $ addEntryToDatabase (appContextConnection ctx) tds
-  res <- run $ selectAll (appContextConnection ctx)
+  es  <- run $ runExceptT $ flip runReaderT ctx $ addEntryToDatabase (_appContextConnection ctx) tds
+  res <- run $ selectAll (_appContextConnection ctx)
   case es of
     Right xs -> assert $ null (xs \\ res)
     _        -> assert False
@@ -62,5 +62,5 @@ doDatabaseProperties = do
   _           <- copyFile "./example/hecate.toml" (dir ++ "/hecate.toml")
   (Right ctx) <- runExceptT (configure dir >>= createContext)
   results     <- mapM (\ p -> quickCheckWithResult stdArgs (p ctx)) dbTests
-  _           <- close (appContextConnection ctx)
+  _           <- close (_appContextConnection ctx)
   return results

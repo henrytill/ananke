@@ -110,9 +110,9 @@ createContext config = do
   initDatabase connection schemaFile schemaVersion keyId
   return $ AppContext keyId connection
   where
-    schemaFile = appConfigDataDirectory config ++ "/db/schema"
-    dbFile     = appConfigDataDirectory config ++ "/db/db.sqlite"
-    keyId      = appConfigKeyId config
+    schemaFile = _appConfigDataDirectory config ++ "/db/schema"
+    dbFile     = _appConfigDataDirectory config ++ "/db/db.sqlite"
+    keyId      = _appConfigKeyId config
 
 put :: MonadIO m => SQLite.Connection -> Entry -> m ()
 put conn e = liftIO $ SQLite.execute conn s e
@@ -122,7 +122,7 @@ put conn e = liftIO $ SQLite.execute conn s e
         \  VALUES (?, ?, ?, ?, ?, ?, ?)"
 
 delete :: MonadIO m => SQLite.Connection -> Entry -> m ()
-delete conn e = liftIO $ SQLite.executeNamed conn s [":id" := entryId e]
+delete conn e = liftIO $ SQLite.executeNamed conn s [":id" := _entryId e]
   where
     s = "DELETE FROM entries WHERE id = :id"
 
@@ -168,10 +168,10 @@ queryFolder (accQs, accNp) Nothing         = (accQs, accNp)
 
 queryParts :: Query -> [Maybe (SQLite.Query, [SQLite.NamedParam])]
 queryParts q =
-  [ idMatcher          <$> queryId q
-  , descriptionMatcher <$> queryDescription q
-  , identityMatcher    <$> queryIdentity q
-  , metadataMatcher    <$> queryMeta q
+  [ idMatcher          <$> _queryId q
+  , descriptionMatcher <$> _queryDescription q
+  , identityMatcher    <$> _queryIdentity q
+  , metadataMatcher    <$> _queryMeta q
   ]
 
 generateQuery :: Query -> (SQLite.Query, [SQLite.NamedParam])

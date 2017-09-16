@@ -45,20 +45,20 @@ prettyMeta (Just (Metadata m)) = prettyText m
 prettyMeta Nothing             = text "<none>"
 
 printOne :: DisplayEntry -> Doc
-printOne DisplayEntry{displayDescription, displayIdentity, displayPlaintext, displayMeta} =
-  prettyDescription displayDescription <+>
-  prettyIdentity    displayIdentity    <+>
-  prettyPlaintext   displayPlaintext   <+>
-  prettyMeta        displayMeta
+printOne DisplayEntry{_displayDescription, _displayIdentity, _displayPlaintext, _displayMeta} =
+  prettyDescription _displayDescription <+>
+  prettyIdentity    _displayIdentity    <+>
+  prettyPlaintext   _displayPlaintext   <+>
+  prettyMeta        _displayMeta
 
 printOneVerbose :: DisplayEntry -> Doc
-printOneVerbose DisplayEntry{displayId, displayTimestamp, displayDescription, displayIdentity, displayPlaintext, displayMeta} =
-  prettyId          displayId          <+>
-  prettyTimestamp   displayTimestamp   <+>
-  prettyDescription displayDescription <+>
-  prettyIdentity    displayIdentity    <+>
-  prettyPlaintext   displayPlaintext   <+>
-  prettyMeta        displayMeta
+printOneVerbose DisplayEntry{_displayId, _displayTimestamp, _displayDescription, _displayIdentity, _displayPlaintext, _displayMeta} =
+  prettyId          _displayId          <+>
+  prettyTimestamp   _displayTimestamp   <+>
+  prettyDescription _displayDescription <+>
+  prettyIdentity    _displayIdentity    <+>
+  prettyPlaintext   _displayPlaintext   <+>
+  prettyMeta        _displayMeta
 
 prettyResponse :: Command -> Response -> Doc
 prettyResponse _ (SingleEntry de Normal) =

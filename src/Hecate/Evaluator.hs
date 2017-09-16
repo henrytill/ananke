@@ -39,21 +39,21 @@ data Target
 
 -- | 'Command' represents CLI commands
 data Command
-  = Add { addDescription :: String
-        , addIdentity    :: Maybe String
-        , addMeta        :: Maybe String
+  = Add { _addDescription :: String
+        , _addIdentity    :: Maybe String
+        , _addMeta        :: Maybe String
         }
-  | Lookup { lookupDescription :: String
-           , lookupVerbosity   :: Verbosity
+  | Lookup { _lookupDescription :: String
+           , _lookupVerbosity   :: Verbosity
            }
-  | Import { importFile :: FilePath }
-  | Modify { modifyTarget     :: Target
-           , modifyCiphertext :: ModifyAction
-           , modifyIdentity   :: Maybe String
-           , modifyMeta       :: Maybe String
+  | Import { _importFile :: FilePath }
+  | Modify { _modifyTarget     :: Target
+           , _modifyCiphertext :: ModifyAction
+           , _modifyIdentity   :: Maybe String
+           , _modifyMeta       :: Maybe String
            }
-  | Redescribe { redescribeTarget      :: Target
-               , redescribeDescription :: String
+  | Redescribe { _redescribeTarget      :: Target
+               , _redescribeDescription :: String
                }
   | Remove Target
   | Check
@@ -149,8 +149,8 @@ modifyOnlySingletons [e] maction miden mmeta = do
   ctx <- ask
   ue1 <- updateWrapper miden mmeta e
   ue2 <- updateCiphertextWrapper maction ue1
-  _   <- DB.put (appContextConnection ctx) ue2
-  _   <- DB.delete (appContextConnection ctx) e
+  _   <- DB.put (_appContextConnection ctx) ue2
+  _   <- DB.delete (_appContextConnection ctx) e
   return Modified
 modifyOnlySingletons _ _ _ _ =
   throwError (AmbiguousInput "There are multiple entries matching your input criteria.")
@@ -164,7 +164,7 @@ findAndModify
   -> m Response
 findAndModify q maction miden mmeta = do
   ctx <- ask
-  rs  <- DB.query (appContextConnection ctx) q
+  rs  <- DB.query (_appContextConnection ctx) q
   modifyOnlySingletons rs maction miden mmeta
 
 modify
@@ -187,8 +187,8 @@ redescribeOnlySingletons
 redescribeOnlySingletons [e] s = do
   ctx <- ask
   ue  <- updateDescription (Description . T.pack $ s) e
-  _   <- DB.put (appContextConnection ctx) ue
-  _   <- DB.delete (appContextConnection ctx) e
+  _   <- DB.put (_appContextConnection ctx) ue
+  _   <- DB.delete (_appContextConnection ctx) e
   return Redescribed
 redescribeOnlySingletons _ _ =
   throwError (AmbiguousInput "There are multiple entries matching your input criteria.")
@@ -200,7 +200,7 @@ findAndRedescribe
   -> m Response
 findAndRedescribe q s = do
   ctx <- ask
-  rs  <- DB.query (appContextConnection ctx) q
+  rs  <- DB.query (_appContextConnection ctx) q
   redescribeOnlySingletons rs s
 
 redescribe
@@ -219,7 +219,7 @@ removeOnlySingletons
   -> m Response
 removeOnlySingletons [e] = do
   ctx <- ask
-  _   <- DB.delete (appContextConnection ctx) e
+  _   <- DB.delete (_appContextConnection ctx) e
   return Removed
 removeOnlySingletons _ =
   throwError (AmbiguousInput "There are multiple entries matching your input criteria.")
@@ -230,7 +230,7 @@ findAndRemove
   -> m Response
 findAndRemove q = do
   ctx <- ask
-  rs  <- DB.query (appContextConnection ctx) q
+  rs  <- DB.query (_appContextConnection ctx) q
   removeOnlySingletons rs
 
 remove
@@ -247,7 +247,7 @@ check
   => m Response
 check = do
   ctx <- ask
-  r   <- DB.checkEntries (appContextConnection ctx) (appContextKeyId ctx)
+  r   <- DB.checkEntries (_appContextConnection ctx) (_appContextKeyId ctx)
   if r
     then return Checked
     else throwError (CheckError "failed")
@@ -256,24 +256,24 @@ eval
   :: (MonadIO m, MonadError AppError m, MonadReader AppContext m)
   => Command
   -> m Response
-eval Add{addDescription, addIdentity, addMeta} = do
+eval Add{_addDescription, _addIdentity, _addMeta} = do
   ctx <- ask
   t   <- promptText "Enter text to encrypt: "
-  e   <- createEntryWrapper addDescription addIdentity addMeta t
-  _   <- DB.put (appContextConnection ctx) e
+  e   <- createEntryWrapper _addDescription _addIdentity _addMeta t
+  _   <- DB.put (_appContextConnection ctx) e
   return Added
-eval Lookup{lookupDescription, lookupVerbosity} = do
+eval Lookup{_lookupDescription, _lookupVerbosity} = do
   ctx <- ask
-  q   <- pure $ query Nothing (Just lookupDescription) Nothing Nothing
-  res <- DB.query (appContextConnection ctx) q
+  q   <- pure $ query Nothing (Just _lookupDescription) Nothing Nothing
+  res <- DB.query (_appContextConnection ctx) q
   case res of
-    []  -> MultipleEntries <$> pure []           <*> pure lookupVerbosity
-    [e] -> SingleEntry     <$> decryptEntry e    <*> pure lookupVerbosity
-    es  -> MultipleEntries <$> decryptEntries es <*> pure lookupVerbosity
-eval Import{importFile} = do
+    []  -> MultipleEntries <$> pure []           <*> pure _lookupVerbosity
+    [e] -> SingleEntry     <$> decryptEntry e    <*> pure _lookupVerbosity
+    es  -> MultipleEntries <$> decryptEntries es <*> pure _lookupVerbosity
+eval Import{_importFile} = do
   ctx <- ask
-  es  <- importCSV importFile
-  _   <- mapM_ (DB.put (appContextConnection ctx)) es
+  es  <- importCSV _importFile
+  _   <- mapM_ (DB.put (_appContextConnection ctx)) es
   return Added
 eval (Modify t c i m) = modify t c i m
 eval (Redescribe t s) = redescribe t s

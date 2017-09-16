@@ -4,8 +4,8 @@
 module Hecate.Context
   ( AppContext(..)
   , AppConfig
-  , appConfigDataDirectory
-  , appConfigKeyId
+  , _appConfigDataDirectory
+  , _appConfigKeyId
   , getDataDir
   , configure
   ) where
@@ -28,14 +28,14 @@ import           Hecate.GPG             (KeyId(..))
 -- | 'AppContext' represents the shared environment for computations which occur
 -- within our application.  Values of this type are created by 'createContext'.
 data AppContext = AppContext
-  { appContextKeyId      :: KeyId
-  , appContextConnection :: SQLite.Connection
+  { _appContextKeyId      :: KeyId
+  , _appContextConnection :: SQLite.Connection
   }
 
 -- | An 'AppConfig' represents values read from a configuration file
 data AppConfig = AppConfig
-  { appConfigDataDirectory :: FilePath
-  , appConfigKeyId         :: KeyId
+  { _appConfigDataDirectory :: FilePath
+  , _appConfigKeyId         :: KeyId
   } deriving (Show, Eq)
 
 alist :: Ord k => [(k, v)] -> Map.Map k v
@@ -80,6 +80,6 @@ configure dataDir = do
   let dbDir = dataDir ++ "/db"
   dbDirExists <- liftIO (doesDirectoryExist dbDir)
   unless dbDirExists (liftIO (createDirectory dbDir))
-  return AppConfig { appConfigDataDirectory = dataDir
-                   , appConfigKeyId = keyId
+  return AppConfig { _appConfigDataDirectory = dataDir
+                   , _appConfigKeyId = keyId
                    }

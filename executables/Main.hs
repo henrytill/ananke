@@ -47,7 +47,7 @@ runApp ctx = do
       return ExitSuccess
 
 finalize :: AppContext -> IO ()
-finalize ctx = SQLite.close (appContextConnection ctx)
+finalize ctx = SQLite.close (_appContextConnection ctx)
 
 main :: IO ()
 main = bracket initialize finalize runApp >>= exitWith

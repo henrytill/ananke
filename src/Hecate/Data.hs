@@ -10,7 +10,7 @@ module Hecate.Data
   , decryptEntries
     -- * Entries
   , Entry
-  , entryId
+  , _entryId
   , createEntry
   , importEntryToEntry
     -- ** Their constituents
@@ -27,10 +27,10 @@ module Hecate.Data
   , updateMetadata
     -- * Queries
   , Query
-  , queryId
-  , queryIdentity
-  , queryDescription
-  , queryMeta
+  , _queryId
+  , _queryIdentity
+  , _queryDescription
+  , _queryMeta
   , query
   , queryIsEmpty
   -- * Count
@@ -64,10 +64,10 @@ import           Hecate.GPG
 
 -- | An 'ImportEntry' is a record that is imported or exported from a CSV file
 data ImportEntry = ImportEntry
-  { importDescription :: Description
-  , importIdentity    :: Maybe Identity
-  , importPlaintext   :: Plaintext
-  , importMeta        :: Maybe Metadata
+  { _importDescription :: Description
+  , _importIdentity    :: Maybe Identity
+  , _importPlaintext   :: Plaintext
+  , _importMeta        :: Maybe Metadata
   } deriving (Generic, Show, Eq)
 
 instance CSV.FromRecord ImportEntry
@@ -76,23 +76,23 @@ instance CSV.ToRecord ImportEntry
 -- | A 'DisplayEntry' is a record that is displayed to the user in response to a
 -- command
 data DisplayEntry = DisplayEntry
-  { displayId          :: Id
-  , displayTimestamp   :: UTCTime
-  , displayDescription :: Description
-  , displayIdentity    :: Maybe Identity
-  , displayPlaintext   :: Plaintext
-  , displayMeta        :: Maybe Metadata
+  { _displayId          :: Id
+  , _displayTimestamp   :: UTCTime
+  , _displayDescription :: Description
+  , _displayIdentity    :: Maybe Identity
+  , _displayPlaintext   :: Plaintext
+  , _displayMeta        :: Maybe Metadata
   } deriving (Show, Eq)
 
 entryToDisplayEntry :: Entry -> Plaintext -> DisplayEntry
-entryToDisplayEntry Entry{entryId, entryTimestamp, entryDescription, entryIdentity, entryMeta} p =
-  DisplayEntry entryId entryTimestamp entryDescription entryIdentity p entryMeta
+entryToDisplayEntry Entry{_entryId, _entryTimestamp, _entryDescription, _entryIdentity, _entryMeta} p =
+  DisplayEntry _entryId _entryTimestamp _entryDescription _entryIdentity p _entryMeta
 
 getPlainText
   :: (MonadIO m, MonadError AppError m)
   => Entry
   -> m Plaintext
-getPlainText Entry{entryCiphertext} = decrypt entryCiphertext
+getPlainText Entry{_entryCiphertext} = decrypt _entryCiphertext
 
 decryptEntry
   :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
@@ -112,13 +112,13 @@ decryptEntries = mapM decryptEntry
 -- | An 'Entry' is a record that stores an encrypted value along with associated
 -- information
 data Entry = Entry
-  { entryId          :: Id
-  , entryKeyId       :: KeyId
-  , entryTimestamp   :: UTCTime
-  , entryDescription :: Description
-  , entryIdentity    :: Maybe Identity
-  , entryCiphertext  :: Ciphertext
-  , entryMeta        :: Maybe Metadata
+  { _entryId          :: Id
+  , _entryKeyId       :: KeyId
+  , _entryTimestamp   :: UTCTime
+  , _entryDescription :: Description
+  , _entryIdentity    :: Maybe Identity
+  , _entryCiphertext  :: Ciphertext
+  , _entryMeta        :: Maybe Metadata
   } deriving (Show, Eq)
 
 instance SQLite.FromRow Entry where
@@ -131,14 +131,14 @@ instance SQLite.FromRow Entry where
                   <*> SQLite.field
 
 instance SQLite.ToRow Entry where
-  toRow Entry{entryId, entryKeyId, entryTimestamp, entryDescription, entryIdentity, entryCiphertext, entryMeta} =
-    SQLite.toRow ( entryId
-                 , entryKeyId
-                 , entryTimestamp
-                 , entryDescription
-                 , entryIdentity
-                 , entryCiphertext
-                 , entryMeta
+  toRow Entry{_entryId, _entryKeyId, _entryTimestamp, _entryDescription, _entryIdentity, _entryCiphertext, _entryMeta} =
+    SQLite.toRow ( _entryId
+                 , _entryKeyId
+                 , _entryTimestamp
+                 , _entryDescription
+                 , _entryIdentity
+                 , _entryCiphertext
+                 , _entryMeta
                  )
 
 showTime :: UTCTime -> T.Text
@@ -177,7 +177,7 @@ createEntry
 createEntry description identity plaintext meta = do
   ctx       <- ask
   timestamp <- liftIO getCurrentTime
-  createEntryImpl (appContextKeyId ctx) timestamp description identity plaintext meta
+  createEntryImpl (_appContextKeyId ctx) timestamp description identity plaintext meta
 
 updateEntry
   :: (MonadIO m, MonadError AppError m)
@@ -196,8 +196,8 @@ importEntryToEntry
   :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
   => ImportEntry
   -> m Entry
-importEntryToEntry ImportEntry{importDescription, importIdentity, importPlaintext, importMeta} =
-  createEntry importDescription importIdentity importPlaintext importMeta
+importEntryToEntry ImportEntry{_importDescription, _importIdentity, _importPlaintext, _importMeta} =
+  createEntry _importDescription _importIdentity _importPlaintext _importMeta
 
 
 -- ** Their constituents
@@ -283,59 +283,59 @@ updateKeyId
   => KeyId
   -> Entry
   -> m Entry
-updateKeyId keyId entry@Entry{entryTimestamp, entryDescription, entryIdentity, entryMeta} =
+updateKeyId keyId entry@Entry{_entryTimestamp, _entryDescription, _entryIdentity, _entryMeta} =
   getPlainText entry >>= \ pt ->
-  createEntryImpl keyId entryTimestamp entryDescription entryIdentity pt entryMeta
+  createEntryImpl keyId _entryTimestamp _entryDescription _entryIdentity pt _entryMeta
 
 updateDescription
   :: (MonadIO m, MonadError AppError m)
   => Description
   -> Entry
   -> m Entry
-updateDescription d Entry{entryKeyId, entryIdentity, entryCiphertext, entryMeta} =
-  updateEntry entryKeyId d entryIdentity entryCiphertext entryMeta
+updateDescription d Entry{_entryKeyId, _entryIdentity, _entryCiphertext, _entryMeta} =
+  updateEntry _entryKeyId d _entryIdentity _entryCiphertext _entryMeta
 
 updateIdentity
   :: (MonadIO m, MonadError AppError m)
   => Maybe Identity
   -> Entry
   -> m Entry
-updateIdentity iden Entry{entryKeyId, entryDescription, entryCiphertext, entryMeta} =
-  updateEntry entryKeyId entryDescription iden entryCiphertext entryMeta
+updateIdentity iden Entry{_entryKeyId, _entryDescription, _entryCiphertext, _entryMeta} =
+  updateEntry _entryKeyId _entryDescription iden _entryCiphertext _entryMeta
 
 updateCiphertext
   :: (MonadIO m, MonadReader AppContext m, MonadError AppError m)
   => Plaintext
   -> Entry
   -> m Entry
-updateCiphertext pt Entry{entryDescription, entryIdentity, entryMeta} =
-  createEntry entryDescription entryIdentity pt entryMeta
+updateCiphertext pt Entry{_entryDescription, _entryIdentity, _entryMeta} =
+  createEntry _entryDescription _entryIdentity pt _entryMeta
 
 updateMetadata
   :: (MonadIO m, MonadError AppError m)
   => Maybe Metadata
   -> Entry
   -> m Entry
-updateMetadata m Entry{entryKeyId, entryDescription, entryIdentity, entryCiphertext} =
-  updateEntry entryKeyId entryDescription entryIdentity entryCiphertext m
+updateMetadata m Entry{_entryKeyId, _entryDescription, _entryIdentity, _entryCiphertext} =
+  updateEntry _entryKeyId _entryDescription _entryIdentity _entryCiphertext m
 
 
 -- * Queries
 
 -- | A 'Query' represents a database query
 data Query = Query
-  { queryId          :: Maybe Id
-  , queryDescription :: Maybe Description
-  , queryIdentity    :: Maybe Identity
-  , queryMeta        :: Maybe Metadata
+  { _queryId          :: Maybe Id
+  , _queryDescription :: Maybe Description
+  , _queryIdentity    :: Maybe Identity
+  , _queryMeta        :: Maybe Metadata
   } deriving (Show, Eq)
 
 query :: Maybe String -> Maybe String -> Maybe String -> Maybe String -> Query
 query i d iden m =
-  Query { queryId          = (Id          . T.pack) <$> i
-        , queryDescription = (Description . T.pack) <$> d
-        , queryIdentity    = (Identity    . T.pack) <$> iden
-        , queryMeta        = (Metadata    . T.pack) <$> m
+  Query { _queryId          = (Id          . T.pack) <$> i
+        , _queryDescription = (Description . T.pack) <$> d
+        , _queryIdentity    = (Identity    . T.pack) <$> iden
+        , _queryMeta        = (Metadata    . T.pack) <$> m
         }
 
 queryIsEmpty :: Query -> Bool

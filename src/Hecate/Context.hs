@@ -11,13 +11,16 @@ module Hecate.Context
   ) where
 
 import           Control.Monad.Except
+import qualified Data.Map.Lazy          as Map
 import           Data.Maybe             (fromMaybe)
 import qualified Data.Text              as T
 import qualified Data.Text.IO           as TIO
 import qualified Database.SQLite.Simple as SQLite
+import           Lens.Simple
 import           System.Directory       (createDirectory, doesDirectoryExist)
 import           System.Posix.Env       (getEnv)
 import qualified TOML
+import           TOML.Lens
 
 import           Hecate.Error
 import           Hecate.GPG             (KeyId(..))
@@ -35,22 +38,27 @@ data AppConfig = AppConfig
   , appConfigKeyId         :: KeyId
   } deriving (Show, Eq)
 
--- | Look up values in a given association list
-lup :: [(T.Text, TOML.Value)] -> T.Text -> Either AppError TOML.Value
-lup alist key = maybe err pure (lookup key alist)
+alist :: Ord k => [(k, v)] -> Map.Map k v
+alist = Map.fromList
+
+alistLens
+  :: (Ord k1, Ord k2, Functor f)
+  => LensLike f [(k1, v1)] [(k2, v2)] (Map.Map k1 v1) (Map.Map k2 v2)
+alistLens = iso Map.fromList Map.toList
+
+mapAt
+  :: Applicative f
+  => T.Text
+  -> (Map.Map T.Text TOML.Value -> f (Map.Map T.Text TOML.Value))
+  -> Map.Map T.Text TOML.Value
+  -> f (Map.Map T.Text TOML.Value)
+mapAt k = at k . _Just . _Table . alistLens
+
+getKeyId :: [(T.Text, TOML.Value)] -> Either String String
+getKeyId tbl = maybe err pure keyId
   where
-    err = Left (TomlParsing ("could't find key: " ++ T.unpack key))
-
-parseKeyId :: [(T.Text, TOML.Value)] -> Either AppError String
-parseKeyId tbl = unpackTop tbl >>= unpackGnupg >>= unpackKeyId
-  where
-    unpackTop t = lup t "gnupg"
-
-    unpackGnupg (TOML.Table r) = lup r "keyid"
-    unpackGnupg _              = Left (TomlParsing "gnupg is wrong type")
-
-    unpackKeyId (TOML.String f) = pure (T.unpack f)
-    unpackKeyId _               = Left (TomlParsing "keyid is wrong type")
+    keyId = alist tbl ^? mapAt "gnupg" . at "keyid" . _Just . _String . to T.unpack
+    err   = Left "could not find gnupg.keyid"
 
 getEnvOrDefault :: MonadIO m => String -> String -> m String
 getEnvOrDefault env d = fromMaybe d <$> liftIO (getEnv env)
@@ -67,7 +75,7 @@ configure :: (MonadIO m, MonadError AppError m) => FilePath -> m AppConfig
 configure dataDir = do
   txt   <- liftIO (TIO.readFile (dataDir ++ "/hecate.toml"))
   tbl   <- either (throwError . TomlParsing . show) pure (TOML.parseTOML txt)
-  dfing <- either throwError pure (parseKeyId tbl)
+  dfing <- either (throwError . TomlParsing)        pure (getKeyId tbl)
   keyId <- KeyId . T.pack <$> getEnvOrDefault "HECATE_KEYID" dfing
   let dbDir = dataDir ++ "/db"
   dbDirExists <- liftIO (doesDirectoryExist dbDir)

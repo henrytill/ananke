@@ -3,7 +3,7 @@
 , filepath, hlint, lens-simple, lens-toml-parser, mtl
 , optparse-applicative, process, process-extras, QuickCheck
 , quickcheck-text, SHA, sqlite-simple, stdenv, text, time
-, toml-parser, unix, vector
+, toml-parser, transformers, unix, vector
 , gnupg1compat, sqlite
 }:
 mkDerivation {
@@ -18,15 +18,16 @@ mkDerivation {
     ansi-wl-pprint base base64-bytestring bytestring cassava containers
     directory filepath lens-simple lens-toml-parser mtl
     optparse-applicative process process-extras SHA sqlite-simple text
-    time toml-parser unix vector
+    time toml-parser transformers unix vector
   ];
   executableHaskellDepends = [
     ansi-terminal ansi-wl-pprint base directory mtl sqlite-simple
+    transformers
   ];
   executableSystemDepends = [ sqlite gnupg1compat ];
   testHaskellDepends = [
     base directory hlint mtl QuickCheck quickcheck-text sqlite-simple
-    unix
+    transformers unix
   ];
   testSystemDepends = [ sqlite gnupg1compat ];
   preCheck = ''

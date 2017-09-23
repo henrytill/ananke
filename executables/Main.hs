@@ -29,13 +29,13 @@ runM :: AppContext -> ReaderT AppContext IO a -> IO a
 runM = flip runReaderT
 
 exceptionHandler :: Command -> AppError -> IO ExitCode
-exceptionHandler command err =
-  hPutDoc stderr (prettyError command err) >>
+exceptionHandler command err = do
+  hPutDoc stderr (prettyError command err)
   return (ExitFailure 1)
 
 resultHandler :: Command -> Response -> IO ExitCode
-resultHandler command res =
-  hPutDocWrapper stdout (ansiPrettyResponse command res) (prettyResponse command res) >>
+resultHandler command res = do
+  hPutDocWrapper stdout (ansiPrettyResponse command res) (prettyResponse command res)
   return ExitSuccess
 
 runApp :: AppContext -> IO ExitCode

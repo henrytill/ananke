@@ -44,10 +44,12 @@ addEntryToDatabase c tds = do
 
 prop_roundTripEntriesToDatabase :: AppContext -> Property
 prop_roundTripEntriesToDatabase ctx = monadicIO $ do
-  tds <- pick $ listOf1 arbitrary
-  es  <- run $ flip runReaderT ctx $ addEntryToDatabase (_appContextConnection ctx) tds
-  res <- run $ selectAll (_appContextConnection ctx)
-  assert $ null (es \\ res)
+  tds <- pick (listOf1 arbitrary)
+  es  <- run (runReaderT (addEntryToDatabase conn tds) ctx)
+  res <- run (selectAll conn)
+  assert (null (es \\ res))
+  where
+    conn = _appContextConnection ctx
 
 dbTests :: [AppContext -> Property]
 dbTests = [ prop_roundTripEntriesToDatabase ]

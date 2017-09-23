@@ -54,10 +54,10 @@ getSchemaVersionFromFile path = (SchemaVersion . read) <$> liftIO (readFile path
 
 getSchemaVersion :: MonadIO m => FilePath -> m SchemaVersion
 getSchemaVersion path = do
-  exists <- liftIO $ doesFileExist path
+  exists <- liftIO (doesFileExist path)
   if exists
     then getSchemaVersionFromFile path
-    else createSchemaFile path >> pure currentSchemaVersion
+    else createSchemaFile path >> return currentSchemaVersion
 
 addKeyId :: SQLite.Connection -> KeyId -> IO ()
 addKeyId conn keyId = SQLite.execute conn s (SQLite.Only keyId)
@@ -94,7 +94,7 @@ initDatabase
   -> m ()
 initDatabase conn path schemaVersion keyId =
   if schemaVersion == currentSchemaVersion
-  then liftIO $ SQLite.execute_ conn (currentSchema "entries")
+  then liftIO (SQLite.execute_ conn (currentSchema "entries"))
   else do
     liftIO $ putStrLn ("Migrating database from schema version "
                        ++ show schemaVersion
@@ -105,42 +105,42 @@ initDatabase conn path schemaVersion keyId =
 
 createContext :: MonadIO m => AppConfig -> m AppContext
 createContext config = do
-  connection    <- liftIO $ SQLite.open dbFile
+  connection    <- liftIO (SQLite.open dbFile)
   schemaVersion <- getSchemaVersion schemaFile
   initDatabase connection schemaFile schemaVersion keyId
-  return $ AppContext keyId connection
+  return (AppContext keyId connection)
   where
     schemaFile = _appConfigDataDirectory config ++ "/db/schema"
     dbFile     = _appConfigDataDirectory config ++ "/db/db.sqlite"
     keyId      = _appConfigKeyId config
 
 put :: MonadIO m => SQLite.Connection -> Entry -> m ()
-put conn e = liftIO $ SQLite.execute conn s e
+put conn e = liftIO (SQLite.execute conn s e)
   where
     s = "INSERT OR REPLACE INTO entries \
         \  (id, keyid, timestamp, description, identity, ciphertext, meta) \
         \  VALUES (?, ?, ?, ?, ?, ?, ?)"
 
 delete :: MonadIO m => SQLite.Connection -> Entry -> m ()
-delete conn e = liftIO $ SQLite.executeNamed conn s [":id" := _entryId e]
+delete conn e = liftIO (SQLite.executeNamed conn s [":id" := _entryId e])
   where
     s = "DELETE FROM entries WHERE id = :id"
 
 selectAll :: MonadIO m => SQLite.Connection -> m [Entry]
-selectAll conn = liftIO $ SQLite.query_ conn q
+selectAll conn = liftIO (SQLite.query_ conn q)
   where
     q = "SELECT id, keyid, timestamp, description, identity, ciphertext, meta \
         \FROM entries"
 
 checkEntries :: MonadIO m => SQLite.Connection -> KeyId -> m Bool
-checkEntries conn keyId = liftIO $ SQLite.queryNamed conn q r >>= p
+checkEntries conn keyId
+  = p <$> liftIO (SQLite.queryNamed conn q [":keyid" := keyId])
   where
-    q = "SELECT count(keyid)  \
-        \FROM entries         \
-        \WHERE keyid != :keyid"
-    r = [":keyid" := keyId]
-    p [count] = return (unCount count == 0)
-    p _       = return False
+    q         = "SELECT count(keyid)  \
+                \FROM entries         \
+                \WHERE keyid != :keyid"
+    p [count] = unCount count == 0
+    p _       = False
 
 reencryptAll :: MonadIO m => SQLite.Connection -> KeyId -> m ()
 reencryptAll conn keyId = do
@@ -186,6 +186,6 @@ query :: MonadIO m => SQLite.Connection -> Query -> m [Entry]
 query conn q =
   if queryIsEmpty q
   then selectAll conn
-  else liftIO $ SQLite.queryNamed conn qs nps
+  else liftIO (SQLite.queryNamed conn qs nps)
   where
     (qs, nps) = generateQuery q

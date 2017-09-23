@@ -148,9 +148,9 @@ ider = Id . T.pack . showDigest . sha1 . BSL.fromStrict . encodeUtf8
 
 createId :: KeyId -> UTCTime -> Description -> Maybe Identity -> Id
 createId (KeyId k) ts (Description d) (Just (Identity i)) =
-  ider $ k <> showTime ts <> d <> i
+  ider (k <> showTime ts <> d <> i)
 createId (KeyId k) ts (Description d) Nothing =
-  ider $ k <> showTime ts <> d
+  ider (k <> showTime ts <> d)
 
 createEntryImpl
   :: MonadIO m
@@ -162,9 +162,9 @@ createEntryImpl
   -> Maybe Metadata
   -> m Entry
 createEntryImpl keyId timestamp description identity plaintext meta = do
-  i         <- pure $ createId keyId timestamp description identity
+  i         <- pure (createId keyId timestamp description identity)
   encrypted <- encrypt keyId plaintext
-  return $ Entry i keyId timestamp description identity encrypted meta
+  return (Entry i keyId timestamp description identity encrypted meta)
 
 createEntry
   :: (MonadIO m, MonadReader r m, HasAppContext r)
@@ -176,7 +176,7 @@ createEntry
 createEntry description identity plaintext meta = do
   ctx       <- ask
   timestamp <- liftIO getCurrentTime
-  createEntryImpl (view appContextKeyId ctx) timestamp description identity plaintext meta
+  createEntryImpl (ctx ^. appContextKeyId) timestamp description identity plaintext meta
 
 updateEntry
   :: MonadIO m
@@ -188,8 +188,8 @@ updateEntry
   -> m Entry
 updateEntry keyId description identity ciphertext meta = do
   timestamp <- liftIO getCurrentTime
-  i         <- pure $ createId keyId timestamp description identity
-  return $ Entry i keyId timestamp description identity ciphertext meta
+  i         <- pure (createId keyId timestamp description identity)
+  return (Entry i keyId timestamp description identity ciphertext meta)
 
 importEntryToEntry
   :: (MonadIO m, MonadReader r m, HasAppContext r)

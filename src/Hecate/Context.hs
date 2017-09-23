@@ -82,7 +82,7 @@ getEnvError env msg =  maybe (error msg) pure =<< liftIO (getEnv env)
 getDataDir :: MonadIO m => m FilePath
 getDataDir =
   getEnvError "HOME" "Could not get value of HOME" >>= \ home ->
-  liftIO $ getEnvDefault "HECATE_DATA_DIR" (home ++ "/.hecate")
+  liftIO (getEnvDefault "HECATE_DATA_DIR" (home ++ "/.hecate"))
 
 configure :: MonadIO m => FilePath -> m AppConfig
 configure dataDir = do

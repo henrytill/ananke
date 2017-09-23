@@ -13,7 +13,6 @@ data AppError
   | FileSystem String
   | AmbiguousInput String
   | MigrationError String
-  | CheckError String
   | Default String
   deriving (Typeable)
 
@@ -25,7 +24,6 @@ instance Show AppError where
   show (FileSystem s)     = "Filesystem Error: " ++ s
   show (AmbiguousInput s) = "Ambiguous Input: " ++ s
   show (MigrationError s) = "Migration Error: " ++ s
-  show (CheckError s)     = "Check Error: " ++ s
   show (Default s)        = "Error: " ++ s
 
 instance Exception AppError

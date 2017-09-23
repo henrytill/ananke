@@ -76,7 +76,7 @@ removeP :: Parser Command
 removeP = Remove <$> targetP
 
 checkP :: Parser Command
-checkP = pure Check
+checkP = pure CheckForMultipleKeys
 
 cmdAdd        :: Mod CommandFields Command
 cmdLookup     :: Mod CommandFields Command
@@ -91,7 +91,7 @@ cmdImport     = command "import"     $ info importP     (progDesc "Import a CSV 
 cmdModify     = command "modify"     $ info modifyP     (progDesc "Modify a piece of ciphertext in the store")
 cmdRedescribe = command "redescribe" $ info redescribeP (progDesc "Modify the description of a piece of ciphertext in the store")
 cmdRemove     = command "remove"     $ info removeP     (progDesc "Remove a piece of ciphertext from the store")
-cmdCheck      = command "check"      $ info checkP      (progDesc "Check entries")
+cmdCheck      = command "check"      $ info checkP      (progDesc "Check if all entries have the same keyid")
 
 master :: Parser Command
 master = hsubparser (cmdAdd <> cmdLookup <> cmdImport <> cmdModify <> cmdRedescribe <> cmdRemove <> cmdCheck)

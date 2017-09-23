@@ -57,7 +57,7 @@ data Command
                , _redescribeDescription :: String
                }
   | Remove Target
-  | Check
+  | CheckForMultipleKeys
   deriving Show
 
 -- | 'Response' represents the response to a 'Command'
@@ -68,7 +68,7 @@ data Response
   | Modified
   | Redescribed
   | Removed
-  | Checked
+  | CheckedForMultipleKeys
   deriving (Show, Eq)
 
 flushStr :: String -> IO ()
@@ -250,8 +250,8 @@ check = do
   ctx <- ask
   r   <- DB.checkEntries (view appContextConnection ctx) (view appContextKeyId ctx)
   if r
-    then return Checked
-    else throw (CheckError "failed")
+    then return CheckedForMultipleKeys
+    else throw (Default "All entries do not have the same keyid")
 
 eval
   :: (MonadIO m, MonadReader r m, HasAppContext r)
@@ -276,7 +276,7 @@ eval Import{_importFile} = do
   es  <- importCSV _importFile
   _   <- mapM_ (DB.put (view appContextConnection ctx)) es
   return Added
-eval (Modify t c i m) = modify t c i m
-eval (Redescribe t s) = redescribe t s
-eval (Remove t)       = remove t
-eval Check            = check
+eval (Modify t c i m)     = modify t c i m
+eval (Redescribe t s)     = redescribe t s
+eval (Remove t)           = remove t
+eval CheckForMultipleKeys = check

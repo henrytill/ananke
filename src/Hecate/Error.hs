@@ -12,7 +12,7 @@ data AppError
   | GPG String
   | FileSystem String
   | AmbiguousInput String
-  | MigrationError String
+  | Migration String
   | Default String
   deriving (Typeable)
 
@@ -23,7 +23,7 @@ instance Show AppError where
   show (GPG s)            = s
   show (FileSystem s)     = "Filesystem Error: " ++ s
   show (AmbiguousInput s) = "Ambiguous Input: " ++ s
-  show (MigrationError s) = "Migration Error: " ++ s
+  show (Migration s)      = "Migration Error: " ++ s
   show (Default s)        = "Error: " ++ s
 
 instance Exception AppError

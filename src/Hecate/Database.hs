@@ -83,7 +83,7 @@ migrate conn path (SchemaVersion 1) keyId = do
   reencryptAll conn keyId
   createSchemaFile path
 migrate _ _ (SchemaVersion v) _ =
-  throw (MigrationError ("no supported migration path for schema version " ++ show v))
+  throw (Migration ("no supported migration path for schema version " ++ show v))
 
 initDatabase
   :: MonadIO m

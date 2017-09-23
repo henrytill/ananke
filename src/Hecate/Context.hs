@@ -16,13 +16,12 @@ module Hecate.Context
 import           Control.Exception
 import           Control.Monad.Except
 import qualified Data.Map.Lazy          as Map
-import           Data.Maybe             (fromMaybe)
 import qualified Data.Text              as T
 import qualified Data.Text.IO           as TIO
 import qualified Database.SQLite.Simple as SQLite
 import           Lens.Simple
 import           System.Directory       (createDirectory, doesDirectoryExist)
-import           System.Posix.Env       (getEnv)
+import           System.Posix.Env       (getEnv, getEnvDefault)
 import qualified TOML
 import           TOML.Lens
 
@@ -70,29 +69,27 @@ mapAt
   -> f (Map.Map T.Text TOML.Value)
 mapAt k = at k . _Just . _Table . alistLens
 
-getKeyId :: [(T.Text, TOML.Value)] -> Either String String
+getKeyId :: [(T.Text, TOML.Value)] -> Either String T.Text
 getKeyId tbl = maybe err pure keyId
   where
-    keyId = alist tbl ^? mapAt "gnupg" . at "keyid" . _Just . _String . to T.unpack
+    keyId = alist tbl ^? mapAt "gnupg" . at "keyid" . _Just . _String
     err   = Left "could not find gnupg.keyid"
 
-getEnvOrDefault :: MonadIO m => String -> String -> m String
-getEnvOrDefault env d = fromMaybe d <$> liftIO (getEnv env)
 
-getEnvOrError :: MonadIO m => String -> String -> m String
-getEnvOrError env msg = liftIO (getEnv env) >>= maybe (error msg) pure
+getEnvError :: MonadIO m => String -> String -> m String
+getEnvError env msg =  maybe (error msg) pure =<< liftIO (getEnv env)
 
 getDataDir :: MonadIO m => m FilePath
 getDataDir =
-  getEnvOrError "HOME" "Can't find my way HOME" >>= \ home ->
-  getEnvOrDefault "HECATE_DATA_DIR" (home ++ "/.hecate")
+  getEnvError "HOME" "Could not get value of HOME" >>= \ home ->
+  liftIO $ getEnvDefault "HECATE_DATA_DIR" (home ++ "/.hecate")
 
 configure :: MonadIO m => FilePath -> m AppConfig
 configure dataDir = do
   txt   <- liftIO (TIO.readFile (dataDir ++ "/hecate.toml"))
-  tbl   <- either (throw . TomlParsing . show) pure (TOML.parseTOML txt)
-  dfing <- either (throw . TomlParsing)        pure (getKeyId tbl)
-  keyId <- KeyId . T.pack <$> getEnvOrDefault "HECATE_KEYID" dfing
+  tbl   <- either (throw . TOML)          pure (TOML.parseTOML txt)
+  dfing <- either (throw . Configuration) pure (getKeyId tbl)
+  keyId <- pure . KeyId <$> maybe dfing T.pack =<< liftIO (getEnv "HECATE_KEYID")
   let dbDir = dataDir ++ "/db"
   dbDirExists <- liftIO (doesDirectoryExist dbDir)
   unless dbDirExists (liftIO (createDirectory dbDir))

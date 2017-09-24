@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes        #-}
 
 module Hecate.Context
   ( HasConfig
@@ -23,13 +24,12 @@ module Hecate.Context
 
 import           Control.Exception
 import           Control.Monad.Except
-import qualified Data.Map.Lazy          as Map
 import qualified Data.Text              as T
 import qualified Data.Text.IO           as TIO
 import qualified Database.SQLite.Simple as SQLite
 import           Lens.Family2
-import           Lens.Family2.Stock     (at, _Just)
-import           Lens.Family2.Unchecked (lens, iso)
+import           Lens.Family2.Stock     (_Just)
+import           Lens.Family2.Unchecked (lens)
 import           System.Directory       (createDirectory, doesDirectoryExist)
 import           System.Posix.Env       (getEnv, getEnvDefault)
 import qualified TOML
@@ -92,32 +92,29 @@ instance HasAppContext AppContext where
   appContextConfig     = config
   appContextConnection = lens _appContextConnection (\ a conn -> a{_appContextConnection = conn})
 
-alist :: Ord k => [(k, v)] -> Map.Map k v
-alist = Map.fromList
+lup
+  :: T.Text
+  -> Getter' [(T.Text, TOML.Value)] (Maybe TOML.Value)
+lup = to . lookup
 
-alistLens
-  :: (Ord k1, Ord k2, Functor f)
-  => LensLike f [(k1, v1)] [(k2, v2)] (Map.Map k1 v1) (Map.Map k2 v2)
-alistLens = iso Map.fromList Map.toList
-
-mapAt
-  :: Applicative f
+tableAt
+  :: (Applicative f, Phantom f)
   => T.Text
-  -> (Map.Map T.Text TOML.Value -> f (Map.Map T.Text TOML.Value))
-  -> Map.Map T.Text TOML.Value
-  -> f (Map.Map T.Text TOML.Value)
-mapAt k = at k . _Just . _Table . alistLens
+  -> ([(T.Text, TOML.Value)] -> f [(T.Text, TOML.Value)])
+  -> [(T.Text, TOML.Value)]
+  -> f [(T.Text, TOML.Value)]
+tableAt k = lup k . _Just . _Table
 
 getKeyId :: [(T.Text, TOML.Value)] -> Either String T.Text
 getKeyId tbl = maybe err pure keyId
   where
-    keyId = alist tbl ^? mapAt "gnupg" . at "keyid" . _Just . _String
+    keyId = tbl ^? tableAt "gnupg" . lup "keyid" . _Just . _String
     err   = Left "could not find gnupg.keyid"
 
 getAllowMultipleKeys :: [(T.Text, TOML.Value)] -> Either String Bool
 getAllowMultipleKeys tbl = maybe err pure allowMultKeys
   where
-    allowMultKeys = alist tbl ^? mapAt "entries" . at "allow_multiple_keys" . _Just . _Bool
+    allowMultKeys = tbl ^? tableAt "entries" . lup "allow_multiple_keys" . _Just . _Bool
     err           = Left "could not find entries.allow_multiple_keys"
 
 getEnvError :: MonadIO m => String -> String -> m String

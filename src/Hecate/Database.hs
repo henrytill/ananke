@@ -6,7 +6,9 @@ module Hecate.Database
   , delete
   , query
   , selectAll
-  , checkEntries
+  , getCount
+  , getCountOfKeyId
+  , reencryptAll
   ) where
 
 import           Control.Exception
@@ -132,15 +134,23 @@ selectAll conn = liftIO (SQLite.query_ conn q)
     q = "SELECT id, keyid, timestamp, description, identity, ciphertext, meta \
         \FROM entries"
 
-checkEntries :: MonadIO m => SQLite.Connection -> KeyId -> m Bool
-checkEntries conn keyId
+getCount :: MonadIO m => SQLite.Connection -> m Int
+getCount conn
+  = p <$> liftIO (SQLite.query_ conn q)
+  where
+    q         = "SELECT count(*) FROM entries"
+    p [count] = unCount count
+    p _       = throw (Database "unexpected results")
+
+getCountOfKeyId :: MonadIO m => SQLite.Connection -> KeyId -> m Int
+getCountOfKeyId conn keyId
   = p <$> liftIO (SQLite.queryNamed conn q [":keyid" := keyId])
   where
-    q         = "SELECT count(keyid)  \
+    q         = "SELECT count(*)  \
                 \FROM entries         \
-                \WHERE keyid != :keyid"
-    p [count] = unCount count == 0
-    p _       = False
+                \WHERE keyid = :keyid"
+    p [count] = unCount count
+    p _       = throw (Database "unexpected results")
 
 reencryptAll :: MonadIO m => SQLite.Connection -> KeyId -> m ()
 reencryptAll conn keyId = do

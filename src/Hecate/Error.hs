@@ -10,6 +10,7 @@ data AppError
   | TOML TOMLError
   | Configuration String
   | GPG String
+  | Database String
   | FileSystem String
   | AmbiguousInput String
   | Migration String
@@ -21,6 +22,7 @@ instance Show AppError where
   show (TOML e)           = show e
   show (Configuration s)  = "Configuration Error: " ++ s
   show (GPG s)            = s
+  show (Database s)       = "Database Error: " ++ s
   show (FileSystem s)     = "Filesystem Error: " ++ s
   show (AmbiguousInput s) = "Ambiguous Input: " ++ s
   show (Migration s)      = "Migration Error: " ++ s

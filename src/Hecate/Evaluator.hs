@@ -13,6 +13,7 @@ import           Control.Exception
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import qualified Data.ByteString.Lazy   as BSL
+import           Data.Char              (toLower)
 import qualified Data.Csv               as CSV
 import qualified Data.Text              as T
 import qualified Data.Vector            as Vector
@@ -77,12 +78,41 @@ flushStr s = putStr s >> hFlush stdout
 promptText :: MonadIO m => String -> m String
 promptText s = liftIO (flushStr s >> getLine)
 
+askQuestion :: MonadIO m => String -> m a -> m a -> m a
+askQuestion s yes no = do
+  ans <- liftIO (flushStr (s ++ " [N/y] ") >> getLine)
+  case map toLower ans of
+    ""   -> no
+    "n"  -> no
+    "y"  -> yes
+    _    -> liftIO (throwIO (Default "Please answer y or n"))
+
 ensureFile :: MonadIO m => FilePath -> m FilePath
 ensureFile file = do
   exists <- liftIO (doesFileExist file)
   if exists
     then return file
     else throw (FileSystem "File does not exist")
+
+checkKey :: (MonadIO m, MonadReader r m, HasAppContext r) => m Response -> m Response
+checkKey k = do
+  ctx <- ask
+  let conn          = ctx ^. appContextConnection
+      keyId         = ctx ^. configKeyId
+      allowMultKeys = ctx ^. configAllowMultipleKeys
+  total <- DB.getCount conn
+  if total == 0
+    then k
+    else do
+    let q     = "New keyid found: do you want to re-encrypt all entries?"
+        reenc = DB.reencryptAll conn keyId
+        err   = throw (Default "You have set allow_multiple_keys to false")
+    count <- DB.getCountOfKeyId conn keyId
+    case (count, allowMultKeys) of
+      (0, False)              -> askQuestion q (reenc >> k) err
+      (x, _    ) | x == total -> k
+      (_, True )              -> askQuestion q (reenc >> k) k
+      (_, False)              -> liftIO (throwIO (Default "All entries do not have the same keyid"))
 
 importCSV
   :: (MonadIO m, MonadReader r m, HasConfig r)
@@ -165,8 +195,11 @@ findAndModify
   -> m Response
 findAndModify q maction miden mmeta = do
   ctx <- ask
-  rs  <- DB.query (ctx ^. appContextConnection) q
-  modifyOnlySingletons rs maction miden mmeta
+  checkKey (k ctx)
+  where
+    k ctx = do
+      rs  <- DB.query (ctx ^. appContextConnection) q
+      modifyOnlySingletons rs maction miden mmeta
 
 modify
   :: (MonadIO m, MonadReader r m, HasAppContext r)
@@ -187,10 +220,13 @@ redescribeOnlySingletons
   -> m Response
 redescribeOnlySingletons [e] s = do
   ctx <- ask
-  ue  <- updateDescription (Description . T.pack $ s) e
-  _   <- DB.put    (ctx ^. appContextConnection) ue
-  _   <- DB.delete (ctx ^. appContextConnection) e
-  return Redescribed
+  checkKey (k ctx)
+  where
+    k ctx = do
+      ue  <- updateDescription (Description . T.pack $ s) e
+      _   <- DB.put    (ctx ^. appContextConnection) ue
+      _   <- DB.delete (ctx ^. appContextConnection) e
+      return Redescribed
 redescribeOnlySingletons _ _ =
   throw (AmbiguousInput "There are multiple entries matching your input criteria.")
 
@@ -248,8 +284,11 @@ check
   => m Response
 check = do
   ctx <- ask
-  r   <- DB.checkEntries (ctx ^. appContextConnection) (ctx ^. configKeyId)
-  if r
+  let conn  = ctx ^. appContextConnection
+      keyId = ctx ^. configKeyId
+  t <- DB.getCount conn
+  r <- DB.getCountOfKeyId conn keyId
+  if t == r
     then return CheckedForMultipleKeys
     else throw (Default "All entries do not have the same keyid")
 
@@ -259,10 +298,13 @@ eval
   -> m Response
 eval Add{_addDescription, _addIdentity, _addMeta} = do
   ctx <- ask
-  t   <- promptText "Enter text to encrypt: "
-  e   <- createEntryWrapper _addDescription _addIdentity _addMeta t
-  _   <- DB.put (ctx ^. appContextConnection) e
-  return Added
+  checkKey (k ctx)
+  where
+    k ctx = do
+      t   <- promptText "Enter text to encrypt: "
+      e   <- createEntryWrapper _addDescription _addIdentity _addMeta t
+      _   <- DB.put (ctx ^. appContextConnection) e
+      return Added
 eval Lookup{_lookupDescription, _lookupVerbosity} = do
   ctx <- ask
   q   <- pure (query Nothing (Just _lookupDescription) Nothing Nothing)
@@ -273,9 +315,12 @@ eval Lookup{_lookupDescription, _lookupVerbosity} = do
     es  -> MultipleEntries <$> decryptEntries es <*> pure _lookupVerbosity
 eval Import{_importFile} = do
   ctx <- ask
-  es  <- importCSV _importFile
-  _   <- mapM_ (DB.put (ctx ^. appContextConnection)) es
-  return Added
+  checkKey (k ctx)
+  where
+    k ctx = do
+      es  <- importCSV _importFile
+      _   <- mapM_ (DB.put (ctx ^. appContextConnection)) es
+      return Added
 eval (Modify t c i m)     = modify t c i m
 eval (Redescribe t s)     = redescribe t s
 eval (Remove t)           = remove t

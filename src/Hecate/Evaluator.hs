@@ -16,7 +16,7 @@ import qualified Data.ByteString.Lazy   as BSL
 import qualified Data.Csv               as CSV
 import qualified Data.Text              as T
 import qualified Data.Vector            as Vector
-import           Lens.Simple            hiding (Identity)
+import           Lens.Family2
 import           System.Directory       (doesFileExist)
 import           System.IO              (hFlush, stdout)
 

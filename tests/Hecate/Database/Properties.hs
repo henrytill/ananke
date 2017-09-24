@@ -9,7 +9,7 @@ import Control.Monad.Reader
 import Data.List               ((\\))
 import Data.Text.Arbitrary     ()
 import Database.SQLite.Simple  hiding (Error)
-import Lens.Simple             hiding (Identity)
+import Lens.Family2
 import System.Directory        (copyFile)
 import System.Posix.Temp
 import Test.QuickCheck

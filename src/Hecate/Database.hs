@@ -16,7 +16,7 @@ import           Data.Monoid            ((<>))
 import qualified Data.Text              as T
 import qualified Database.SQLite.Simple as SQLite
 import           Database.SQLite.Simple (NamedParam ((:=)))
-import           Lens.Simple            hiding (Identity)
+import           Lens.Family2
 import           System.Directory       (doesFileExist)
 
 import           Hecate.Context

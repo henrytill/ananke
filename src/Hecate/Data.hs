@@ -51,7 +51,7 @@ import qualified Database.SQLite.Simple           as SQLite
 import           Database.SQLite.Simple.FromField
 import           Database.SQLite.Simple.ToField
 import           GHC.Generics
-import           Lens.Simple                      hiding (Identity)
+import           Lens.Family2
 
 import           Hecate.Context
 import           Hecate.GPG

@@ -27,7 +27,9 @@ import qualified Data.Map.Lazy          as Map
 import qualified Data.Text              as T
 import qualified Data.Text.IO           as TIO
 import qualified Database.SQLite.Simple as SQLite
-import           Lens.Simple
+import           Lens.Family2
+import           Lens.Family2.Stock     (at, _Just)
+import           Lens.Family2.Unchecked (lens, iso)
 import           System.Directory       (createDirectory, doesDirectoryExist)
 import           System.Posix.Env       (getEnv, getEnvDefault)
 import qualified TOML

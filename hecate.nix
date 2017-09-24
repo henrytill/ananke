@@ -21,13 +21,12 @@ mkDerivation {
     time toml-parser transformers unix vector
   ];
   executableHaskellDepends = [
-    ansi-terminal ansi-wl-pprint base directory mtl sqlite-simple
-    transformers
+    ansi-terminal ansi-wl-pprint base directory mtl transformers
   ];
   executableSystemDepends = [ sqlite gnupg1compat ];
   testHaskellDepends = [
-    base directory hlint mtl QuickCheck quickcheck-text sqlite-simple
-    transformers unix
+    base directory hlint lens-simple mtl QuickCheck quickcheck-text
+    sqlite-simple transformers unix
   ];
   testSystemDepends = [ sqlite gnupg1compat ];
   preCheck = ''

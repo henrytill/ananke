@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Hecate.Database
-  ( createContext
+  ( setup
   , put
   , delete
   , query
@@ -11,10 +11,12 @@ module Hecate.Database
 
 import           Control.Exception
 import           Control.Monad.IO.Class
+import           Control.Monad.Reader
 import           Data.Monoid            ((<>))
 import qualified Data.Text              as T
 import qualified Database.SQLite.Simple as SQLite
 import           Database.SQLite.Simple (NamedParam ((:=)))
+import           Lens.Simple            hiding (Identity)
 import           System.Directory       (doesFileExist)
 
 import           Hecate.Context
@@ -103,16 +105,14 @@ initDatabase conn path schemaVersion keyId =
                        ++ "...")
     migrate conn path schemaVersion keyId
 
-createContext :: MonadIO m => AppConfig -> m AppContext
-createContext config = do
-  connection    <- liftIO (SQLite.open dbFile)
+setup :: (MonadIO m, MonadReader r m, HasAppContext r) => m ()
+setup = do
+  ctx <- ask
+  let schemaFile = ctx ^. configSchemaFile
+      keyId      = ctx ^. configKeyId
+      connection = ctx ^. appContextConnection
   schemaVersion <- getSchemaVersion schemaFile
   initDatabase connection schemaFile schemaVersion keyId
-  return (AppContext keyId connection)
-  where
-    schemaFile = _appConfigDataDirectory config ++ "/db/schema"
-    dbFile     = _appConfigDataDirectory config ++ "/db/db.sqlite"
-    keyId      = _appConfigKeyId config
 
 put :: MonadIO m => SQLite.Connection -> Entry -> m ()
 put conn e = liftIO (SQLite.execute conn s e)

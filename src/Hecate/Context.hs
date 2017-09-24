@@ -1,16 +1,24 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Hecate.Context
-  ( AppContext(..)
+  ( HasConfig
+    ( configDataDirectory
+    , configDatabaseDirectory
+    , configSchemaFile
+    , configDatabaseFile
+    , configKeyId
+    , configAllowMultipleKeys
+    )
   , HasAppContext
-  , appContext
-  , appContextKeyId
-  , appContextConnection
-  , AppConfig
-  , _appConfigDataDirectory
-  , _appConfigKeyId
+    ( appContextConfig
+    , appContextConnection
+    )
+  , Config
+  , AppContext
   , getDataDir
   , configure
+  , createContext
+  , finalize
   ) where
 
 import           Control.Exception
@@ -28,30 +36,59 @@ import           TOML.Lens
 import           Hecate.Error
 import           Hecate.GPG             (KeyId(..))
 
+
+class HasConfig t where
+  config                  :: Lens' t Config
+  configDataDirectory     :: Lens' t FilePath
+  configKeyId             :: Lens' t KeyId
+  configAllowMultipleKeys :: Lens' t Bool
+  configDatabaseDirectory :: Getter' t FilePath
+  configSchemaFile        :: Getter' t FilePath
+  configDatabaseFile      :: Getter' t FilePath
+  configDataDirectory     = config . configDataDirectory
+  configKeyId             = config . configKeyId
+  configAllowMultipleKeys = config . configAllowMultipleKeys
+  configDatabaseDirectory = config . configDatabaseDirectory
+  configSchemaFile        = config . configSchemaFile
+  configDatabaseFile      = config . configDatabaseFile
+
+class HasConfig t => HasAppContext t where
+  appContext           :: Lens' t AppContext
+  appContextConfig     :: Lens' t Config
+  appContextConnection :: Lens' t SQLite.Connection
+  appContextConfig     = appContext . appContextConfig
+  appContextConnection = appContext . appContextConnection
+
+-- | An 'Config' represents values read from a configuration file
+data Config = Config
+  { _configDataDirectory     :: FilePath
+  , _configKeyId             :: KeyId
+  , _configAllowMultipleKeys :: Bool
+  } deriving (Show, Eq)
+
+instance HasConfig Config where
+  config                  = id
+  configDataDirectory     = lens _configDataDirectory     (\ c dir      -> c{_configDataDirectory     = dir})
+  configKeyId             = lens _configKeyId             (\ c keyId    -> c{_configKeyId             = keyId})
+  configAllowMultipleKeys = lens _configAllowMultipleKeys (\ c multKeys -> c{_configAllowMultipleKeys = multKeys})
+  configDatabaseDirectory = configDataDirectory     . to (++ "/db")
+  configSchemaFile        = configDatabaseDirectory . to (++ "/schema")
+  configDatabaseFile      = configDatabaseDirectory . to (++ "/db.sqlite")
+
 -- | 'AppContext' represents the shared environment for computations which occur
 -- within our application.  Values of this type are created by 'createContext'.
 data AppContext = AppContext
-  { _appContextKeyId      :: KeyId
+  { _appContextConfig     :: Config
   , _appContextConnection :: SQLite.Connection
   }
 
-class HasAppContext t where
-  appContext           :: Lens' t AppContext
-  appContextKeyId      :: Lens' t KeyId
-  appContextConnection :: Lens' t SQLite.Connection
-  appContextKeyId      = appContext . appContextKeyId
-  appContextConnection = appContext . appContextConnection
+instance HasConfig AppContext where
+  config = lens _appContextConfig (\ a cfg -> a{_appContextConfig = cfg})
 
 instance HasAppContext AppContext where
   appContext           = id
-  appContextKeyId      = lens _appContextKeyId      (\ a k -> a{_appContextKeyId      = k})
-  appContextConnection = lens _appContextConnection (\ a c -> a{_appContextConnection = c})
-
--- | An 'AppConfig' represents values read from a configuration file
-data AppConfig = AppConfig
-  { _appConfigDataDirectory :: FilePath
-  , _appConfigKeyId         :: KeyId
-  } deriving (Show, Eq)
+  appContextConfig     = config
+  appContextConnection = lens _appContextConnection (\ a conn -> a{_appContextConnection = conn})
 
 alist :: Ord k => [(k, v)] -> Map.Map k v
 alist = Map.fromList
@@ -75,6 +112,11 @@ getKeyId tbl = maybe err pure keyId
     keyId = alist tbl ^? mapAt "gnupg" . at "keyid" . _Just . _String
     err   = Left "could not find gnupg.keyid"
 
+getAllowMultipleKeys :: [(T.Text, TOML.Value)] -> Either String Bool
+getAllowMultipleKeys tbl = maybe err pure allowMultKeys
+  where
+    allowMultKeys = alist tbl ^? mapAt "entries" . at "allow_multiple_keys" . _Just . _Bool
+    err           = Left "could not find entries.allow_multiple_keys"
 
 getEnvError :: MonadIO m => String -> String -> m String
 getEnvError env msg =  maybe (error msg) pure =<< liftIO (getEnv env)
@@ -84,15 +126,27 @@ getDataDir =
   getEnvError "HOME" "Could not get value of HOME" >>= \ home ->
   liftIO (getEnvDefault "HECATE_DATA_DIR" (home ++ "/.hecate"))
 
-configure :: MonadIO m => FilePath -> m AppConfig
+configure :: MonadIO m => FilePath -> m Config
 configure dataDir = do
   txt   <- liftIO (TIO.readFile (dataDir ++ "/hecate.toml"))
   tbl   <- either (throw . TOML)          pure (TOML.parseTOML txt)
   dfing <- either (throw . Configuration) pure (getKeyId tbl)
+  mult  <- either (throw . Configuration) pure (getAllowMultipleKeys tbl)
   keyId <- pure . KeyId <$> maybe dfing T.pack =<< liftIO (getEnv "HECATE_KEYID")
-  let dbDir = dataDir ++ "/db"
+  return Config { _configDataDirectory     = dataDir
+                , _configKeyId             = keyId
+                , _configAllowMultipleKeys = mult
+                }
+
+createContext :: MonadIO m => Config -> m AppContext
+createContext cfg = do
+  let dbDir  = cfg ^. configDatabaseDirectory
+      dbFile = cfg ^. configDatabaseFile
   dbDirExists <- liftIO (doesDirectoryExist dbDir)
   unless dbDirExists (liftIO (createDirectory dbDir))
-  return AppConfig { _appConfigDataDirectory = dataDir
-                   , _appConfigKeyId = keyId
-                   }
+  AppContext cfg <$> liftIO (SQLite.open dbFile)
+
+finalize :: MonadIO m => AppContext -> m ()
+finalize ctx = liftIO (SQLite.close conn)
+  where
+    conn = ctx ^. appContextConnection

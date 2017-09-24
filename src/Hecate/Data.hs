@@ -167,7 +167,7 @@ createEntryImpl keyId timestamp description identity plaintext meta = do
   return (Entry i keyId timestamp description identity encrypted meta)
 
 createEntry
-  :: (MonadIO m, MonadReader r m, HasAppContext r)
+  :: (MonadIO m, MonadReader r m, HasConfig r)
   => Description
   -> Maybe Identity
   -> Plaintext
@@ -176,7 +176,7 @@ createEntry
 createEntry description identity plaintext meta = do
   ctx       <- ask
   timestamp <- liftIO getCurrentTime
-  createEntryImpl (ctx ^. appContextKeyId) timestamp description identity plaintext meta
+  createEntryImpl (ctx ^. configKeyId) timestamp description identity plaintext meta
 
 updateEntry
   :: MonadIO m
@@ -192,7 +192,7 @@ updateEntry keyId description identity ciphertext meta = do
   return (Entry i keyId timestamp description identity ciphertext meta)
 
 importEntryToEntry
-  :: (MonadIO m, MonadReader r m, HasAppContext r)
+  :: (MonadIO m, MonadReader r m, HasConfig r)
   => ImportEntry
   -> m Entry
 importEntryToEntry ImportEntry{_importDescription, _importIdentity, _importPlaintext, _importMeta} =
@@ -303,7 +303,7 @@ updateIdentity iden Entry{_entryKeyId, _entryDescription, _entryCiphertext, _ent
   updateEntry _entryKeyId _entryDescription iden _entryCiphertext _entryMeta
 
 updateCiphertext
-  :: (MonadIO m, MonadReader r m, HasAppContext r)
+  :: (MonadIO m, MonadReader r m, HasConfig r)
   => Plaintext
   -> Entry
   -> m Entry

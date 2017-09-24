@@ -2,7 +2,6 @@ module Main (main) where
 
 import           Control.Exception
 import           Control.Monad.Reader
-import qualified Database.SQLite.Simple       as SQLite
 import           System.Console.ANSI          (hSupportsANSI)
 import           System.Exit
 import           System.IO
@@ -25,9 +24,6 @@ hPutDocWrapper h f g = do
 initialize :: IO AppContext
 initialize = getDataDir >>= configure >>= createContext
 
-runM :: AppContext -> ReaderT AppContext IO a -> IO a
-runM = flip runReaderT
-
 exceptionHandler :: Command -> AppError -> IO ExitCode
 exceptionHandler command err = do
   hPutDoc stderr (prettyError command err)
@@ -39,12 +35,10 @@ resultHandler command res = do
   return ExitSuccess
 
 runApp :: AppContext -> IO ExitCode
-runApp ctx =
-  runCLIParser >>= \command ->
-  catch (runM ctx (eval command) >>= resultHandler command) (exceptionHandler command)
-
-finalize :: AppContext -> IO ()
-finalize ctx = SQLite.close (_appContextConnection ctx)
+runApp ctx = do
+  command <- runCLIParser
+  catch (runReaderT (setup >> eval command) ctx >>= resultHandler command)
+        (exceptionHandler command)
 
 main :: IO ()
 main = bracket initialize finalize runApp >>= exitWith

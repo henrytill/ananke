@@ -9,6 +9,7 @@ import Control.Monad.Reader
 import Data.List               ((\\))
 import Data.Text.Arbitrary     ()
 import Database.SQLite.Simple  hiding (Error)
+import Lens.Simple             hiding (Identity)
 import System.Directory        (copyFile)
 import System.Posix.Temp
 import Test.QuickCheck
@@ -49,7 +50,7 @@ prop_roundTripEntriesToDatabase ctx = monadicIO $ do
   res <- run (selectAll conn)
   assert (null (es \\ res))
   where
-    conn = _appContextConnection ctx
+    conn = ctx ^. appContextConnection
 
 dbTests :: [AppContext -> Property]
 dbTests = [ prop_roundTripEntriesToDatabase ]
@@ -59,6 +60,7 @@ doDatabaseProperties = do
   dir         <- mkdtemp "/tmp/hecate-tests-"
   _           <- copyFile "./example/hecate.toml" (dir ++ "/hecate.toml")
   ctx         <- configure dir >>= createContext
+  _           <- runReaderT setup ctx
   results     <- mapM (\ p -> quickCheckWithResult stdArgs (p ctx)) dbTests
-  _           <- close (_appContextConnection ctx)
+  _           <- close (ctx ^. appContextConnection)
   return results

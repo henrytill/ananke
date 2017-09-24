@@ -85,7 +85,7 @@ ensureFile file = do
     else throw (FileSystem "File does not exist")
 
 importCSV
-  :: (MonadIO m, MonadReader r m, HasAppContext r)
+  :: (MonadIO m, MonadReader r m, HasConfig r)
   => FilePath
   -> m [Entry]
 importCSV csvFile = do
@@ -95,7 +95,7 @@ importCSV csvFile = do
   mapM importEntryToEntry ies
 
 createEntryWrapper
-  :: (MonadIO m, MonadReader r m, HasAppContext r)
+  :: (MonadIO m, MonadReader r m, HasConfig r)
   => String
   -> Maybe String
   -> Maybe String
@@ -130,7 +130,7 @@ updateWrapper miden mmeta e =
   updateMetadata (Metadata . T.pack <$> mmeta)
 
 updateCiphertextWrapper
-  :: (MonadIO m, MonadReader r m, HasAppContext r)
+  :: (MonadIO m, MonadReader r m, HasConfig r)
   => ModifyAction
   -> Entry
   -> m Entry
@@ -248,7 +248,7 @@ check
   => m Response
 check = do
   ctx <- ask
-  r   <- DB.checkEntries (ctx ^. appContextConnection) (ctx ^. appContextKeyId)
+  r   <- DB.checkEntries (ctx ^. appContextConnection) (ctx ^. configKeyId)
   if r
     then return CheckedForMultipleKeys
     else throw (Default "All entries do not have the same keyid")

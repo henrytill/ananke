@@ -75,7 +75,7 @@ convertResult
 convertResult (ExitSuccess  , stdout, _     ) = pure stdout
 convertResult (ExitFailure _, _     , stderr) = perr stderr
   where
-    perr x = throw (GPG (T.unpack (decodeUtf8 x)))
+    perr x = liftIO (throwIO (GPG (T.unpack (decodeUtf8 x))))
 
 lifter
   :: MonadIO m

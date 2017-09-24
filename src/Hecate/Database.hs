@@ -87,7 +87,7 @@ migrate conn path (SchemaVersion 1) keyId = do
   reencryptAll conn keyId
   createSchemaFile path
 migrate _ _ (SchemaVersion v) _ =
-  throw (Migration ("no supported migration path for schema version " ++ show v))
+  liftIO (throwIO (Migration ("no supported migration path for schema version " ++ show v)))
 
 initDatabase
   :: MonadIO m
@@ -134,23 +134,25 @@ selectAll conn = liftIO (SQLite.query_ conn q)
     q = "SELECT id, keyid, timestamp, description, identity, ciphertext, meta \
         \FROM entries"
 
+processCountResults :: [Count] -> Either AppError Int
+processCountResults [count] = Right (unCount count)
+processCountResults _       = Left (Database "unexpected results")
+
 getCount :: MonadIO m => SQLite.Connection -> m Int
 getCount conn
-  = p <$> liftIO (SQLite.query_ conn q)
+  = either (liftIO . throwIO) pure =<< go
   where
-    q         = "SELECT count(*) FROM entries"
-    p [count] = unCount count
-    p _       = throw (Database "unexpected results")
+    go = processCountResults <$> liftIO (SQLite.query_ conn q)
+    q  = "SELECT count(*) FROM entries"
 
 getCountOfKeyId :: MonadIO m => SQLite.Connection -> KeyId -> m Int
 getCountOfKeyId conn keyId
-  = p <$> liftIO (SQLite.queryNamed conn q [":keyid" := keyId])
+  = either (liftIO . throwIO) pure =<< go
   where
-    q         = "SELECT count(*)  \
-                \FROM entries         \
-                \WHERE keyid = :keyid"
-    p [count] = unCount count
-    p _       = throw (Database "unexpected results")
+    go = processCountResults <$> liftIO (SQLite.queryNamed conn q [":keyid" := keyId])
+    q  = "SELECT count(*)     \
+         \FROM entries        \
+         \WHERE keyid = :keyid"
 
 reencryptAll :: MonadIO m => SQLite.Connection -> KeyId -> m ()
 reencryptAll conn keyId = do

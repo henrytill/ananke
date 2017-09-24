@@ -128,9 +128,9 @@ getDataDir =
 configure :: MonadIO m => FilePath -> m Config
 configure dataDir = do
   txt   <- liftIO (TIO.readFile (dataDir ++ "/hecate.toml"))
-  tbl   <- either (throw . TOML)          pure (TOML.parseTOML txt)
-  dfing <- either (throw . Configuration) pure (getKeyId tbl)
-  mult  <- either (throw . Configuration) pure (getAllowMultipleKeys tbl)
+  tbl   <- either (liftIO . throwIO . TOML)          pure (TOML.parseTOML txt)
+  dfing <- either (liftIO . throwIO . Configuration) pure (getKeyId tbl)
+  mult  <- either (liftIO . throwIO . Configuration) pure (getAllowMultipleKeys tbl)
   keyId <- pure . KeyId <$> maybe dfing T.pack =<< liftIO (getEnv "HECATE_KEYID")
   return Config { _configDataDirectory     = dataDir
                 , _configKeyId             = keyId

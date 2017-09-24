@@ -96,7 +96,7 @@ ensureFile file = do
   exists <- liftIO (doesFileExist file)
   if exists
     then return file
-    else throw (FileSystem "File does not exist")
+    else liftIO (throwIO (FileSystem "File does not exist"))
 
 checkKey :: (MonadIO m, MonadReader r m, HasAppContext r) => m Response -> m Response
 checkKey k = do
@@ -110,7 +110,7 @@ checkKey k = do
     else do
     let q     = "New keyid found: do you want to re-encrypt all entries?"
         reenc = DB.reencryptAll conn keyId
-        err   = throw (Default "You have set allow_multiple_keys to false")
+        err   = liftIO (throwIO (Default "You have set allow_multiple_keys to false"))
     count <- DB.getCountOfKeyId conn keyId
     case (count, allowMultKeys) of
       (0, False)              -> askQuestion q (reenc >> k) err
@@ -198,7 +198,7 @@ modifyOnlySingletons [e] maction miden mmeta = do
   _   <- DB.delete (ctx ^. appContextConnection) e
   return Modified
 modifyOnlySingletons _ _ _ _ =
-  throw (AmbiguousInput "There are multiple entries matching your input criteria.")
+  liftIO (throwIO (AmbiguousInput "There are multiple entries matching your input criteria."))
 
 findAndModify
   :: (MonadIO m, MonadReader r m, HasAppContext r)
@@ -242,7 +242,7 @@ redescribeOnlySingletons [e] s = do
       _   <- DB.delete (ctx ^. appContextConnection) e
       return Redescribed
 redescribeOnlySingletons _ _ =
-  throw (AmbiguousInput "There are multiple entries matching your input criteria.")
+  liftIO (throwIO (AmbiguousInput "There are multiple entries matching your input criteria."))
 
 findAndRedescribe
   :: (MonadIO m, MonadReader r m, HasAppContext r)
@@ -273,7 +273,7 @@ removeOnlySingletons [e] = do
   _   <- DB.delete (ctx ^. appContextConnection) e
   return Removed
 removeOnlySingletons _ =
-  throw (AmbiguousInput "There are multiple entries matching your input criteria.")
+  liftIO (throwIO (AmbiguousInput "There are multiple entries matching your input criteria."))
 
 findAndRemove
   :: (MonadIO m, MonadReader r m, HasAppContext r)
@@ -304,7 +304,7 @@ check = do
   r <- DB.getCountOfKeyId conn keyId
   if t == r
     then return CheckedForMultipleKeys
-    else throw (Default "All entries do not have the same keyid")
+    else liftIO (throwIO (Default "All entries do not have the same keyid"))
 
 eval
   :: (MonadIO m, MonadReader r m, HasAppContext r)

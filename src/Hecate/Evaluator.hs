@@ -6,23 +6,25 @@ module Hecate.Evaluator
   , Target(..)
   , Command(..)
   , Response(..)
+  , importCSV
+  , exportCSV
   , eval
   ) where
 
 import           Control.Exception
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
-import qualified Data.ByteString.Lazy   as BSL
-import           Data.Char              (toLower)
-import qualified Data.Csv               as CSV
-import qualified Data.Text              as T
-import qualified Data.Vector            as Vector
+import qualified Data.ByteString.Lazy    as BSL
+import           Data.Char               (toLower)
+import qualified Data.Csv                as CSV
+import qualified Data.Text               as T
+import qualified Data.Vector             as Vector
 import           Lens.Family2
-import           System.Directory       (doesFileExist)
-import           System.IO              (hFlush, stdout)
+import           System.Directory        (doesFileExist)
+import           System.IO               (hFlush, stdout)
 
 import           Hecate.Context
-import qualified Hecate.Database        as DB
+import qualified Hecate.Database         as DB
 import           Hecate.Data
 import           Hecate.GPG
 import           Hecate.Error
@@ -49,6 +51,7 @@ data Command
            , _lookupVerbosity   :: Verbosity
            }
   | Import { _importFile :: FilePath }
+  | Export { _exportFile :: FilePath }
   | Modify { _modifyTarget     :: Target
            , _modifyCiphertext :: ModifyAction
            , _modifyIdentity   :: Maybe String
@@ -66,6 +69,7 @@ data Response
   = SingleEntry DisplayEntry Verbosity
   | MultipleEntries [DisplayEntry] Verbosity
   | Added
+  | Exported
   | Modified
   | Redescribed
   | Removed
@@ -121,8 +125,18 @@ importCSV
 importCSV csvFile = do
   file <- ensureFile csvFile
   bs   <- liftIO (BSL.readFile file)
-  ies  <- either (throw . CsvDecoding) (pure . Vector.toList) (CSV.decode CSV.NoHeader bs)
-  mapM importEntryToEntry ies
+  ies  <- either (liftIO . throwIO . CsvDecoding) (pure . Vector.toList) (CSV.decode CSV.NoHeader bs)
+  mapM csvEntryToEntry ies
+
+exportCSV
+  :: MonadIO m
+  => FilePath
+  -> [Entry]
+  -> m ()
+exportCSV csvFile entries = do
+  csvEntries <- mapM entryToCSVEntry entries
+  csv        <- pure (CSV.encode csvEntries)
+  liftIO (BSL.writeFile csvFile csv)
 
 createEntryWrapper
   :: (MonadIO m, MonadReader r m, HasConfig r)
@@ -321,6 +335,11 @@ eval Import{_importFile} = do
       es  <- importCSV _importFile
       _   <- mapM_ (DB.put (ctx ^. appContextConnection)) es
       return Added
+eval Export{_exportFile}  = do
+  ctx <- ask
+  es  <- DB.selectAll (ctx ^. appContextConnection)
+  _   <- exportCSV _exportFile es
+  return Exported
 eval (Modify t c i m)     = modify t c i m
 eval (Redescribe t s)     = redescribe t s
 eval (Remove t)           = remove t

@@ -3,7 +3,8 @@
 
 module Hecate.Data
   ( -- * Import & Display Entries
-    ImportEntry
+    CSVEntry
+  , entryToCSVEntry
   , DisplayEntry(..)
   , decryptEntry
   , decryptEntries
@@ -11,7 +12,7 @@ module Hecate.Data
   , Entry
   , _entryId
   , createEntry
-  , importEntryToEntry
+  , csvEntryToEntry
     -- ** Their constituents
   , Id
   , unId
@@ -61,16 +62,25 @@ import           Hecate.GPG
 
 -- * Import and Display Entries
 
--- | An 'ImportEntry' is a record that is imported or exported from a CSV file
-data ImportEntry = ImportEntry
-  { _importDescription :: Description
-  , _importIdentity    :: Maybe Identity
-  , _importPlaintext   :: Plaintext
-  , _importMeta        :: Maybe Metadata
+-- | An 'CSVEntry' is a record that is imported or exported from a CSV file
+data CSVEntry = CSVEntry
+  { _csvDescription :: Description
+  , _csvIdentity    :: Maybe Identity
+  , _csvPlaintext   :: Plaintext
+  , _csvMeta        :: Maybe Metadata
   } deriving (Generic, Show, Eq)
 
-instance CSV.FromRecord ImportEntry
-instance CSV.ToRecord ImportEntry
+instance CSV.FromRecord CSVEntry
+instance CSV.ToRecord CSVEntry
+
+entryToCSVEntry
+  :: MonadIO m
+  => Entry
+  -> m CSVEntry
+entryToCSVEntry e = f e <$> decrypt (_entryCiphertext e)
+  where
+    f Entry{_entryDescription, _entryIdentity, _entryMeta} p
+      = CSVEntry _entryDescription _entryIdentity p _entryMeta
 
 -- | A 'DisplayEntry' is a record that is displayed to the user in response to a
 -- command
@@ -83,21 +93,20 @@ data DisplayEntry = DisplayEntry
   , _displayMeta        :: Maybe Metadata
   } deriving (Show, Eq)
 
-entryToDisplayEntry :: Entry -> Plaintext -> DisplayEntry
-entryToDisplayEntry Entry{_entryId, _entryTimestamp, _entryDescription, _entryIdentity, _entryMeta} p =
-  DisplayEntry _entryId _entryTimestamp _entryDescription _entryIdentity p _entryMeta
-
-getPlainText
+entryToDisplayEntry
   :: MonadIO m
   => Entry
-  -> m Plaintext
-getPlainText Entry{_entryCiphertext} = decrypt _entryCiphertext
+  -> m DisplayEntry
+entryToDisplayEntry e = f e <$> decrypt (_entryCiphertext e)
+  where
+    f Entry{_entryId, _entryTimestamp, _entryDescription, _entryIdentity, _entryMeta} p
+      = DisplayEntry _entryId _entryTimestamp _entryDescription _entryIdentity p _entryMeta
 
 decryptEntry
   :: MonadIO m
   => Entry
   -> m DisplayEntry
-decryptEntry e = entryToDisplayEntry e <$> getPlainText e
+decryptEntry = entryToDisplayEntry
 
 decryptEntries
   :: MonadIO m
@@ -191,12 +200,12 @@ updateEntry keyId description identity ciphertext meta = do
   i         <- pure (createId keyId timestamp description identity)
   return (Entry i keyId timestamp description identity ciphertext meta)
 
-importEntryToEntry
+csvEntryToEntry
   :: (MonadIO m, MonadReader r m, HasConfig r)
-  => ImportEntry
+  => CSVEntry
   -> m Entry
-importEntryToEntry ImportEntry{_importDescription, _importIdentity, _importPlaintext, _importMeta} =
-  createEntry _importDescription _importIdentity _importPlaintext _importMeta
+csvEntryToEntry CSVEntry{_csvDescription, _csvIdentity, _csvPlaintext, _csvMeta} =
+  createEntry _csvDescription _csvIdentity _csvPlaintext _csvMeta
 
 
 -- ** Their constituents
@@ -283,7 +292,7 @@ updateKeyId
   -> Entry
   -> m Entry
 updateKeyId keyId entry@Entry{_entryTimestamp, _entryDescription, _entryIdentity, _entryMeta} =
-  getPlainText entry >>= \ pt ->
+  decrypt (_entryCiphertext entry) >>= \ pt ->
   createEntryImpl keyId _entryTimestamp _entryDescription _entryIdentity pt _entryMeta
 
 updateDescription

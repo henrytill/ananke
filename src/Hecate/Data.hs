@@ -57,8 +57,6 @@ import           Lens.Family2
 import           Hecate.Context
 import           Hecate.GPG
 
-{-# ANN module "HLint: ignore Use newtype instead of data" #-}
-
 
 -- * Import and Display Entries
 
@@ -353,7 +351,7 @@ queryIsEmpty _                                       = False
 -- * Count
 
 -- | A 'Count' represents the results of a count query
-data Count = Count { unCount :: Int }
+newtype Count = Count { unCount :: Int }
   deriving (Show, Eq)
 
 instance SQLite.FromRow Count where

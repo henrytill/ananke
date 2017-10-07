@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Hecate.Orphans where
+module Hecate.Orphans () where
 
 import Data.Text.Arbitrary ()
 import Test.QuickCheck
@@ -8,7 +8,6 @@ import Test.QuickCheck
 import Hecate.Data
 import Hecate.GPG          (Plaintext(..))
 
-{-# ANN module "HLint: ignore Use module export list" #-}
 
 instance Arbitrary Description where
   arbitrary               = Description <$> arbitrary

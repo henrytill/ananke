@@ -4,7 +4,7 @@ import Control.Monad
 import System.Exit
 import Test.QuickCheck
 
-import Hecate.Database.Properties
+import Hecate.Properties
 
 isSuccess :: Result -> Bool
 isSuccess Success{} = True
@@ -12,5 +12,5 @@ isSuccess _         = False
 
 main :: IO ()
 main = do
-  rs <- doDatabaseProperties
+  rs <- doProperties
   unless (all isSuccess rs) exitFailure

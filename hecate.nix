@@ -26,7 +26,7 @@ mkDerivation {
   executableSystemDepends = [ sqlite gnupg1compat ];
   testHaskellDepends = [
     base directory hlint lens-family mtl QuickCheck quickcheck-text
-    sqlite-simple transformers unix
+    sqlite-simple text transformers unix
   ];
   testSystemDepends = [ sqlite gnupg1compat ];
   preCheck = ''

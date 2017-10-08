@@ -11,6 +11,10 @@ module Hecate.Data
     -- * Entries
   , Entry
   , _entryId
+  , _entryDescription
+  , _entryIdentity
+  , _entryCiphertext
+  , _entryMeta
   , createEntry
   , csvEntryToEntry
     -- ** Their constituents

@@ -114,6 +114,11 @@ Not found
 $ hecate lookup http://notarealwebsite.net
 http://notarealwebsite.net alice_alt@notarealserver.com anotherfakepassword My alternate account
 
+# Retrieve the newly-redescribed entry using SQLite pattern matching comparison
+# For more info, see https://sqlite.org/lang_expr.html
+$ hecate lookup %notarealwebsite%
+http://notarealwebsite.net alice_alt@notarealserver.com anotherfakepassword My alternate account
+
 # Remove an entry from the database
 $ hecate remove -d http://notarealwebsite.net
 Removed

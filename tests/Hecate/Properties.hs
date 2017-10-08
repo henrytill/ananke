@@ -1,4 +1,3 @@
-{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Hecate.Properties
@@ -60,11 +59,11 @@ createFilePath ctx x
   = ctx ^. configDataDirectory ++ "/export-" ++ printf "%05d" x ++ ".csv"
 
 isNotEmpty :: TestData -> Bool
-isNotEmpty TestData{_testDescription, _testIdentity, _testPlaintext, _testMetadata}
-  = _testDescription /= Description    T.empty  &&
-    _testIdentity    /= Just (Identity T.empty) &&
-    _testPlaintext   /= Plaintext      T.empty  &&
-    _testMetadata    /= Just (Metadata T.empty)
+isNotEmpty testData
+  = _testDescription testData /= Description    T.empty  &&
+    _testIdentity    testData /= Just (Identity T.empty) &&
+    _testPlaintext   testData /= Plaintext      T.empty  &&
+    _testMetadata    testData /= Just (Metadata T.empty)
 
 entriesHaveSameContent :: MonadIO m => Entry -> Entry -> m Bool
 entriesHaveSameContent e1 e2 = do

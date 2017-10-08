@@ -1,5 +1,3 @@
-{-# LANGUAGE NamedFieldPuns #-}
-
 module Hecate.Printing
   ( ansiPrettyResponse
   , prettyResponse
@@ -45,20 +43,20 @@ prettyMeta (Just (Metadata m)) = prettyText m
 prettyMeta Nothing             = text "<none>"
 
 printOne :: DisplayEntry -> Doc
-printOne DisplayEntry{_displayDescription, _displayIdentity, _displayPlaintext, _displayMeta} =
-  prettyDescription _displayDescription <+>
-  prettyIdentity    _displayIdentity    <+>
-  prettyPlaintext   _displayPlaintext   <+>
-  prettyMeta        _displayMeta
+printOne entry =
+  prettyDescription (_displayDescription entry) <+>
+  prettyIdentity    (_displayIdentity    entry) <+>
+  prettyPlaintext   (_displayPlaintext   entry) <+>
+  prettyMeta        (_displayMeta        entry)
 
 printOneVerbose :: DisplayEntry -> Doc
-printOneVerbose DisplayEntry{_displayId, _displayTimestamp, _displayDescription, _displayIdentity, _displayPlaintext, _displayMeta} =
-  prettyId          _displayId          <+>
-  prettyTimestamp   _displayTimestamp   <+>
-  prettyDescription _displayDescription <+>
-  prettyIdentity    _displayIdentity    <+>
-  prettyPlaintext   _displayPlaintext   <+>
-  prettyMeta        _displayMeta
+printOneVerbose entry =
+  prettyId          (_displayId          entry) <+>
+  prettyTimestamp   (_displayTimestamp   entry) <+>
+  prettyDescription (_displayDescription entry) <+>
+  prettyIdentity    (_displayIdentity    entry) <+>
+  prettyPlaintext   (_displayPlaintext   entry) <+>
+  prettyMeta        (_displayMeta        entry)
 
 prettyResponse :: Command -> Response -> Doc
 prettyResponse _ (SingleEntry de Normal) =

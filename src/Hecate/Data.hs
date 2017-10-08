@@ -1,5 +1,4 @@
-{-# LANGUAGE DeriveGeneric    #-}
-{-# LANGUAGE NamedFieldPuns   #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Hecate.Data
   ( -- * Import & Display Entries
@@ -78,10 +77,13 @@ entryToCSVEntry
   :: MonadIO m
   => Entry
   -> m CSVEntry
-entryToCSVEntry e = f e <$> decrypt (_entryCiphertext e)
+entryToCSVEntry e
+  = f e <$> decrypt (_entryCiphertext e)
   where
-    f Entry{_entryDescription, _entryIdentity, _entryMeta} p
-      = CSVEntry _entryDescription _entryIdentity p _entryMeta
+    f entry plaintext = CSVEntry (_entryDescription entry)
+                                 (_entryIdentity entry)
+                                 plaintext
+                                 (_entryMeta entry)
 
 -- | A 'DisplayEntry' is a record that is displayed to the user in response to a
 -- command
@@ -98,10 +100,15 @@ entryToDisplayEntry
   :: MonadIO m
   => Entry
   -> m DisplayEntry
-entryToDisplayEntry e = f e <$> decrypt (_entryCiphertext e)
+entryToDisplayEntry e
+  = f e <$> decrypt (_entryCiphertext e)
   where
-    f Entry{_entryId, _entryTimestamp, _entryDescription, _entryIdentity, _entryMeta} p
-      = DisplayEntry _entryId _entryTimestamp _entryDescription _entryIdentity p _entryMeta
+    f entry plaintext = DisplayEntry (_entryId entry)
+                                     (_entryTimestamp entry)
+                                     (_entryDescription entry)
+                                     (_entryIdentity entry)
+                                     plaintext
+                                     (_entryMeta entry)
 
 
 -- * Entries
@@ -128,15 +135,14 @@ instance SQLite.FromRow Entry where
                   <*> SQLite.field
 
 instance SQLite.ToRow Entry where
-  toRow Entry{_entryId, _entryKeyId, _entryTimestamp, _entryDescription, _entryIdentity, _entryCiphertext, _entryMeta} =
-    SQLite.toRow ( _entryId
-                 , _entryKeyId
-                 , _entryTimestamp
-                 , _entryDescription
-                 , _entryIdentity
-                 , _entryCiphertext
-                 , _entryMeta
-                 )
+  toRow entry = SQLite.toRow ( _entryId          entry
+                             , _entryKeyId       entry
+                             , _entryTimestamp   entry
+                             , _entryDescription entry
+                             , _entryIdentity    entry
+                             , _entryCiphertext  entry
+                             , _entryMeta        entry
+                             )
 
 showTime :: UTCTime -> T.Text
 showTime = T.pack . formatTime defaultTimeLocale "%s%Q"
@@ -193,8 +199,11 @@ csvEntryToEntry
   :: (MonadIO m, MonadReader r m, HasConfig r)
   => CSVEntry
   -> m Entry
-csvEntryToEntry CSVEntry{_csvDescription, _csvIdentity, _csvPlaintext, _csvMeta} =
-  createEntry _csvDescription _csvIdentity _csvPlaintext _csvMeta
+csvEntryToEntry entry
+  = createEntry (_csvDescription entry)
+                (_csvIdentity entry)
+                (_csvPlaintext entry)
+                (_csvMeta entry)
 
 
 -- ** Their constituents
@@ -280,41 +289,61 @@ updateKeyId
   => KeyId
   -> Entry
   -> m Entry
-updateKeyId keyId entry@Entry{_entryTimestamp, _entryDescription, _entryIdentity, _entryMeta} =
-  decrypt (_entryCiphertext entry) >>= \ pt ->
-  createEntryImpl keyId _entryTimestamp _entryDescription _entryIdentity pt _entryMeta
+updateKeyId keyId entry = do
+  plaintext <- decrypt (_entryCiphertext entry)
+  createEntryImpl keyId
+                  (_entryTimestamp entry)
+                  (_entryDescription entry)
+                  (_entryIdentity entry)
+                  plaintext
+                  (_entryMeta entry)
 
 updateDescription
   :: MonadIO m
   => Description
   -> Entry
   -> m Entry
-updateDescription d Entry{_entryKeyId, _entryIdentity, _entryCiphertext, _entryMeta} =
-  updateEntry _entryKeyId d _entryIdentity _entryCiphertext _entryMeta
+updateDescription desc entry
+  = updateEntry (_entryKeyId entry)
+                desc
+                (_entryIdentity entry)
+                (_entryCiphertext entry)
+                (_entryMeta entry)
 
 updateIdentity
   :: MonadIO m
   => Maybe Identity
   -> Entry
   -> m Entry
-updateIdentity iden Entry{_entryKeyId, _entryDescription, _entryCiphertext, _entryMeta} =
-  updateEntry _entryKeyId _entryDescription iden _entryCiphertext _entryMeta
+updateIdentity iden entry
+  = updateEntry (_entryKeyId entry)
+                (_entryDescription entry)
+                iden
+                (_entryCiphertext entry)
+                (_entryMeta entry)
 
 updateCiphertext
   :: (MonadIO m, MonadReader r m, HasConfig r)
   => Plaintext
   -> Entry
   -> m Entry
-updateCiphertext pt Entry{_entryDescription, _entryIdentity, _entryMeta} =
-  createEntry _entryDescription _entryIdentity pt _entryMeta
+updateCiphertext plaintext entry
+  = createEntry (_entryDescription entry)
+                (_entryIdentity entry)
+                plaintext
+                (_entryMeta entry)
 
 updateMetadata
   :: MonadIO m
   => Maybe Metadata
   -> Entry
   -> m Entry
-updateMetadata m Entry{_entryKeyId, _entryDescription, _entryIdentity, _entryCiphertext} =
-  updateEntry _entryKeyId _entryDescription _entryIdentity _entryCiphertext m
+updateMetadata meta entry
+  = updateEntry (_entryKeyId entry)
+                (_entryDescription entry)
+                (_entryIdentity entry)
+                (_entryCiphertext entry)
+                meta
 
 
 -- * Queries

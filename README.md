@@ -8,7 +8,7 @@
 
 I created `hecate` primarily for personal use, but recognize that it may be useful to others.  At this moment in time, it should be considered alpha-quality, experimental software.  Prospective users should keep a backup of their passwords elsewhere.  
 
-It is worth nothing that `hecate` stores information in a manner that allows manual access using `sqlite`, `base64`, and `gpg` command line tools, in the event that a user does not have access to a working `hecate` executable.
+It is worth noting that `hecate` stores information in a manner that allows manual access using `sqlite`, `base64`, and `gpg` command line tools, in the event that a user does not have access to a working `hecate` executable.
 
 ## Requirements
 

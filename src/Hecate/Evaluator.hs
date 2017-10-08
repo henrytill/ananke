@@ -324,9 +324,9 @@ eval Lookup{_lookupDescription, _lookupVerbosity} = do
   q   <- pure (query Nothing (Just _lookupDescription) Nothing Nothing)
   res <- DB.query (ctx ^. appContextConnection) q
   case res of
-    []  -> MultipleEntries <$> pure []           <*> pure _lookupVerbosity
-    [e] -> SingleEntry     <$> decryptEntry e    <*> pure _lookupVerbosity
-    es  -> MultipleEntries <$> decryptEntries es <*> pure _lookupVerbosity
+    []  -> MultipleEntries <$> pure []                     <*> pure _lookupVerbosity
+    [e] -> SingleEntry     <$> entryToDisplayEntry e       <*> pure _lookupVerbosity
+    es  -> MultipleEntries <$> mapM entryToDisplayEntry es <*> pure _lookupVerbosity
 eval Import{_importFile} = do
   ctx <- ask
   checkKey (k ctx)

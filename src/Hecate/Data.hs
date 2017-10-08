@@ -6,8 +6,7 @@ module Hecate.Data
     CSVEntry
   , entryToCSVEntry
   , DisplayEntry(..)
-  , decryptEntry
-  , decryptEntries
+  , entryToDisplayEntry
     -- * Entries
   , Entry
   , _entryId
@@ -103,18 +102,6 @@ entryToDisplayEntry e = f e <$> decrypt (_entryCiphertext e)
   where
     f Entry{_entryId, _entryTimestamp, _entryDescription, _entryIdentity, _entryMeta} p
       = DisplayEntry _entryId _entryTimestamp _entryDescription _entryIdentity p _entryMeta
-
-decryptEntry
-  :: MonadIO m
-  => Entry
-  -> m DisplayEntry
-decryptEntry = entryToDisplayEntry
-
-decryptEntries
-  :: MonadIO m
-  => [Entry]
-  -> m [DisplayEntry]
-decryptEntries = mapM decryptEntry
 
 
 -- * Entries

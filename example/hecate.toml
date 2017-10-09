@@ -2,4 +2,4 @@
 keyid = "371C136C"
 
 [entries]
-allow_multiple_keys = false
+# allow_multiple_keys = false

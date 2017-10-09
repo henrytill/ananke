@@ -8,6 +8,7 @@ import           Control.Monad           (zipWithM)
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import           Data.List               ((\\))
+import           Data.Monoid             (First(..))
 import qualified Data.Text               as T
 import           Data.Text.Arbitrary     ()
 import           Database.SQLite.Simple  hiding (Error)
@@ -103,8 +104,9 @@ tests =
 doProperties :: IO [Result]
 doProperties = do
   dir     <- mkdtemp "/tmp/hecate-tests-"
+  let preConfig = PreConfig (First (Just dir)) mempty mempty
   _       <- copyFile "./example/hecate.toml" (dir ++ "/hecate.toml")
-  ctx     <- configure dir >>= createContext
+  ctx     <- configureWith preConfig >>= createContext
   _       <- runReaderT setup ctx
   results <- mapM (\ p -> quickCheckWithResult stdArgs (p ctx)) tests
   _       <- close (ctx ^. appContextConnection)

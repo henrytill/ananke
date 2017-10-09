@@ -22,7 +22,7 @@ hPutDocWrapper h f g = do
     else hPutDoc h g
 
 initialize :: IO AppContext
-initialize = getDataDir >>= configure >>= createContext
+initialize = configure >>= createContext
 
 exceptionHandler :: Command -> AppError -> IO ExitCode
 exceptionHandler command err = do

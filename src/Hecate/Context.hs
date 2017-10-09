@@ -14,16 +14,19 @@ module Hecate.Context
     ( appContextConfig
     , appContextConnection
     )
+  , PreConfig(..)
   , Config
-  , AppContext
-  , getDataDir
+  , configureWith
   , configure
+  , AppContext
   , createContext
   , finalize
   ) where
 
 import           Control.Exception
 import           Control.Monad.Except
+import           Data.Maybe             (fromJust, fromMaybe)
+import           Data.Monoid
 import qualified Data.Text              as T
 import qualified Data.Text.IO           as TIO
 import qualified Database.SQLite.Simple as SQLite
@@ -31,7 +34,7 @@ import           Lens.Family2
 import           Lens.Family2.Stock     (_Just)
 import           Lens.Family2.Unchecked (lens)
 import           System.Directory       (createDirectory, doesDirectoryExist)
-import           System.Posix.Env       (getEnv, getEnvDefault)
+import           System.Posix.Env       (getEnv)
 import qualified TOML
 import           TOML.Lens
 
@@ -61,7 +64,7 @@ class HasConfig t => HasAppContext t where
   appContextConfig     = appContext . appContextConfig
   appContextConnection = appContext . appContextConnection
 
--- | An 'Config' represents values read from a configuration file
+-- | A 'Config' represents our application's configuration
 data Config = Config
   { _configDataDirectory     :: FilePath
   , _configKeyId             :: KeyId
@@ -92,6 +95,27 @@ instance HasAppContext AppContext where
   appContextConfig     = config
   appContextConnection = lens _appContextConnection (\ a conn -> a{_appContextConnection = conn})
 
+
+getHomeFromEnv :: MonadIO m => m (Maybe FilePath)
+getHomeFromEnv
+  = liftIO (getEnv "HOME")
+
+getDataDirectoryFromEnv :: MonadIO m => m (Maybe FilePath)
+getDataDirectoryFromEnv
+  = liftIO (getEnv "HECATE_DATA_DIR")
+
+getKeyIdFromEnv :: MonadIO m => m (Maybe KeyId)
+getKeyIdFromEnv
+  = liftIO (getEnv "HECATE_KEYID") >>= pure . fmap (KeyId . T.pack)
+
+getAllowMultipleKeysFromEnv :: MonadIO m => m (Maybe Bool)
+getAllowMultipleKeysFromEnv
+  = liftIO (getEnv "HECATE_ALLOW_MULTIPLE_KEYS") >>= pure . fmap f
+  where
+    f "1" = True
+    f "0" = False
+    f _   = False
+
 lup
   :: T.Text
   -> Getter' [(T.Text, TOML.Value)] (Maybe TOML.Value)
@@ -105,37 +129,82 @@ tableAt
   -> f [(T.Text, TOML.Value)]
 tableAt k = lup k . _Just . _Table
 
-getKeyId :: [(T.Text, TOML.Value)] -> Either String T.Text
-getKeyId tbl = maybe err pure keyId
+getKeyId :: [(T.Text, TOML.Value)] -> Maybe KeyId
+getKeyId tbl
+  = tbl ^? tableAt "gnupg" . lup "keyid" . _Just . _String . to KeyId
+
+getAllowMultipleKeys :: [(T.Text, TOML.Value)] -> Maybe Bool
+getAllowMultipleKeys tbl
+  = tbl ^? tableAt "entries" . lup "allow_multiple_keys" . _Just . _Bool
+
+
+-- | A 'PreConfig' is used in the creation of a 'Config'
+data PreConfig = PreConfig
+  { _preConfigDataDirectory     :: First FilePath
+  , _preConfigKeyId             :: First KeyId
+  , _preConfigAllowMultipleKeys :: First Bool
+  } deriving (Show, Eq)
+
+instance Monoid PreConfig where
+  mempty
+    = PreConfig mempty mempty mempty
+
+  PreConfig a b c `mappend` PreConfig d e f
+    = PreConfig (a `mappend` d)
+                (b `mappend` e)
+                (c `mappend` f)
+
+createPreConfig :: MonadIO m => m PreConfig
+createPreConfig = do
+  dir   <- First <$> getDataDirectoryFromEnv
+  keyId <- First <$> getKeyIdFromEnv
+  mult  <- First <$> getAllowMultipleKeysFromEnv
+  return PreConfig { _preConfigDataDirectory     = dir
+                   , _preConfigKeyId             = keyId
+                   , _preConfigAllowMultipleKeys = mult
+                   }
+
+addDefaultConfig :: MonadIO m => PreConfig -> m PreConfig
+addDefaultConfig preConfig = mappend <$> pure preConfig <*> defaultConfig
   where
-    keyId = tbl ^? tableAt "gnupg" . lup "keyid" . _Just . _String
-    err   = Left "could not find gnupg.keyid"
+    defaultConfig = do
+      dir <- First <$> getHomeFromEnv >>= pure . fmap (++ "/.hecate")
+      return PreConfig { _preConfigDataDirectory     = dir
+                       , _preConfigKeyId             = mempty
+                       , _preConfigAllowMultipleKeys = First (Just False)
+                       }
 
-getAllowMultipleKeys :: [(T.Text, TOML.Value)] -> Either String Bool
-getAllowMultipleKeys tbl = maybe err pure allowMultKeys
+addTOMLConfig :: MonadIO m => PreConfig -> m PreConfig
+addTOMLConfig preConfig = mappend <$> pure preConfig <*> tomlConfig
   where
-    allowMultKeys = tbl ^? tableAt "entries" . lup "allow_multiple_keys" . _Just . _Bool
-    err           = Left "could not find entries.allow_multiple_keys"
+    tomlConfig = do
+      let dataDir = fromJust (getFirst (_preConfigDataDirectory preConfig))
+      txt <- liftIO (TIO.readFile (dataDir ++ "/hecate.toml"))
+      tbl <- either (liftIO . throwIO . TOML) pure (TOML.parseTOML txt)
+      let keyId = First (getKeyId tbl)
+          mult  = First (getAllowMultipleKeys tbl)
+      return PreConfig { _preConfigDataDirectory     = mempty
+                       , _preConfigKeyId             = keyId
+                       , _preConfigAllowMultipleKeys = mult
+                       }
 
-getEnvError :: MonadIO m => String -> String -> m String
-getEnvError env msg =  maybe (error msg) pure =<< liftIO (getEnv env)
+preConfigToConfig :: PreConfig -> Config
+preConfigToConfig preConfig
+  = Config { _configDataDirectory     = firstOrError dirMsg (_preConfigDataDirectory     preConfig)
+           , _configKeyId             = firstOrError keyMsg (_preConfigKeyId             preConfig)
+           , _configAllowMultipleKeys = firstOrError mulMsg (_preConfigAllowMultipleKeys preConfig)
+           }
+  where
+    firstOrError msg = fromMaybe (throw (Configuration msg)) . getFirst
+    dirMsg = "Please set HECATE_DATA_DIR"
+    keyMsg = "Please set HECATE_KEYID or gnupg.keyid in hecate.toml"
+    mulMsg = "Please set HECATE_ALLOW_MULTIPLE_KEYS or entries.allow_multiple_keys in hecate.toml"
 
-getDataDir :: MonadIO m => m FilePath
-getDataDir =
-  getEnvError "HOME" "Could not get value of HOME" >>= \ home ->
-  liftIO (getEnvDefault "HECATE_DATA_DIR" (home ++ "/.hecate"))
+configureWith :: MonadIO m => PreConfig -> m Config
+configureWith preConfig = addDefaultConfig preConfig >>= addTOMLConfig >>= pure . preConfigToConfig
 
-configure :: MonadIO m => FilePath -> m Config
-configure dataDir = do
-  txt   <- liftIO (TIO.readFile (dataDir ++ "/hecate.toml"))
-  tbl   <- either (liftIO . throwIO . TOML)          pure (TOML.parseTOML txt)
-  dfing <- either (liftIO . throwIO . Configuration) pure (getKeyId tbl)
-  mult  <- either (liftIO . throwIO . Configuration) pure (getAllowMultipleKeys tbl)
-  keyId <- pure . KeyId <$> maybe dfing T.pack =<< liftIO (getEnv "HECATE_KEYID")
-  return Config { _configDataDirectory     = dataDir
-                , _configKeyId             = keyId
-                , _configAllowMultipleKeys = mult
-                }
+configure :: MonadIO m => m Config
+configure = createPreConfig >>= configureWith
 
 createContext :: MonadIO m => Config -> m AppContext
 createContext cfg = do

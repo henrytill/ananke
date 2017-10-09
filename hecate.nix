@@ -8,7 +8,7 @@
 }:
 mkDerivation {
   pname = "hecate";
-  version = "0.5.0.0";
+  version = "0.6.0.0";
   src = ./.;
   isLibrary = false;
   isExecutable = true;

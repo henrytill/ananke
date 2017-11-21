@@ -106,11 +106,11 @@ getDataDirectoryFromEnv
 
 getKeyIdFromEnv :: MonadIO m => m (Maybe KeyId)
 getKeyIdFromEnv
-  = liftIO (getEnv "HECATE_KEYID") >>= pure . fmap (KeyId . T.pack)
+  = fmap (KeyId . T.pack) <$> liftIO (getEnv "HECATE_KEYID")
 
 getAllowMultipleKeysFromEnv :: MonadIO m => m (Maybe Bool)
 getAllowMultipleKeysFromEnv
-  = liftIO (getEnv "HECATE_ALLOW_MULTIPLE_KEYS") >>= pure . fmap f
+  = fmap f <$> liftIO (getEnv "HECATE_ALLOW_MULTIPLE_KEYS")
   where
     f "1" = True
     f "0" = False
@@ -168,7 +168,7 @@ addDefaultConfig :: MonadIO m => PreConfig -> m PreConfig
 addDefaultConfig preConfig = mappend <$> pure preConfig <*> defaultConfig
   where
     defaultConfig = do
-      dir <- First <$> getHomeFromEnv >>= pure . fmap (++ "/.hecate")
+      dir <- fmap (++ "/.hecate") <$> (First <$> getHomeFromEnv)
       return PreConfig { _preConfigDataDirectory     = dir
                        , _preConfigKeyId             = mempty
                        , _preConfigAllowMultipleKeys = First (Just False)
@@ -201,7 +201,7 @@ preConfigToConfig preConfig
     mulMsg = "Please set HECATE_ALLOW_MULTIPLE_KEYS or entries.allow_multiple_keys in hecate.toml"
 
 configureWith :: MonadIO m => PreConfig -> m Config
-configureWith preConfig = addDefaultConfig preConfig >>= addTOMLConfig >>= pure . preConfigToConfig
+configureWith preConfig = preConfigToConfig <$> (addDefaultConfig preConfig >>= addTOMLConfig)
 
 configure :: MonadIO m => m Config
 configure = createPreConfig >>= configureWith

@@ -18,6 +18,7 @@ import qualified Data.ByteString.Lazy    as BSL
 import           Data.Char               (toLower)
 import qualified Data.Csv                as CSV
 import qualified Data.Text               as T
+import           Data.Time.Clock         (getCurrentTime)
 import qualified Data.Vector             as Vector
 import           Lens.Family2
 import           System.Directory        (doesFileExist)
@@ -118,6 +119,20 @@ checkKey k = do
       (_, True )              -> askQuestion q (reenc >> k) k
       (_, False)              -> liftIO (throwIO (Default "All entries do not have the same keyid"))
 
+csvEntryToEntry
+  :: (MonadIO m, MonadReader r m, HasConfig r)
+  => CSVEntry
+  -> m Entry
+csvEntryToEntry entry = do
+  ctx       <- ask
+  timestamp <- liftIO getCurrentTime
+  createEntry (ctx ^. configKeyId)
+              timestamp
+              (_csvDescription entry)
+              (_csvIdentity entry)
+              (_csvPlaintext entry)
+              (_csvMeta entry)
+
 importCSV
   :: (MonadIO m, MonadReader r m, HasConfig r)
   => FilePath
@@ -145,8 +160,12 @@ createEntryWrapper
   -> Maybe String
   -> String
   -> m Entry
-createEntryWrapper d i m t =
-  createEntry (Description . T.pack  $  d)
+createEntryWrapper d i m t = do
+  ctx       <- ask
+  timestamp <- liftIO getCurrentTime
+  createEntry (ctx ^. configKeyId)
+              timestamp
+              (Description . T.pack  $  d)
               (Identity    . T.pack <$> i)
               (Plaintext   . T.pack  $  t)
               (Metadata    . T.pack <$> m)
@@ -172,6 +191,21 @@ updateWrapper (Just "") (Just "") e =
 updateWrapper miden mmeta e =
   updateIdentity (Identity . T.pack <$> miden) e >>=
   updateMetadata (Metadata . T.pack <$> mmeta)
+
+updateCiphertext
+  :: (MonadIO m, MonadReader r m, HasConfig r)
+  => Plaintext
+  -> Entry
+  -> m Entry
+updateCiphertext plaintext entry = do
+  ctx       <- ask
+  timestamp <- liftIO getCurrentTime
+  createEntry (ctx ^. configKeyId)
+              timestamp
+              (_entryDescription entry)
+              (_entryIdentity entry)
+              plaintext
+              (_entryMeta entry)
 
 updateCiphertextWrapper
   :: (MonadIO m, MonadReader r m, HasConfig r)
@@ -207,9 +241,8 @@ findAndModify
   -> Maybe String
   -> Maybe String
   -> m Response
-findAndModify q maction miden mmeta = do
-  ctx <- ask
-  checkKey (k ctx)
+findAndModify q maction miden mmeta
+  = ask >>= checkKey . k
   where
     k ctx = do
       rs  <- DB.query (ctx ^. appContextConnection) q
@@ -232,9 +265,8 @@ redescribeOnlySingletons
   => [Entry]
   -> String
   -> m Response
-redescribeOnlySingletons [e] s = do
-  ctx <- ask
-  checkKey (k ctx)
+redescribeOnlySingletons [e] s
+  = ask >>= checkKey . k
   where
     k ctx = do
       ue  <- updateDescription (Description . T.pack $ s) e

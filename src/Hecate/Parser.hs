@@ -5,7 +5,7 @@ module Hecate.Parser
 import Data.Monoid         ((<>))
 import Options.Applicative
 
-import Hecate.Evaluator    hiding (eval)
+import Hecate.Evaluator
 
 
 descArgP :: Parser String

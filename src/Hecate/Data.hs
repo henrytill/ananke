@@ -3,6 +3,10 @@
 module Hecate.Data
   ( -- * Import & Display Entries
     CSVEntry
+  , _csvDescription
+  , _csvIdentity
+  , _csvPlaintext
+  , _csvMeta
   , entryToCSVEntry
   , DisplayEntry(..)
   , entryToDisplayEntry
@@ -14,7 +18,6 @@ module Hecate.Data
   , _entryCiphertext
   , _entryMeta
   , createEntry
-  , csvEntryToEntry
     -- ** Their constituents
   , Id
   , unId
@@ -25,7 +28,6 @@ module Hecate.Data
   , updateKeyId
   , updateDescription
   , updateIdentity
-  , updateCiphertext
   , updateMetadata
     -- * Queries
   , Query
@@ -41,7 +43,6 @@ module Hecate.Data
   ) where
 
 import           Control.Monad.IO.Class
-import           Control.Monad.Reader
 import qualified Data.ByteString.Lazy             as BSL
 import qualified Data.Csv                         as CSV
 import           Data.Digest.Pure.SHA             (sha1, showDigest)
@@ -54,9 +55,7 @@ import qualified Database.SQLite.Simple           as SQLite
 import           Database.SQLite.Simple.FromField
 import           Database.SQLite.Simple.ToField
 import           GHC.Generics
-import           Lens.Family2
 
-import           Hecate.Context
 import           Hecate.GPG
 
 
@@ -156,7 +155,7 @@ createId (KeyId k) ts (Description d) (Just (Identity i)) =
 createId (KeyId k) ts (Description d) Nothing =
   ider (k <> showTime ts <> d)
 
-createEntryImpl
+createEntry
   :: MonadIO m
   => KeyId
   -> UTCTime
@@ -165,22 +164,10 @@ createEntryImpl
   -> Plaintext
   -> Maybe Metadata
   -> m Entry
-createEntryImpl keyId timestamp description identity plaintext meta = do
+createEntry keyId timestamp description identity plaintext meta = do
   i         <- pure (createId keyId timestamp description identity)
   encrypted <- encrypt keyId plaintext
   return (Entry i keyId timestamp description identity encrypted meta)
-
-createEntry
-  :: (MonadIO m, MonadReader r m, HasConfig r)
-  => Description
-  -> Maybe Identity
-  -> Plaintext
-  -> Maybe Metadata
-  -> m Entry
-createEntry description identity plaintext meta = do
-  ctx       <- ask
-  timestamp <- liftIO getCurrentTime
-  createEntryImpl (ctx ^. configKeyId) timestamp description identity plaintext meta
 
 updateEntry
   :: MonadIO m
@@ -194,16 +181,6 @@ updateEntry keyId description identity ciphertext meta = do
   timestamp <- liftIO getCurrentTime
   i         <- pure (createId keyId timestamp description identity)
   return (Entry i keyId timestamp description identity ciphertext meta)
-
-csvEntryToEntry
-  :: (MonadIO m, MonadReader r m, HasConfig r)
-  => CSVEntry
-  -> m Entry
-csvEntryToEntry entry
-  = createEntry (_csvDescription entry)
-                (_csvIdentity entry)
-                (_csvPlaintext entry)
-                (_csvMeta entry)
 
 
 -- ** Their constituents
@@ -291,12 +268,12 @@ updateKeyId
   -> m Entry
 updateKeyId keyId entry = do
   plaintext <- decrypt (_entryCiphertext entry)
-  createEntryImpl keyId
-                  (_entryTimestamp entry)
-                  (_entryDescription entry)
-                  (_entryIdentity entry)
-                  plaintext
-                  (_entryMeta entry)
+  createEntry keyId
+              (_entryTimestamp entry)
+              (_entryDescription entry)
+              (_entryIdentity entry)
+              plaintext
+              (_entryMeta entry)
 
 updateDescription
   :: MonadIO m
@@ -320,17 +297,6 @@ updateIdentity iden entry
                 (_entryDescription entry)
                 iden
                 (_entryCiphertext entry)
-                (_entryMeta entry)
-
-updateCiphertext
-  :: (MonadIO m, MonadReader r m, HasConfig r)
-  => Plaintext
-  -> Entry
-  -> m Entry
-updateCiphertext plaintext entry
-  = createEntry (_entryDescription entry)
-                (_entryIdentity entry)
-                plaintext
                 (_entryMeta entry)
 
 updateMetadata

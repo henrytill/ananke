@@ -11,6 +11,7 @@ import           Data.List               ((\\))
 import           Data.Monoid             (First(..))
 import qualified Data.Text               as T
 import           Data.Text.Arbitrary     ()
+import           Data.Time.Clock         (getCurrentTime)
 import           Database.SQLite.Simple  hiding (Error)
 import           Lens.Family2
 import           System.Directory        (copyFile)
@@ -43,7 +44,15 @@ createEntries
   => [TestData]
   -> m [Entry]
 createEntries = mapM k where
-  k td = createEntry (_testDescription td) (_testIdentity td) (_testPlaintext td) (_testMetadata td)
+  k td = do
+    ctx       <- ask
+    timestamp <- liftIO getCurrentTime
+    createEntry (ctx ^. configKeyId)
+                timestamp
+                (_testDescription td)
+                (_testIdentity td)
+                (_testPlaintext td)
+                (_testMetadata td)
 
 addEntryToDatabase
   :: (MonadIO m, MonadReader r m, HasAppContext r)
@@ -52,7 +61,7 @@ addEntryToDatabase
   -> m [Entry]
 addEntryToDatabase c tds = do
   es <- createEntries tds
-  _  <- mapM (put c) es
+  _  <- mapM_ (put c) es
   return es
 
 createFilePath :: AppContext -> Int -> FilePath

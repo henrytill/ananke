@@ -23,9 +23,9 @@ module Hecate.Context
   , finalize
   ) where
 
-import           Control.Exception
+import           Control.Monad.Catch
 import           Control.Monad.Except
-import           Data.Maybe             (fromJust, fromMaybe)
+import           Data.Maybe             (fromJust)
 import           Data.Monoid
 import qualified Data.Text              as T
 import qualified Data.Text.IO           as TIO
@@ -174,13 +174,13 @@ addDefaultConfig preConfig = mappend <$> pure preConfig <*> defaultConfig
                        , _preConfigAllowMultipleKeys = First (Just False)
                        }
 
-addTOMLConfig :: MonadIO m => PreConfig -> m PreConfig
+addTOMLConfig :: (MonadThrow m, MonadIO m) => PreConfig -> m PreConfig
 addTOMLConfig preConfig = mappend <$> pure preConfig <*> tomlConfig
   where
     tomlConfig = do
       let dataDir = fromJust (getFirst (_preConfigDataDirectory preConfig))
       txt <- liftIO (TIO.readFile (dataDir ++ "/hecate.toml"))
-      tbl <- either (liftIO . throwIO . TOML) pure (TOML.parseTOML txt)
+      tbl <- either (throwM . TOML) pure (TOML.parseTOML txt)
       let keyId = First (getKeyId tbl)
           mult  = First (getAllowMultipleKeys tbl)
       return PreConfig { _preConfigDataDirectory     = mempty
@@ -188,22 +188,21 @@ addTOMLConfig preConfig = mappend <$> pure preConfig <*> tomlConfig
                        , _preConfigAllowMultipleKeys = mult
                        }
 
-preConfigToConfig :: PreConfig -> Config
-preConfigToConfig preConfig
-  = Config { _configDataDirectory     = firstOrError dirMsg (_preConfigDataDirectory     preConfig)
-           , _configKeyId             = firstOrError keyMsg (_preConfigKeyId             preConfig)
-           , _configAllowMultipleKeys = firstOrError mulMsg (_preConfigAllowMultipleKeys preConfig)
-           }
+preConfigToConfig :: MonadThrow m => PreConfig -> m Config
+preConfigToConfig preConfig =
+  Config <$> firstOrError dirMsg (_preConfigDataDirectory     preConfig)
+         <*> firstOrError keyMsg (_preConfigKeyId             preConfig)
+         <*> firstOrError mulMsg (_preConfigAllowMultipleKeys preConfig)
   where
-    firstOrError msg = fromMaybe (throw (Configuration msg)) . getFirst
+    firstOrError msg = maybe (throwM (Configuration msg)) pure . getFirst
     dirMsg = "Please set HECATE_DATA_DIR"
     keyMsg = "Please set HECATE_KEYID or gnupg.keyid in hecate.toml"
     mulMsg = "Please set HECATE_ALLOW_MULTIPLE_KEYS or entries.allow_multiple_keys in hecate.toml"
 
-configureWith :: MonadIO m => PreConfig -> m Config
-configureWith preConfig = preConfigToConfig <$> (addDefaultConfig preConfig >>= addTOMLConfig)
+configureWith :: (MonadThrow m, MonadIO m) => PreConfig -> m Config
+configureWith preConfig = addDefaultConfig preConfig >>= addTOMLConfig >>= preConfigToConfig
 
-configure :: MonadIO m => m Config
+configure :: (MonadThrow m, MonadIO m) => m Config
 configure = createPreConfig >>= configureWith
 
 createContext :: MonadIO m => Config -> m AppContext

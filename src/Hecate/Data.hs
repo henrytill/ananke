@@ -42,6 +42,7 @@ module Hecate.Data
   , unCount
   ) where
 
+import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import qualified Data.ByteString.Lazy             as BSL
 import qualified Data.Csv                         as CSV
@@ -73,7 +74,7 @@ instance CSV.FromRecord CSVEntry
 instance CSV.ToRecord CSVEntry
 
 entryToCSVEntry
-  :: MonadIO m
+  :: (MonadThrow m, MonadIO m)
   => Entry
   -> m CSVEntry
 entryToCSVEntry e
@@ -96,7 +97,7 @@ data DisplayEntry = DisplayEntry
   } deriving (Show, Eq)
 
 entryToDisplayEntry
-  :: MonadIO m
+  :: (MonadThrow m, MonadIO m)
   => Entry
   -> m DisplayEntry
 entryToDisplayEntry e
@@ -156,7 +157,7 @@ createId (KeyId k) ts (Description d) Nothing =
   ider (k <> showTime ts <> d)
 
 createEntry
-  :: MonadIO m
+  :: (MonadThrow m, MonadIO m)
   => KeyId
   -> UTCTime
   -> Description
@@ -262,7 +263,7 @@ instance CSV.FromField Metadata where
 -- ** And some updaters
 
 updateKeyId
-  :: MonadIO m
+  :: (MonadThrow m, MonadIO m)
   => KeyId
   -> Entry
   -> m Entry

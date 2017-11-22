@@ -5,6 +5,7 @@ module Hecate.Properties
   ) where
 
 import           Control.Monad           (zipWithM)
+import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import           Data.List               ((\\))
@@ -41,7 +42,7 @@ instance Arbitrary TestData where
   shrink (TestData as bs cs ds) = TestData <$> shrink as <*> shrink bs <*> shrink cs <*> shrink ds
 
 createEntries
-  :: (MonadIO m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadIO m, MonadReader r m, HasAppContext r)
   => [TestData]
   -> m [Entry]
 createEntries = mapM k where
@@ -56,7 +57,7 @@ createEntries = mapM k where
                 (_testMetadata td)
 
 addEntryToDatabase
-  :: (MonadIO m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadIO m, MonadReader r m, HasAppContext r)
   => [TestData]
   -> m [Entry]
 addEntryToDatabase tds = do
@@ -77,7 +78,7 @@ isNotEmpty testData
     _testPlaintext   testData /= Plaintext      T.empty  &&
     _testMetadata    testData /= Just (Metadata T.empty)
 
-entriesHaveSameContent :: MonadIO m => Entry -> Entry -> m Bool
+entriesHaveSameContent :: (MonadThrow m, MonadIO m) => Entry -> Entry -> m Bool
 entriesHaveSameContent e1 e2 = do
   plaintext1 <- decrypt (_entryCiphertext e1)
   plaintext2 <- decrypt (_entryCiphertext e2)

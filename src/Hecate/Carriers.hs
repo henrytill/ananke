@@ -6,7 +6,7 @@ module Hecate.Carriers
   , runAppM
   ) where
 
-import           Control.Exception
+import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader         (MonadReader (..), ReaderT, runReaderT)
 import           Control.Monad.Trans.Class    (MonadTrans (..))
@@ -40,7 +40,7 @@ withConnection
   -> m a
 withConnection f = ask >>= \ ctx -> f (ctx ^. appContextConnection)
 
-instance (MonadIO m, MonadReader r m, HasAppContext r) =>
+instance (MonadThrow m, MonadIO m, MonadReader r m, HasAppContext r) =>
          MonadStore (SQLiteStoreT r m) where
   put             e   = withConnection (`DB.put` e)
   delete          e   = withConnection (`DB.delete` e)
@@ -49,6 +49,9 @@ instance (MonadIO m, MonadReader r m, HasAppContext r) =>
   getCount            = withConnection DB.getCount
   getCountOfKeyId kid = withConnection (`DB.getCountOfKeyId` kid)
   reencryptAll    kid = withConnection (`DB.reencryptAll` kid)
+
+instance MonadThrow m => MonadThrow (SQLiteStoreT r m) where
+  throwM = lift . throwM
 
 
 -- * InteractionT
@@ -76,7 +79,7 @@ instance MonadStore m => MonadStore (InteractionT m) where
 flushStr :: String -> IO ()
 flushStr s = putStr s >> hFlush stdout
 
-instance MonadIO m => MonadInteraction (InteractionT m)  where
+instance (MonadThrow m, MonadIO m) => MonadInteraction (InteractionT m)  where
   now :: InteractionT m UTCTime
   now = liftIO getCurrentTime
 
@@ -90,7 +93,10 @@ instance MonadIO m => MonadInteraction (InteractionT m)  where
       ""   -> no
       "n"  -> no
       "y"  -> yes
-      _    -> liftIO (throwIO (Default "Please answer y or n"))
+      _    -> throwM (Default "Please answer y or n")
+
+instance MonadThrow m => MonadThrow (InteractionT m) where
+  throwM = lift . throwM
 
 
 -- * AppM
@@ -108,3 +114,6 @@ newtype AppM a
 
 runAppM :: AppM a -> AppContext -> IO a
 runAppM m = runReaderT (runSQLiteStoreT (runInteractionT (unAppM m)))
+
+instance MonadThrow AppM where
+  throwM = liftIO . throwM

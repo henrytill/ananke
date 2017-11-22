@@ -11,7 +11,7 @@ module Hecate.Database
   , reencryptAll
   ) where
 
-import           Control.Exception
+import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import           Data.Monoid            ((<>))
@@ -72,7 +72,7 @@ addKeyId conn keyId = SQLite.execute conn s (SQLite.Only keyId)
         \  FROM entries"
 
 migrate
-  :: MonadIO m
+  :: (MonadThrow m, MonadIO m)
   => SQLite.Connection
   -> FilePath
   -> SchemaVersion
@@ -87,10 +87,10 @@ migrate conn path (SchemaVersion 1) keyId = do
   reencryptAll conn keyId
   createSchemaFile path
 migrate _ _ (SchemaVersion v) _ =
-  liftIO (throwIO (Migration ("no supported migration path for schema version " ++ show v)))
+  throwM (Migration ("no supported migration path for schema version " ++ show v))
 
 initDatabase
-  :: MonadIO m
+  :: (MonadThrow m, MonadIO m)
   => SQLite.Connection
   -> FilePath
   -> SchemaVersion
@@ -107,7 +107,7 @@ initDatabase conn path schemaVersion keyId =
                        ++ "...")
     migrate conn path schemaVersion keyId
 
-setup :: (MonadIO m, MonadReader r m, HasAppContext r) => m ()
+setup :: (MonadThrow m, MonadIO m, MonadReader r m, HasAppContext r) => m ()
 setup = do
   ctx <- ask
   let schemaFile = ctx ^. configSchemaFile
@@ -138,23 +138,23 @@ processCountResults :: [Count] -> Either AppError Int
 processCountResults [count] = Right (unCount count)
 processCountResults _       = Left (Database "unexpected results")
 
-getCount :: MonadIO m => SQLite.Connection -> m Int
+getCount :: (MonadThrow m, MonadIO m) => SQLite.Connection -> m Int
 getCount conn
-  = either (liftIO . throwIO) pure =<< go
+  = either throwM pure =<< go
   where
     go = processCountResults <$> liftIO (SQLite.query_ conn q)
     q  = "SELECT count(*) FROM entries"
 
-getCountOfKeyId :: MonadIO m => SQLite.Connection -> KeyId -> m Int
+getCountOfKeyId :: (MonadThrow m, MonadIO m) => SQLite.Connection -> KeyId -> m Int
 getCountOfKeyId conn keyId
-  = either (liftIO . throwIO) pure =<< go
+  = either throwM pure =<< go
   where
     go = processCountResults <$> liftIO (SQLite.queryNamed conn q [":keyid" := keyId])
     q  = "SELECT count(*)     \
          \FROM entries        \
          \WHERE keyid = :keyid"
 
-reencryptAll :: MonadIO m => SQLite.Connection -> KeyId -> m ()
+reencryptAll :: (MonadThrow m, MonadIO m) => SQLite.Connection -> KeyId -> m ()
 reencryptAll conn keyId = do
   es  <- selectAll conn
   ues <- mapM (updateKeyId keyId) es

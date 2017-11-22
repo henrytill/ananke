@@ -11,7 +11,7 @@ module Hecate.Evaluator
   , eval
   ) where
 
-import           Control.Exception
+import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import qualified Data.ByteString.Lazy    as BSL
@@ -75,15 +75,15 @@ data Response
   | CheckedForMultipleKeys
   deriving (Show, Eq)
 
-ensureFile :: MonadIO m => FilePath -> m FilePath
+ensureFile :: (MonadThrow m, MonadIO m) => FilePath -> m FilePath
 ensureFile file = do
   exists <- liftIO (doesFileExist file)
   if exists
     then return file
-    else liftIO (throwIO (FileSystem "File does not exist"))
+    else throwM (FileSystem "File does not exist")
 
 checkKey
-  :: (MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
   => m Response
   -> m Response
 checkKey k = do
@@ -96,16 +96,16 @@ checkKey k = do
     else do
     let q     = "New keyid found: do you want to re-encrypt all entries?"
         reenc = reencryptAll keyId
-        err   = liftIO (throwIO (Default "You have set allow_multiple_keys to false"))
+        err   = throwM (Default "You have set allow_multiple_keys to false")
     count <- getCountOfKeyId keyId
     case (count, allowMultKeys) of
       (0, False)              -> binaryChoice q (reenc >> k) err
       (x, _    ) | x == total -> k
       (_, True )              -> binaryChoice q (reenc >> k) k
-      (_, False)              -> liftIO (throwIO (Default "All entries do not have the same keyid"))
+      (_, False)              -> throwM (Default "All entries do not have the same keyid")
 
 csvEntryToEntry
-  :: (MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
+  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
   => CSVEntry
   -> m Entry
 csvEntryToEntry entry = do
@@ -119,17 +119,17 @@ csvEntryToEntry entry = do
               (_csvMeta entry)
 
 importCSV
-  :: (MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
+  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
   => FilePath
   -> m [Entry]
 importCSV csvFile = do
   file <- ensureFile csvFile
   bs   <- liftIO (BSL.readFile file)
-  ies  <- either (liftIO . throwIO . CsvDecoding) (pure . Vector.toList) (CSV.decode CSV.NoHeader bs)
+  ies  <- either (throwM . CsvDecoding) (pure . Vector.toList) (CSV.decode CSV.NoHeader bs)
   mapM csvEntryToEntry ies
 
 exportCSV
-  :: MonadIO m
+  :: (MonadThrow m, MonadIO m)
   => FilePath
   -> [Entry]
   -> m ()
@@ -139,7 +139,7 @@ exportCSV csvFile entries = do
   liftIO (BSL.writeFile csvFile csv)
 
 createEntryWrapper
-  :: (MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
+  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
   => String
   -> Maybe String
   -> Maybe String
@@ -178,7 +178,7 @@ updateWrapper miden mmeta e =
   updateMetadata (Metadata . T.pack <$> mmeta)
 
 updateCiphertext
-  :: (MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
+  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
   => Plaintext
   -> Entry
   -> m Entry
@@ -193,7 +193,7 @@ updateCiphertext plaintext entry = do
               (_entryMeta entry)
 
 updateCiphertextWrapper
-  :: (MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
+  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
   => ModifyAction
   -> Entry
   -> m Entry
@@ -203,7 +203,7 @@ updateCiphertextWrapper Keep e =
   return e
 
 modifyOnlySingletons
-  :: (MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
   => [Entry]
   -> ModifyAction
   -> Maybe String
@@ -216,10 +216,10 @@ modifyOnlySingletons [e] maction miden mmeta = do
   _   <- delete e
   return Modified
 modifyOnlySingletons _ _ _ _ =
-  liftIO (throwIO (AmbiguousInput "There are multiple entries matching your input criteria."))
+  throwM (AmbiguousInput "There are multiple entries matching your input criteria.")
 
 findAndModify
-  :: (MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
   => Query
   -> ModifyAction
   -> Maybe String
@@ -233,7 +233,7 @@ findAndModify q maction miden mmeta
       modifyOnlySingletons rs maction miden mmeta
 
 modify
-  :: (MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
   => Target
   -> ModifyAction
   -> Maybe String
@@ -245,7 +245,7 @@ modify (TargetDescription mdesc) maction miden mmeta =
   findAndModify (Data.query Nothing (Just mdesc) Nothing Nothing) maction miden mmeta
 
 redescribeOnlySingletons
-  :: (MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
   => [Entry]
   -> String
   -> m Response
@@ -258,10 +258,10 @@ redescribeOnlySingletons [e] s
       _   <- delete e
       return Redescribed
 redescribeOnlySingletons _ _ =
-  liftIO (throwIO (AmbiguousInput "There are multiple entries matching your input criteria."))
+  throwM (AmbiguousInput "There are multiple entries matching your input criteria.")
 
 findAndRedescribe
-  :: (MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
   => Query
   -> String
   -> m Response
@@ -270,7 +270,7 @@ findAndRedescribe q s = do
   redescribeOnlySingletons rs s
 
 redescribe
-  :: (MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
   => Target
   -> String
   -> m Response
@@ -280,23 +280,23 @@ redescribe (TargetDescription tdesc) s =
   findAndRedescribe (Data.query Nothing (Just tdesc) Nothing Nothing) s
 
 removeOnlySingletons
-  :: (MonadIO m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadIO m, MonadStore m, MonadReader r m, HasAppContext r)
   => [Entry]
   -> m Response
 removeOnlySingletons [e] =
   delete e >> return Removed
 removeOnlySingletons _ =
-  liftIO (throwIO (AmbiguousInput "There are multiple entries matching your input criteria."))
+  throwM (AmbiguousInput "There are multiple entries matching your input criteria.")
 
 findAndRemove
-  :: (MonadIO m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadIO m, MonadStore m, MonadReader r m, HasAppContext r)
   => Query
   -> m Response
 findAndRemove q =
   query q >>= removeOnlySingletons
 
 remove
-  :: (MonadIO m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadIO m, MonadStore m, MonadReader r m, HasAppContext r)
   => Target
   -> m Response
 remove (TargetId rid) =
@@ -305,7 +305,7 @@ remove (TargetDescription rdesc) =
   findAndRemove (Data.query Nothing (Just rdesc) Nothing Nothing)
 
 check
-  :: (MonadIO m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadIO m, MonadStore m, MonadReader r m, HasAppContext r)
   => m Response
 check = do
   ctx <- ask
@@ -314,10 +314,10 @@ check = do
   r <- getCountOfKeyId keyId
   if t == r
     then return CheckedForMultipleKeys
-    else liftIO (throwIO (Default "All entries do not have the same keyid"))
+    else throwM (Default "All entries do not have the same keyid")
 
 eval
-  :: (MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
   => Command
   -> m Response
 eval Add{_addDescription, _addIdentity, _addMeta} =

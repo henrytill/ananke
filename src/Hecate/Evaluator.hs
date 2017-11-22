@@ -15,20 +15,18 @@ import           Control.Exception
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import qualified Data.ByteString.Lazy    as BSL
-import           Data.Char               (toLower)
 import qualified Data.Csv                as CSV
 import qualified Data.Text               as T
-import           Data.Time.Clock         (getCurrentTime)
 import qualified Data.Vector             as Vector
 import           Lens.Family2
 import           System.Directory        (doesFileExist)
-import           System.IO               (hFlush, stdout)
 
 import           Hecate.Context
-import qualified Hecate.Database         as DB
-import           Hecate.Data
+import           Hecate.Data             hiding (query)
+import qualified Hecate.Data             as Data
 import           Hecate.GPG
 import           Hecate.Error
+import           Hecate.Interfaces
 
 
 data ModifyAction = Keep | Change
@@ -77,21 +75,6 @@ data Response
   | CheckedForMultipleKeys
   deriving (Show, Eq)
 
-flushStr :: String -> IO ()
-flushStr s = putStr s >> hFlush stdout
-
-promptText :: MonadIO m => String -> m String
-promptText s = liftIO (flushStr s >> getLine)
-
-askQuestion :: MonadIO m => String -> m a -> m a -> m a
-askQuestion s yes no = do
-  ans <- liftIO (flushStr (s ++ " [N/y] ") >> getLine)
-  case map toLower ans of
-    ""   -> no
-    "n"  -> no
-    "y"  -> yes
-    _    -> liftIO (throwIO (Default "Please answer y or n"))
-
 ensureFile :: MonadIO m => FilePath -> m FilePath
 ensureFile file = do
   exists <- liftIO (doesFileExist file)
@@ -99,33 +82,35 @@ ensureFile file = do
     then return file
     else liftIO (throwIO (FileSystem "File does not exist"))
 
-checkKey :: (MonadIO m, MonadReader r m, HasAppContext r) => m Response -> m Response
+checkKey
+  :: (MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
+  => m Response
+  -> m Response
 checkKey k = do
   ctx <- ask
-  let conn          = ctx ^. appContextConnection
-      keyId         = ctx ^. configKeyId
+  let keyId         = ctx ^. configKeyId
       allowMultKeys = ctx ^. configAllowMultipleKeys
-  total <- DB.getCount conn
+  total <- getCount
   if total == 0
     then k
     else do
     let q     = "New keyid found: do you want to re-encrypt all entries?"
-        reenc = DB.reencryptAll conn keyId
+        reenc = reencryptAll keyId
         err   = liftIO (throwIO (Default "You have set allow_multiple_keys to false"))
-    count <- DB.getCountOfKeyId conn keyId
+    count <- getCountOfKeyId keyId
     case (count, allowMultKeys) of
-      (0, False)              -> askQuestion q (reenc >> k) err
+      (0, False)              -> binaryChoice q (reenc >> k) err
       (x, _    ) | x == total -> k
-      (_, True )              -> askQuestion q (reenc >> k) k
+      (_, True )              -> binaryChoice q (reenc >> k) k
       (_, False)              -> liftIO (throwIO (Default "All entries do not have the same keyid"))
 
 csvEntryToEntry
-  :: (MonadIO m, MonadReader r m, HasConfig r)
+  :: (MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
   => CSVEntry
   -> m Entry
 csvEntryToEntry entry = do
   ctx       <- ask
-  timestamp <- liftIO getCurrentTime
+  timestamp <- now
   createEntry (ctx ^. configKeyId)
               timestamp
               (_csvDescription entry)
@@ -134,7 +119,7 @@ csvEntryToEntry entry = do
               (_csvMeta entry)
 
 importCSV
-  :: (MonadIO m, MonadReader r m, HasConfig r)
+  :: (MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
   => FilePath
   -> m [Entry]
 importCSV csvFile = do
@@ -154,7 +139,7 @@ exportCSV csvFile entries = do
   liftIO (BSL.writeFile csvFile csv)
 
 createEntryWrapper
-  :: (MonadIO m, MonadReader r m, HasConfig r)
+  :: (MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
   => String
   -> Maybe String
   -> Maybe String
@@ -162,7 +147,7 @@ createEntryWrapper
   -> m Entry
 createEntryWrapper d i m t = do
   ctx       <- ask
-  timestamp <- liftIO getCurrentTime
+  timestamp <- now
   createEntry (ctx ^. configKeyId)
               timestamp
               (Description . T.pack  $  d)
@@ -193,13 +178,13 @@ updateWrapper miden mmeta e =
   updateMetadata (Metadata . T.pack <$> mmeta)
 
 updateCiphertext
-  :: (MonadIO m, MonadReader r m, HasConfig r)
+  :: (MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
   => Plaintext
   -> Entry
   -> m Entry
 updateCiphertext plaintext entry = do
   ctx       <- ask
-  timestamp <- liftIO getCurrentTime
+  timestamp <- now
   createEntry (ctx ^. configKeyId)
               timestamp
               (_entryDescription entry)
@@ -208,168 +193,153 @@ updateCiphertext plaintext entry = do
               (_entryMeta entry)
 
 updateCiphertextWrapper
-  :: (MonadIO m, MonadReader r m, HasConfig r)
+  :: (MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
   => ModifyAction
   -> Entry
   -> m Entry
 updateCiphertextWrapper Change e =
-  promptText "Enter text to encrypt: " >>= \ t -> updateCiphertext (Plaintext . T.pack $ t) e
+  prompt "Enter text to encrypt: " >>= \ t -> updateCiphertext (Plaintext . T.pack $ t) e
 updateCiphertextWrapper Keep e =
   return e
 
 modifyOnlySingletons
-  :: (MonadIO m, MonadReader r m, HasAppContext r)
+  :: (MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
   => [Entry]
   -> ModifyAction
   -> Maybe String
   -> Maybe String
   -> m Response
 modifyOnlySingletons [e] maction miden mmeta = do
-  ctx <- ask
   ue1 <- updateWrapper miden mmeta e
   ue2 <- updateCiphertextWrapper maction ue1
-  _   <- DB.put    (ctx ^. appContextConnection) ue2
-  _   <- DB.delete (ctx ^. appContextConnection) e
+  _   <- put ue2
+  _   <- delete e
   return Modified
 modifyOnlySingletons _ _ _ _ =
   liftIO (throwIO (AmbiguousInput "There are multiple entries matching your input criteria."))
 
 findAndModify
-  :: (MonadIO m, MonadReader r m, HasAppContext r)
+  :: (MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
   => Query
   -> ModifyAction
   -> Maybe String
   -> Maybe String
   -> m Response
 findAndModify q maction miden mmeta
-  = ask >>= checkKey . k
+  = checkKey k
   where
-    k ctx = do
-      rs  <- DB.query (ctx ^. appContextConnection) q
+    k = do
+      rs  <- query q
       modifyOnlySingletons rs maction miden mmeta
 
 modify
-  :: (MonadIO m, MonadReader r m, HasAppContext r)
+  :: (MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
   => Target
   -> ModifyAction
   -> Maybe String
   -> Maybe String
   -> m Response
 modify (TargetId mid) maction miden mmeta =
-  findAndModify (query (Just mid) Nothing Nothing Nothing) maction miden mmeta
+  findAndModify (Data.query (Just mid) Nothing Nothing Nothing) maction miden mmeta
 modify (TargetDescription mdesc) maction miden mmeta =
-  findAndModify (query Nothing (Just mdesc) Nothing Nothing) maction miden mmeta
+  findAndModify (Data.query Nothing (Just mdesc) Nothing Nothing) maction miden mmeta
 
 redescribeOnlySingletons
-  :: (MonadIO m, MonadReader r m, HasAppContext r)
+  :: (MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
   => [Entry]
   -> String
   -> m Response
 redescribeOnlySingletons [e] s
-  = ask >>= checkKey . k
+  = checkKey k
   where
-    k ctx = do
+    k = do
       ue  <- updateDescription (Description . T.pack $ s) e
-      _   <- DB.put    (ctx ^. appContextConnection) ue
-      _   <- DB.delete (ctx ^. appContextConnection) e
+      _   <- put ue
+      _   <- delete e
       return Redescribed
 redescribeOnlySingletons _ _ =
   liftIO (throwIO (AmbiguousInput "There are multiple entries matching your input criteria."))
 
 findAndRedescribe
-  :: (MonadIO m, MonadReader r m, HasAppContext r)
+  :: (MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
   => Query
   -> String
   -> m Response
 findAndRedescribe q s = do
-  ctx <- ask
-  rs  <- DB.query (ctx ^. appContextConnection) q
+  rs  <- query q
   redescribeOnlySingletons rs s
 
 redescribe
-  :: (MonadIO m, MonadReader r m, HasAppContext r)
+  :: (MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
   => Target
   -> String
   -> m Response
 redescribe (TargetId tid) s =
-  findAndRedescribe (query (Just tid) Nothing Nothing Nothing) s
+  findAndRedescribe (Data.query (Just tid) Nothing Nothing Nothing) s
 redescribe (TargetDescription tdesc) s =
-  findAndRedescribe (query Nothing (Just tdesc) Nothing Nothing) s
+  findAndRedescribe (Data.query Nothing (Just tdesc) Nothing Nothing) s
 
 removeOnlySingletons
-  :: (MonadIO m, MonadReader r m, HasAppContext r)
+  :: (MonadIO m, MonadStore m, MonadReader r m, HasAppContext r)
   => [Entry]
   -> m Response
-removeOnlySingletons [e] = do
-  ctx <- ask
-  _   <- DB.delete (ctx ^. appContextConnection) e
-  return Removed
+removeOnlySingletons [e] =
+  delete e >> return Removed
 removeOnlySingletons _ =
   liftIO (throwIO (AmbiguousInput "There are multiple entries matching your input criteria."))
 
 findAndRemove
-  :: (MonadIO m, MonadReader r m, HasAppContext r)
+  :: (MonadIO m, MonadStore m, MonadReader r m, HasAppContext r)
   => Query
   -> m Response
-findAndRemove q = do
-  ctx <- ask
-  rs  <- DB.query (ctx ^. appContextConnection) q
-  removeOnlySingletons rs
+findAndRemove q =
+  query q >>= removeOnlySingletons
 
 remove
-  :: (MonadIO m, MonadReader r m, HasAppContext r)
+  :: (MonadIO m, MonadStore m, MonadReader r m, HasAppContext r)
   => Target
   -> m Response
 remove (TargetId rid) =
-  findAndRemove (query (Just rid) Nothing Nothing Nothing)
+  findAndRemove (Data.query (Just rid) Nothing Nothing Nothing)
 remove (TargetDescription rdesc) =
-  findAndRemove (query Nothing (Just rdesc) Nothing Nothing)
+  findAndRemove (Data.query Nothing (Just rdesc) Nothing Nothing)
 
 check
-  :: (MonadIO m, MonadReader r m, HasAppContext r)
+  :: (MonadIO m, MonadStore m, MonadReader r m, HasAppContext r)
   => m Response
 check = do
   ctx <- ask
-  let conn  = ctx ^. appContextConnection
-      keyId = ctx ^. configKeyId
-  t <- DB.getCount conn
-  r <- DB.getCountOfKeyId conn keyId
+  t   <- getCount
+  let keyId = ctx ^. configKeyId
+  r <- getCountOfKeyId keyId
   if t == r
     then return CheckedForMultipleKeys
     else liftIO (throwIO (Default "All entries do not have the same keyid"))
 
 eval
-  :: (MonadIO m, MonadReader r m, HasAppContext r)
+  :: (MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
   => Command
   -> m Response
-eval Add{_addDescription, _addIdentity, _addMeta} = do
-  ctx <- ask
-  checkKey (k ctx)
+eval Add{_addDescription, _addIdentity, _addMeta} =
+  checkKey k
   where
-    k ctx = do
-      t   <- promptText "Enter text to encrypt: "
-      e   <- createEntryWrapper _addDescription _addIdentity _addMeta t
-      _   <- DB.put (ctx ^. appContextConnection) e
-      return Added
+    k = prompt "Enter text to encrypt: "                         >>=
+        createEntryWrapper _addDescription _addIdentity _addMeta >>=
+        put                                                      >>
+        return Added
 eval Lookup{_lookupDescription, _lookupVerbosity} = do
-  ctx <- ask
-  q   <- pure (query Nothing (Just _lookupDescription) Nothing Nothing)
-  res <- DB.query (ctx ^. appContextConnection) q
+  q   <- pure (Data.query Nothing (Just _lookupDescription) Nothing Nothing)
+  res <- query q
   case res of
     []  -> MultipleEntries <$> pure []                     <*> pure _lookupVerbosity
     [e] -> SingleEntry     <$> entryToDisplayEntry e       <*> pure _lookupVerbosity
     es  -> MultipleEntries <$> mapM entryToDisplayEntry es <*> pure _lookupVerbosity
-eval Import{_importFile} = do
-  ctx <- ask
-  checkKey (k ctx)
+eval Import{_importFile} =
+  checkKey k
   where
-    k ctx = do
-      es  <- importCSV _importFile
-      _   <- mapM_ (DB.put (ctx ^. appContextConnection)) es
-      return Added
+    k = importCSV _importFile >>= mapM_ put >> return Added
 eval Export{_exportFile}  = do
-  ctx <- ask
-  es  <- DB.selectAll (ctx ^. appContextConnection)
+  es  <- selectAll
   _   <- exportCSV _exportFile es
   return Exported
 eval (Modify t c i m)     = modify t c i m

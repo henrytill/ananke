@@ -44,12 +44,14 @@ executable hecate
   ghc-options:         -Wall
 
 library
-  exposed-modules:     Hecate.Context
+  exposed-modules:     Hecate.Carriers
+                     , Hecate.Context
                      , Hecate.Data
                      , Hecate.Database
                      , Hecate.Evaluator
                      , Hecate.Error
                      , Hecate.GPG
+                     , Hecate.Interfaces
                      , Hecate.Parser
                      , Hecate.Printing
                      , Data.ByteString64

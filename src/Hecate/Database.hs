@@ -24,7 +24,7 @@ import           System.Directory       (doesFileExist)
 import           Hecate.Context
 import           Hecate.Data            hiding (query)
 import           Hecate.Error
-import           Hecate.GPG             (KeyId)
+import           Hecate.GPG (KeyId)
 
 
 -- | A 'SchemaVersion' represents the database's schema version

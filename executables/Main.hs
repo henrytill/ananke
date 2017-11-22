@@ -1,16 +1,16 @@
 module Main (main) where
 
 import           Control.Exception
-import           Control.Monad.Reader
 import           System.Console.ANSI          (hSupportsANSI)
 import           System.Exit
 import           System.IO
 import           Text.PrettyPrint.ANSI.Leijen
 
+import           Hecate.Carriers
 import           Hecate.Context
-import           Hecate.Database
 import           Hecate.Error
 import           Hecate.Evaluator
+import           Hecate.Database              (setup)
 import           Hecate.Parser
 import           Hecate.Printing
 
@@ -37,7 +37,7 @@ resultHandler command res = do
 runApp :: AppContext -> IO ExitCode
 runApp ctx = do
   command <- runCLIParser
-  catch (runReaderT (setup >> eval command) ctx >>= resultHandler command)
+  catch (runAppM (setup >> eval command) ctx >>= resultHandler command)
         (exceptionHandler command)
 
 main :: IO ()

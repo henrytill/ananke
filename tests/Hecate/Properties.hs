@@ -20,6 +20,7 @@ import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 import           Text.Printf             (printf)
 
+import           Hecate.Carriers         (runAppM)
 import           Hecate.Context
 import           Hecate.Data
 import           Hecate.Database
@@ -56,12 +57,13 @@ createEntries = mapM k where
 
 addEntryToDatabase
   :: (MonadIO m, MonadReader r m, HasAppContext r)
-  => Connection
-  -> [TestData]
+  => [TestData]
   -> m [Entry]
-addEntryToDatabase c tds = do
+addEntryToDatabase tds = do
+  ctx <- ask
   es <- createEntries tds
-  _  <- mapM_ (put c) es
+  let conn = ctx ^. appContextConnection
+  _  <- mapM_ (put conn) es
   return es
 
 createFilePath :: AppContext -> Int -> FilePath
@@ -87,11 +89,10 @@ entriesHaveSameContent e1 e2 = do
 prop_roundTripEntriesToDatabase :: AppContext -> Property
 prop_roundTripEntriesToDatabase ctx = monadicIO $ do
   tds <- pick (listOf1 arbitrary)
-  es  <- run (runReaderT (addEntryToDatabase conn tds) ctx)
+  es  <- run (runReaderT (addEntryToDatabase tds) ctx)
+  let conn = ctx ^. appContextConnection
   res <- run (selectAll conn)
   assert (null (es \\ res))
-  where
-    conn = ctx ^. appContextConnection
 
 prop_roundTripEntriesToCSV :: AppContext -> Property
 prop_roundTripEntriesToCSV ctx = monadicIO $ do
@@ -100,7 +101,7 @@ prop_roundTripEntriesToCSV ctx = monadicIO $ do
   file <- pure (createFilePath ctx x)
   es   <- run (runReaderT (createEntries tds) ctx)
   _    <- run (exportCSV file es)
-  ies  <- run (runReaderT (importCSV file) ctx)
+  ies  <- run (runAppM (importCSV file) ctx)
   bs   <- run (zipWithM entriesHaveSameContent es ies)
   assert (and bs)
 

@@ -42,22 +42,20 @@ module Hecate.Data
   , unCount
   ) where
 
-import           Control.Monad.Catch
-import           Control.Monad.IO.Class
 import qualified Data.ByteString.Lazy             as BSL
 import qualified Data.Csv                         as CSV
 import           Data.Digest.Pure.SHA             (sha1, showDigest)
 import           Data.Monoid                      ((<>))
 import qualified Data.Text                        as T
 import           Data.Text.Encoding               (encodeUtf8)
-import           Data.Time.Clock                  (UTCTime, getCurrentTime)
+import           Data.Time.Clock                  (UTCTime)
 import           Data.Time.Format                 (defaultTimeLocale, formatTime)
 import qualified Database.SQLite.Simple           as SQLite
 import           Database.SQLite.Simple.FromField
 import           Database.SQLite.Simple.ToField
 import           GHC.Generics
 
-import           Hecate.GPG
+import           Hecate.GPG                       (KeyId(..), Plaintext, Ciphertext)
 
 
 -- * Import and Display Entries
@@ -74,10 +72,11 @@ instance CSV.FromRecord CSVEntry
 instance CSV.ToRecord CSVEntry
 
 entryToCSVEntry
-  :: (MonadThrow m, MonadIO m)
-  => Entry
+  :: Monad m
+  => (Ciphertext -> m Plaintext)
+  -> Entry
   -> m CSVEntry
-entryToCSVEntry e
+entryToCSVEntry decrypt e
   = f e <$> decrypt (_entryCiphertext e)
   where
     f entry plaintext = CSVEntry (_entryDescription entry)
@@ -97,10 +96,11 @@ data DisplayEntry = DisplayEntry
   } deriving (Show, Eq)
 
 entryToDisplayEntry
-  :: (MonadThrow m, MonadIO m)
-  => Entry
+  :: Monad m
+  => (Ciphertext -> m Plaintext)
+  -> Entry
   -> m DisplayEntry
-entryToDisplayEntry e
+entryToDisplayEntry decrypt e
   = f e <$> decrypt (_entryCiphertext e)
   where
     f entry plaintext = DisplayEntry (_entryId entry)
@@ -157,29 +157,30 @@ createId (KeyId k) ts (Description d) Nothing =
   ider (k <> showTime ts <> d)
 
 createEntry
-  :: (MonadThrow m, MonadIO m)
-  => KeyId
+  :: Monad m
+  => (KeyId -> Plaintext -> m Ciphertext)
+  -> KeyId
   -> UTCTime
   -> Description
   -> Maybe Identity
   -> Plaintext
   -> Maybe Metadata
   -> m Entry
-createEntry keyId timestamp description identity plaintext meta = do
+createEntry encrypt keyId timestamp description identity plaintext meta = do
   i         <- pure (createId keyId timestamp description identity)
   encrypted <- encrypt keyId plaintext
   return (Entry i keyId timestamp description identity encrypted meta)
 
 updateEntry
-  :: MonadIO m
+  :: Monad m
   => KeyId
+  -> UTCTime
   -> Description
   -> Maybe Identity
   -> Ciphertext
   -> Maybe Metadata
   -> m Entry
-updateEntry keyId description identity ciphertext meta = do
-  timestamp <- liftIO getCurrentTime
+updateEntry keyId timestamp description identity ciphertext meta = do
   i         <- pure (createId keyId timestamp description identity)
   return (Entry i keyId timestamp description identity ciphertext meta)
 
@@ -263,13 +264,16 @@ instance CSV.FromField Metadata where
 -- ** And some updaters
 
 updateKeyId
-  :: (MonadThrow m, MonadIO m)
-  => KeyId
+  :: Monad m
+  => (Ciphertext -> m Plaintext)
+  -> (KeyId -> Plaintext -> m Ciphertext)
+  -> KeyId
   -> Entry
   -> m Entry
-updateKeyId keyId entry = do
+updateKeyId decrypt encrypt keyId entry = do
   plaintext <- decrypt (_entryCiphertext entry)
-  createEntry keyId
+  createEntry encrypt
+              keyId
               (_entryTimestamp entry)
               (_entryDescription entry)
               (_entryIdentity entry)
@@ -277,36 +281,42 @@ updateKeyId keyId entry = do
               (_entryMeta entry)
 
 updateDescription
-  :: MonadIO m
-  => Description
+  :: Monad m
+  => UTCTime
+  -> Description
   -> Entry
   -> m Entry
-updateDescription desc entry
+updateDescription now desc entry
   = updateEntry (_entryKeyId entry)
+                now
                 desc
                 (_entryIdentity entry)
                 (_entryCiphertext entry)
                 (_entryMeta entry)
 
 updateIdentity
-  :: MonadIO m
-  => Maybe Identity
+  :: Monad m
+  => UTCTime
+  -> Maybe Identity
   -> Entry
   -> m Entry
-updateIdentity iden entry
+updateIdentity now iden entry
   = updateEntry (_entryKeyId entry)
+                now
                 (_entryDescription entry)
                 iden
                 (_entryCiphertext entry)
                 (_entryMeta entry)
 
 updateMetadata
-  :: MonadIO m
-  => Maybe Metadata
+  :: Monad m
+  => UTCTime
+  -> Maybe Metadata
   -> Entry
   -> m Entry
-updateMetadata meta entry
+updateMetadata now meta entry
   = updateEntry (_entryKeyId entry)
+                now
                 (_entryDescription entry)
                 (_entryIdentity entry)
                 (_entryCiphertext entry)

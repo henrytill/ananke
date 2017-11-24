@@ -28,16 +28,14 @@ import           Control.Monad.Except
 import           Data.Maybe             (fromJust)
 import           Data.Monoid
 import qualified Data.Text              as T
-import qualified Data.Text.IO           as TIO
 import qualified Database.SQLite.Simple as SQLite
 import           Lens.Family2
 import           Lens.Family2.Stock     (_Just)
 import           Lens.Family2.Unchecked (lens)
-import           System.Directory       (createDirectory, doesDirectoryExist)
-import           System.Posix.Env       (getEnv)
 import qualified TOML
 import           TOML.Lens
 
+import           Hecate.Interfaces
 import           Hecate.Error
 import           Hecate.GPG             (KeyId(..))
 
@@ -96,21 +94,21 @@ instance HasAppContext AppContext where
   appContextConnection = lens _appContextConnection (\ a conn -> a{_appContextConnection = conn})
 
 
-getHomeFromEnv :: MonadIO m => m (Maybe FilePath)
+getHomeFromEnv :: MonadInteraction m => m (Maybe FilePath)
 getHomeFromEnv
-  = liftIO (getEnv "HOME")
+  = getEnv "HOME"
 
-getDataDirectoryFromEnv :: MonadIO m => m (Maybe FilePath)
+getDataDirectoryFromEnv :: MonadInteraction m => m (Maybe FilePath)
 getDataDirectoryFromEnv
-  = liftIO (getEnv "HECATE_DATA_DIR")
+  = getEnv "HECATE_DATA_DIR"
 
-getKeyIdFromEnv :: MonadIO m => m (Maybe KeyId)
+getKeyIdFromEnv :: MonadInteraction m => m (Maybe KeyId)
 getKeyIdFromEnv
-  = fmap (KeyId . T.pack) <$> liftIO (getEnv "HECATE_KEYID")
+  = fmap (KeyId . T.pack) <$> getEnv "HECATE_KEYID"
 
-getAllowMultipleKeysFromEnv :: MonadIO m => m (Maybe Bool)
+getAllowMultipleKeysFromEnv :: MonadInteraction m => m (Maybe Bool)
 getAllowMultipleKeysFromEnv
-  = fmap f <$> liftIO (getEnv "HECATE_ALLOW_MULTIPLE_KEYS")
+  = fmap f <$> getEnv "HECATE_ALLOW_MULTIPLE_KEYS"
   where
     f "1" = True
     f "0" = False
@@ -154,7 +152,7 @@ instance Monoid PreConfig where
                 (b `mappend` e)
                 (c `mappend` f)
 
-createPreConfig :: MonadIO m => m PreConfig
+createPreConfig :: MonadInteraction m => m PreConfig
 createPreConfig = do
   dir   <- First <$> getDataDirectoryFromEnv
   keyId <- First <$> getKeyIdFromEnv
@@ -164,7 +162,7 @@ createPreConfig = do
                    , _preConfigAllowMultipleKeys = mult
                    }
 
-addDefaultConfig :: MonadIO m => PreConfig -> m PreConfig
+addDefaultConfig :: MonadInteraction m => PreConfig -> m PreConfig
 addDefaultConfig preConfig = mappend <$> pure preConfig <*> defaultConfig
   where
     defaultConfig = do
@@ -174,12 +172,12 @@ addDefaultConfig preConfig = mappend <$> pure preConfig <*> defaultConfig
                        , _preConfigAllowMultipleKeys = First (Just False)
                        }
 
-addTOMLConfig :: (MonadThrow m, MonadIO m) => PreConfig -> m PreConfig
+addTOMLConfig :: (MonadThrow m, MonadInteraction m) => PreConfig -> m PreConfig
 addTOMLConfig preConfig = mappend <$> pure preConfig <*> tomlConfig
   where
     tomlConfig = do
       let dataDir = fromJust (getFirst (_preConfigDataDirectory preConfig))
-      txt <- liftIO (TIO.readFile (dataDir ++ "/hecate.toml"))
+      txt <- readFileAsText (dataDir ++ "/hecate.toml")
       tbl <- either (throwM . TOML) pure (TOML.parseTOML txt)
       let keyId = First (getKeyId tbl)
           mult  = First (getAllowMultipleKeys tbl)
@@ -199,21 +197,21 @@ preConfigToConfig preConfig =
     keyMsg = "Please set HECATE_KEYID or gnupg.keyid in hecate.toml"
     mulMsg = "Please set HECATE_ALLOW_MULTIPLE_KEYS or entries.allow_multiple_keys in hecate.toml"
 
-configureWith :: (MonadThrow m, MonadIO m) => PreConfig -> m Config
+configureWith :: (MonadThrow m, MonadInteraction m) => PreConfig -> m Config
 configureWith preConfig = addDefaultConfig preConfig >>= addTOMLConfig >>= preConfigToConfig
 
-configure :: (MonadThrow m, MonadIO m) => m Config
+configure :: (MonadThrow m, MonadInteraction m) => m Config
 configure = createPreConfig >>= configureWith
 
-createContext :: MonadIO m => Config -> m AppContext
+createContext :: MonadInteraction m => Config -> m AppContext
 createContext cfg = do
   let dbDir  = cfg ^. configDatabaseDirectory
       dbFile = cfg ^. configDatabaseFile
-  dbDirExists <- liftIO (doesDirectoryExist dbDir)
-  unless dbDirExists (liftIO (createDirectory dbDir))
-  AppContext cfg <$> liftIO (SQLite.open dbFile)
+  dbDirExists <- doesDirectoryExist dbDir
+  unless dbDirExists (createDirectory dbDir)
+  AppContext cfg <$> openSQLiteFile dbFile
 
-finalize :: MonadIO m => AppContext -> m ()
-finalize ctx = liftIO (SQLite.close conn)
+finalize :: MonadInteraction m => AppContext -> m ()
+finalize ctx = closeSQLiteConnection conn
   where
     conn = ctx ^. appContextConnection

@@ -1,30 +1,28 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Hecate.Database
-  ( setup
-  , put
+  ( put
   , delete
   , query
   , selectAll
   , getCount
   , getCountOfKeyId
-  , reencryptAll
+  , addKeyId
+  , SchemaVersion(..)
+  , currentSchemaVersion
+  , createTable
+  , migrate
   ) where
 
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
-import           Control.Monad.Reader
 import           Data.Monoid            ((<>))
-import qualified Data.Text              as T
 import qualified Database.SQLite.Simple as SQLite
 import           Database.SQLite.Simple (NamedParam ((:=)))
-import           Lens.Family2
-import           System.Directory       (doesFileExist)
 
-import           Hecate.Context
 import           Hecate.Data            hiding (query)
 import           Hecate.Error
-import           Hecate.GPG (KeyId)
+import           Hecate.GPG             (KeyId)
 
 
 -- | A 'SchemaVersion' represents the database's schema version
@@ -37,84 +35,44 @@ instance Show SchemaVersion where
 currentSchemaVersion :: SchemaVersion
 currentSchemaVersion = SchemaVersion 2
 
-currentSchema :: T.Text -> SQLite.Query
-currentSchema name = SQLite.Query t
+currentSchema :: SQLite.Query
+currentSchema = SQLite.Query t
   where
-    t = "CREATE TABLE IF NOT EXISTS " `T.append` name `T.append` " (\
-        \  id          TEXT UNIQUE NOT NULL,                        \
-        \  keyid       TEXT NOT NULL,                               \
-        \  timestamp   TEXT NOT NULL,                               \
-        \  description TEXT NOT NULL,                               \
-        \  identity    TEXT,                                        \
-        \  ciphertext  TEXT NOT NULL,                               \
-        \  meta        TEXT                                         \
+    t = "CREATE TABLE IF NOT EXISTS entries (\
+        \  id          TEXT UNIQUE NOT NULL, \
+        \  keyid       TEXT NOT NULL,        \
+        \  timestamp   TEXT NOT NULL,        \
+        \  description TEXT NOT NULL,        \
+        \  identity    TEXT,                 \
+        \  ciphertext  TEXT NOT NULL,        \
+        \  meta        TEXT                  \
         \)"
 
-createSchemaFile :: MonadIO m => FilePath -> m ()
-createSchemaFile path = liftIO (writeFile path (show currentSchemaVersion))
+createTable :: MonadIO m => SQLite.Connection -> m ()
+createTable conn = liftIO (SQLite.execute_ conn currentSchema)
 
-getSchemaVersionFromFile :: MonadIO m => FilePath -> m SchemaVersion
-getSchemaVersionFromFile path = (SchemaVersion . read) <$> liftIO (readFile path)
-
-getSchemaVersion :: MonadIO m => FilePath -> m SchemaVersion
-getSchemaVersion path = do
-  exists <- liftIO (doesFileExist path)
-  if exists
-    then getSchemaVersionFromFile path
-    else createSchemaFile path >> return currentSchemaVersion
-
-addKeyId :: SQLite.Connection -> KeyId -> IO ()
-addKeyId conn keyId = SQLite.execute conn s (SQLite.Only keyId)
+addKeyId :: MonadIO m => SQLite.Connection -> KeyId -> m ()
+addKeyId conn keyId = liftIO (SQLite.execute conn s (SQLite.Only keyId))
   where
-    s = "INSERT INTO new_entries \
+    s = "INSERT INTO entries \
         \  (id, keyid, timestamp, description, identity, ciphertext, meta)  \
         \  SELECT id, ?, timestamp, description, identity, ciphertext, meta \
-        \  FROM entries"
+        \  FROM entries_v1"
 
 migrate
   :: (MonadThrow m, MonadIO m)
   => SQLite.Connection
-  -> FilePath
   -> SchemaVersion
   -> KeyId
   -> m ()
-migrate conn path (SchemaVersion 1) keyId = do
+migrate conn (SchemaVersion 1) keyId =
   liftIO $ SQLite.withTransaction conn $ do
-    SQLite.execute_ conn (currentSchema "new_entries")
+    SQLite.execute_ conn "ALTER TABLE entries RENAME TO entries_v1"
+    createTable conn
     addKeyId conn keyId
-    SQLite.execute_ conn "DROP TABLE entries"
-    SQLite.execute_ conn "ALTER TABLE new_entries RENAME TO entries"
-  reencryptAll conn keyId
-  createSchemaFile path
-migrate _ _ (SchemaVersion v) _ =
+    SQLite.execute_ conn "DROP TABLE entries_v1"
+migrate _ (SchemaVersion v) _ =
   throwM (Migration ("no supported migration path for schema version " ++ show v))
-
-initDatabase
-  :: (MonadThrow m, MonadIO m)
-  => SQLite.Connection
-  -> FilePath
-  -> SchemaVersion
-  -> KeyId
-  -> m ()
-initDatabase conn path schemaVersion keyId =
-  if schemaVersion == currentSchemaVersion
-  then liftIO (SQLite.execute_ conn (currentSchema "entries"))
-  else do
-    liftIO $ putStrLn ("Migrating database from schema version "
-                       ++ show schemaVersion
-                       ++ " to version "
-                       ++ show currentSchemaVersion
-                       ++ "...")
-    migrate conn path schemaVersion keyId
-
-setup :: (MonadThrow m, MonadIO m, MonadReader r m, HasAppContext r) => m ()
-setup = do
-  ctx <- ask
-  let schemaFile = ctx ^. configSchemaFile
-      keyId      = ctx ^. configKeyId
-      connection = ctx ^. appContextConnection
-  schemaVersion <- getSchemaVersion schemaFile
-  initDatabase connection schemaFile schemaVersion keyId
 
 put :: MonadIO m => SQLite.Connection -> Entry -> m ()
 put conn e = liftIO (SQLite.execute conn s e)
@@ -153,13 +111,6 @@ getCountOfKeyId conn keyId
     q  = "SELECT count(*)     \
          \FROM entries        \
          \WHERE keyid = :keyid"
-
-reencryptAll :: (MonadThrow m, MonadIO m) => SQLite.Connection -> KeyId -> m ()
-reencryptAll conn keyId = do
-  es  <- selectAll conn
-  ues <- mapM (updateKeyId keyId) es
-  mapM_ (put conn) ues
-  mapM_ (delete conn) es
 
 idMatcher          :: Id          -> (SQLite.Query, [SQLite.NamedParam])
 descriptionMatcher :: Description -> (SQLite.Query, [SQLite.NamedParam])

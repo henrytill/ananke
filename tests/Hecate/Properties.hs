@@ -12,7 +12,6 @@ import           Data.List               ((\\))
 import           Data.Monoid             (First(..))
 import qualified Data.Text               as T
 import           Data.Text.Arbitrary     ()
-import           Data.Time.Clock         (getCurrentTime)
 import           Database.SQLite.Simple  hiding (Error)
 import           Lens.Family2
 import           System.Directory        (copyFile)
@@ -24,9 +23,9 @@ import           Text.Printf             (printf)
 import           Hecate.Carriers         (runAppM)
 import           Hecate.Context
 import           Hecate.Data
-import           Hecate.Database
-import           Hecate.Evaluator        (importCSV, exportCSV)
-import           Hecate.GPG              (Plaintext(..), decrypt)
+import           Hecate.Interfaces
+import           Hecate.Evaluator        (importCSV, exportCSV, setup)
+import           Hecate.GPG              (Plaintext(..))
 import           Hecate.Orphans          ()
 
 
@@ -41,30 +40,34 @@ instance Arbitrary TestData where
   arbitrary                     = TestData <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
   shrink (TestData as bs cs ds) = TestData <$> shrink as <*> shrink bs <*> shrink cs <*> shrink ds
 
-createEntries
-  :: (MonadThrow m, MonadIO m, MonadReader r m, HasAppContext r)
-  => [TestData]
-  -> m [Entry]
-createEntries = mapM k where
-  k td = do
-    ctx       <- ask
-    timestamp <- liftIO getCurrentTime
-    createEntry (ctx ^. configKeyId)
-                timestamp
-                (_testDescription td)
-                (_testIdentity td)
-                (_testPlaintext td)
-                (_testMetadata td)
+createEntryFromTestData
+  :: (MonadThrow m, MonadInteraction m, MonadEncrypt m, MonadReader r m, HasAppContext r)
+  => TestData
+  -> m Entry
+createEntryFromTestData td = do
+  ctx       <- ask
+  timestamp <- now
+  createEntry encrypt
+              (ctx ^. configKeyId)
+              timestamp
+              (_testDescription td)
+              (_testIdentity td)
+              (_testPlaintext td)
+              (_testMetadata td)
 
 addEntryToDatabase
-  :: (MonadThrow m, MonadIO m, MonadReader r m, HasAppContext r)
+  :: ( MonadThrow m
+     , MonadInteraction m
+     , MonadEncrypt m
+     , MonadStore m
+     , MonadReader r m
+     , HasAppContext r
+     )
   => [TestData]
   -> m [Entry]
 addEntryToDatabase tds = do
-  ctx <- ask
-  es <- createEntries tds
-  let conn = ctx ^. appContextConnection
-  _  <- mapM_ (put conn) es
+  es <- mapM createEntryFromTestData tds
+  _  <- mapM_ put es
   return es
 
 createFilePath :: AppContext -> Int -> FilePath
@@ -78,7 +81,7 @@ isNotEmpty testData
     _testPlaintext   testData /= Plaintext      T.empty  &&
     _testMetadata    testData /= Just (Metadata T.empty)
 
-entriesHaveSameContent :: (MonadThrow m, MonadIO m) => Entry -> Entry -> m Bool
+entriesHaveSameContent :: (MonadThrow m, MonadIO m, MonadEncrypt m) => Entry -> Entry -> m Bool
 entriesHaveSameContent e1 e2 = do
   plaintext1 <- decrypt (_entryCiphertext e1)
   plaintext2 <- decrypt (_entryCiphertext e2)
@@ -90,9 +93,8 @@ entriesHaveSameContent e1 e2 = do
 prop_roundTripEntriesToDatabase :: AppContext -> Property
 prop_roundTripEntriesToDatabase ctx = monadicIO $ do
   tds <- pick (listOf1 arbitrary)
-  es  <- run (runReaderT (addEntryToDatabase tds) ctx)
-  let conn = ctx ^. appContextConnection
-  res <- run (selectAll conn)
+  es  <- run (runAppM (addEntryToDatabase tds) ctx)
+  res <- run (runAppM selectAll ctx)
   assert (null (es \\ res))
 
 prop_roundTripEntriesToCSV :: AppContext -> Property
@@ -100,7 +102,7 @@ prop_roundTripEntriesToCSV ctx = monadicIO $ do
   tds  <- pick (listOf1 (suchThat arbitrary isNotEmpty))
   x    <- pick (suchThat arbitrary (> 0))
   file <- pure (createFilePath ctx x)
-  es   <- run (runReaderT (createEntries tds) ctx)
+  es   <- run (runAppM (mapM createEntryFromTestData tds) ctx)
   _    <- run (exportCSV file es)
   ies  <- run (runAppM (importCSV file) ctx)
   bs   <- run (zipWithM entriesHaveSameContent es ies)
@@ -118,7 +120,7 @@ doProperties = do
   let preConfig = PreConfig (First (Just dir)) mempty mempty
   _       <- copyFile "./example/hecate.toml" (dir ++ "/hecate.toml")
   ctx     <- configureWith preConfig >>= createContext
-  _       <- runReaderT setup ctx
+  _       <- runAppM setup ctx
   results <- mapM (\ p -> quickCheckWithResult stdArgs (p ctx)) tests
   _       <- close (ctx ^. appContextConnection)
   return results

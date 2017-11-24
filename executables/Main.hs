@@ -10,7 +10,6 @@ import           Hecate.Carriers
 import           Hecate.Context
 import           Hecate.Error
 import           Hecate.Evaluator
-import           Hecate.Database              (setup)
 import           Hecate.Parser
 import           Hecate.Printing
 

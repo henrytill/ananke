@@ -9,22 +9,22 @@ module Hecate.Evaluator
   , importCSV
   , exportCSV
   , eval
+  , setup
   ) where
 
 import           Control.Monad.Catch
-import           Control.Monad.IO.Class
 import           Control.Monad.Reader
-import qualified Data.ByteString.Lazy    as BSL
-import qualified Data.Csv                as CSV
-import qualified Data.Text               as T
-import qualified Data.Vector             as Vector
+import           Data.Char            (toLower)
+import qualified Data.Csv             as CSV
+import qualified Data.Text            as T
+import qualified Data.Vector          as Vector
 import           Lens.Family2
-import           System.Directory        (doesFileExist)
 
 import           Hecate.Context
-import           Hecate.Data             hiding (query)
-import qualified Hecate.Data             as Data
-import           Hecate.GPG
+import           Hecate.Data          hiding (query)
+import qualified Hecate.Data          as Data
+import           Hecate.Database      (SchemaVersion(..), currentSchemaVersion)
+import           Hecate.GPG           (KeyId, Plaintext(..))
 import           Hecate.Error
 import           Hecate.Interfaces
 
@@ -75,15 +75,92 @@ data Response
   | CheckedForMultipleKeys
   deriving (Show, Eq)
 
-ensureFile :: (MonadThrow m, MonadIO m) => FilePath -> m FilePath
+getSchemaVersionFromFile :: MonadInteraction m => FilePath -> m SchemaVersion
+getSchemaVersionFromFile path = (SchemaVersion . read) <$> readFileAsString path
+
+createSchemaFile :: MonadInteraction m => FilePath -> SchemaVersion -> m ()
+createSchemaFile path version = writeFileFromString path (show version)
+
+getSchemaVersion :: MonadInteraction m => FilePath -> m SchemaVersion
+getSchemaVersion path = do
+  exists <- doesFileExist path
+  if exists
+    then getSchemaVersionFromFile path
+    else createSchemaFile path currentSchemaVersion >> return currentSchemaVersion
+
+initDatabase
+  :: (MonadInteraction m, MonadEncrypt m, MonadStore m)
+  => FilePath
+  -> SchemaVersion
+  -> KeyId
+  -> m ()
+initDatabase path schemaVersion keyId =
+  if schemaVersion == currentSchemaVersion
+  then createTable
+  else do
+    message ("Migrating database from schema version "
+             ++ show schemaVersion
+             ++ " to version "
+             ++ show currentSchemaVersion
+             ++ "...")
+    migrate schemaVersion keyId
+    reencryptAll keyId
+    createSchemaFile path currentSchemaVersion
+
+setup
+  :: ( MonadInteraction m
+     , MonadEncrypt m
+     , MonadStore m
+     , MonadReader r m
+     , HasAppContext r
+     )
+  => m ()
+setup = do
+  ctx <- ask
+  let schemaFile = ctx ^. configSchemaFile
+      keyId      = ctx ^. configKeyId
+  schemaVersion <- getSchemaVersion schemaFile
+  initDatabase schemaFile schemaVersion keyId
+
+ensureFile :: (MonadThrow m, MonadInteraction m) => FilePath -> m FilePath
 ensureFile file = do
-  exists <- liftIO (doesFileExist file)
+  exists <- doesFileExist file
   if exists
     then return file
     else throwM (FileSystem "File does not exist")
 
+reencryptAll
+  :: (MonadEncrypt m, MonadStore m)
+  => KeyId
+  -> m ()
+reencryptAll keyId = do
+  es  <- selectAll
+  ues <- mapM (updateKeyId decrypt encrypt keyId) es
+  mapM_ put  ues
+  mapM_ delete es
+
+binaryChoice
+  :: (MonadThrow m, MonadInteraction m)
+  => String
+  -> m a
+  -> m a
+  -> m a
+binaryChoice s yes no = do
+  ans <- prompt (s ++ " [N/y] ")
+  case map toLower ans of
+    ""   -> no
+    "n"  -> no
+    "y"  -> yes
+    _    -> throwM (Default "Please answer y or n")
+
 checkKey
-  :: (MonadThrow m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: ( MonadThrow m
+     , MonadEncrypt m
+     , MonadInteraction m
+     , MonadStore m
+     , MonadReader r m
+     , HasAppContext r
+     )
   => m Response
   -> m Response
 checkKey k = do
@@ -105,13 +182,14 @@ checkKey k = do
       (_, False)              -> throwM (Default "All entries do not have the same keyid")
 
 csvEntryToEntry
-  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
+  :: (MonadEncrypt m, MonadInteraction m, MonadReader r m, HasConfig r)
   => CSVEntry
   -> m Entry
 csvEntryToEntry entry = do
   ctx       <- ask
   timestamp <- now
-  createEntry (ctx ^. configKeyId)
+  createEntry encrypt
+              (ctx ^. configKeyId)
               timestamp
               (_csvDescription entry)
               (_csvIdentity entry)
@@ -119,27 +197,27 @@ csvEntryToEntry entry = do
               (_csvMeta entry)
 
 importCSV
-  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
+  :: (MonadThrow m, MonadEncrypt m, MonadInteraction m, MonadReader r m, HasConfig r)
   => FilePath
   -> m [Entry]
 importCSV csvFile = do
   file <- ensureFile csvFile
-  bs   <- liftIO (BSL.readFile file)
+  bs   <- readFileAsLazyByteString file
   ies  <- either (throwM . CsvDecoding) (pure . Vector.toList) (CSV.decode CSV.NoHeader bs)
   mapM csvEntryToEntry ies
 
 exportCSV
-  :: (MonadThrow m, MonadIO m)
+  :: (MonadInteraction m, MonadEncrypt m)
   => FilePath
   -> [Entry]
   -> m ()
 exportCSV csvFile entries = do
-  csvEntries <- mapM entryToCSVEntry entries
+  csvEntries <- mapM (entryToCSVEntry decrypt) entries
   csv        <- pure (CSV.encode csvEntries)
-  liftIO (BSL.writeFile csvFile csv)
+  writeFileFromLazyByteString csvFile csv
 
 createEntryWrapper
-  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
+  :: (MonadEncrypt m, MonadInteraction m, MonadReader r m, HasConfig r)
   => String
   -> Maybe String
   -> Maybe String
@@ -148,7 +226,8 @@ createEntryWrapper
 createEntryWrapper d i m t = do
   ctx       <- ask
   timestamp <- now
-  createEntry (ctx ^. configKeyId)
+  createEntry encrypt
+              (ctx ^. configKeyId)
               timestamp
               (Description . T.pack  $  d)
               (Identity    . T.pack <$> i)
@@ -156,7 +235,7 @@ createEntryWrapper d i m t = do
               (Metadata    . T.pack <$> m)
 
 updateWrapper
-  :: MonadIO m
+  :: MonadInteraction m
   => Maybe String
   -> Maybe String
   -> Entry
@@ -164,28 +243,32 @@ updateWrapper
 updateWrapper Nothing Nothing e =
   return e
 updateWrapper (Just "") Nothing e =
-  updateIdentity Nothing e
+  now >>= \ ts -> updateIdentity ts Nothing e
 updateWrapper miden Nothing e =
-  updateIdentity (Identity . T.pack <$> miden) e
+  now >>= \ ts -> updateIdentity ts (Identity . T.pack <$> miden) e
 updateWrapper Nothing (Just "") e =
-  updateMetadata Nothing e
+  now >>= \ ts -> updateMetadata ts Nothing e
 updateWrapper Nothing mmeta e =
-  updateMetadata (Metadata . T.pack <$> mmeta) e
+  now >>= \ ts -> updateMetadata ts (Metadata . T.pack <$> mmeta) e
 updateWrapper (Just "") (Just "") e =
-  updateIdentity Nothing e >>= updateMetadata Nothing
+  now                         >>= \ ts ->
+  updateIdentity ts Nothing e >>=
+  updateMetadata ts Nothing
 updateWrapper miden mmeta e =
-  updateIdentity (Identity . T.pack <$> miden) e >>=
-  updateMetadata (Metadata . T.pack <$> mmeta)
+  now                                               >>= \ ts ->
+  updateIdentity ts (Identity . T.pack <$> miden) e >>=
+  updateMetadata ts (Metadata . T.pack <$> mmeta)
 
 updateCiphertext
-  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
+  :: (MonadEncrypt m, MonadInteraction m, MonadReader r m, HasConfig r)
   => Plaintext
   -> Entry
   -> m Entry
 updateCiphertext plaintext entry = do
   ctx       <- ask
   timestamp <- now
-  createEntry (ctx ^. configKeyId)
+  createEntry encrypt
+              (ctx ^. configKeyId)
               timestamp
               (_entryDescription entry)
               (_entryIdentity entry)
@@ -193,7 +276,7 @@ updateCiphertext plaintext entry = do
               (_entryMeta entry)
 
 updateCiphertextWrapper
-  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadReader r m, HasConfig r)
+  :: (MonadEncrypt m, MonadInteraction m, MonadReader r m, HasConfig r)
   => ModifyAction
   -> Entry
   -> m Entry
@@ -203,7 +286,13 @@ updateCiphertextWrapper Keep e =
   return e
 
 modifyOnlySingletons
-  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: ( MonadThrow m
+     , MonadEncrypt m
+     , MonadInteraction m
+     , MonadStore m
+     , MonadReader r m
+     , HasAppContext r
+     )
   => [Entry]
   -> ModifyAction
   -> Maybe String
@@ -219,21 +308,29 @@ modifyOnlySingletons _ _ _ _ =
   throwM (AmbiguousInput "There are multiple entries matching your input criteria.")
 
 findAndModify
-  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: ( MonadThrow m
+     , MonadEncrypt m
+     , MonadInteraction m
+     , MonadStore m
+     , MonadReader r m
+     , HasAppContext r
+     )
   => Query
   -> ModifyAction
   -> Maybe String
   -> Maybe String
   -> m Response
 findAndModify q maction miden mmeta
-  = checkKey k
-  where
-    k = do
-      rs  <- query q
-      modifyOnlySingletons rs maction miden mmeta
+  = checkKey (query q >>= \ rs -> modifyOnlySingletons rs maction miden mmeta)
 
 modify
-  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: ( MonadThrow m
+     , MonadEncrypt m
+     , MonadInteraction m
+     , MonadStore m
+     , MonadReader r m
+     , HasAppContext r
+     )
   => Target
   -> ModifyAction
   -> Maybe String
@@ -245,7 +342,13 @@ modify (TargetDescription mdesc) maction miden mmeta =
   findAndModify (Data.query Nothing (Just mdesc) Nothing Nothing) maction miden mmeta
 
 redescribeOnlySingletons
-  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: ( MonadThrow m
+     , MonadEncrypt m
+     , MonadInteraction m
+     , MonadStore m
+     , MonadReader r m
+     , HasAppContext r
+     )
   => [Entry]
   -> String
   -> m Response
@@ -253,7 +356,8 @@ redescribeOnlySingletons [e] s
   = checkKey k
   where
     k = do
-      ue  <- updateDescription (Description . T.pack $ s) e
+      ts  <- now
+      ue  <- updateDescription ts (Description . T.pack $ s) e
       _   <- put ue
       _   <- delete e
       return Redescribed
@@ -261,7 +365,13 @@ redescribeOnlySingletons _ _ =
   throwM (AmbiguousInput "There are multiple entries matching your input criteria.")
 
 findAndRedescribe
-  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: ( MonadThrow m
+     , MonadEncrypt m
+     , MonadInteraction m
+     , MonadStore m
+     , MonadReader r m
+     , HasAppContext r
+     )
   => Query
   -> String
   -> m Response
@@ -270,7 +380,13 @@ findAndRedescribe q s = do
   redescribeOnlySingletons rs s
 
 redescribe
-  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: ( MonadThrow m
+     , MonadEncrypt m
+     , MonadInteraction m
+     , MonadStore m
+     , MonadReader r m
+     , HasAppContext r
+     )
   => Target
   -> String
   -> m Response
@@ -280,7 +396,7 @@ redescribe (TargetDescription tdesc) s =
   findAndRedescribe (Data.query Nothing (Just tdesc) Nothing Nothing) s
 
 removeOnlySingletons
-  :: (MonadThrow m, MonadIO m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadStore m, MonadReader r m, HasAppContext r)
   => [Entry]
   -> m Response
 removeOnlySingletons [e] =
@@ -289,14 +405,14 @@ removeOnlySingletons _ =
   throwM (AmbiguousInput "There are multiple entries matching your input criteria.")
 
 findAndRemove
-  :: (MonadThrow m, MonadIO m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadStore m, MonadReader r m, HasAppContext r)
   => Query
   -> m Response
 findAndRemove q =
   query q >>= removeOnlySingletons
 
 remove
-  :: (MonadThrow m, MonadIO m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadStore m, MonadReader r m, HasAppContext r)
   => Target
   -> m Response
 remove (TargetId rid) =
@@ -305,7 +421,7 @@ remove (TargetDescription rdesc) =
   findAndRemove (Data.query Nothing (Just rdesc) Nothing Nothing)
 
 check
-  :: (MonadThrow m, MonadIO m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadStore m, MonadReader r m, HasAppContext r)
   => m Response
 check = do
   ctx <- ask
@@ -317,9 +433,16 @@ check = do
     else throwM (Default "All entries do not have the same keyid")
 
 eval
-  :: (MonadThrow m, MonadIO m, MonadInteraction m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: ( MonadThrow m
+     , MonadEncrypt m
+     , MonadInteraction m
+     , MonadStore m
+     , MonadReader r m
+     , HasAppContext r
+     )
   => Command
   -> m Response
+
 eval Add{_addDescription, _addIdentity, _addMeta} =
   checkKey k
   where
@@ -327,21 +450,23 @@ eval Add{_addDescription, _addIdentity, _addMeta} =
         createEntryWrapper _addDescription _addIdentity _addMeta >>=
         put                                                      >>
         return Added
+
 eval Lookup{_lookupDescription, _lookupVerbosity} = do
   q   <- pure (Data.query Nothing (Just _lookupDescription) Nothing Nothing)
   res <- query q
   case res of
-    []  -> MultipleEntries <$> pure []                     <*> pure _lookupVerbosity
-    [e] -> SingleEntry     <$> entryToDisplayEntry e       <*> pure _lookupVerbosity
-    es  -> MultipleEntries <$> mapM entryToDisplayEntry es <*> pure _lookupVerbosity
+    []  -> MultipleEntries <$> pure []                               <*> pure _lookupVerbosity
+    [e] -> SingleEntry     <$> entryToDisplayEntry decrypt e         <*> pure _lookupVerbosity
+    es  -> MultipleEntries <$> mapM (entryToDisplayEntry decrypt) es <*> pure _lookupVerbosity
+
 eval Import{_importFile} =
-  checkKey k
-  where
-    k = importCSV _importFile >>= mapM_ put >> return Added
+  checkKey (importCSV _importFile >>= mapM_ put >> return Added)
+
 eval Export{_exportFile}  = do
   es  <- selectAll
   _   <- exportCSV _exportFile es
   return Exported
+
 eval (Modify t c i m)     = modify t c i m
 eval (Redescribe t s)     = redescribe t s
 eval (Remove t)           = remove t

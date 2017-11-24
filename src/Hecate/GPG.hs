@@ -60,7 +60,7 @@ instance ToField Ciphertext where
 instance FromField Ciphertext where
   fromField f = Ciphertext <$> fromField f
 
-
+
 -- * Functions on them
 
 gpgEncrypt :: String -> BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)

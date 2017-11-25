@@ -27,7 +27,7 @@ import qualified System.Directory          as Directory
 import           System.IO                 (hFlush, stdout)
 import qualified System.Posix.Env          as Env
 
-import           Hecate.Context            (HasAppContext (..), AppContext)
+import           Hecate.Data               (AppContext)
 import qualified Hecate.Database           as DB
 import qualified Hecate.GPG                as GPG
 import           Hecate.Interfaces

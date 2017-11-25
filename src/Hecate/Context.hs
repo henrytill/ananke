@@ -2,23 +2,8 @@
 {-# LANGUAGE RankNTypes        #-}
 
 module Hecate.Context
-  ( HasConfig
-    ( configDataDirectory
-    , configDatabaseDirectory
-    , configSchemaFile
-    , configDatabaseFile
-    , configKeyId
-    , configAllowMultipleKeys
-    )
-  , HasAppContext
-    ( appContextConfig
-    , appContextConnection
-    )
-  , PreConfig(..)
-  , Config
-  , configureWith
+  ( configureWith
   , configure
-  , AppContext
   , createContext
   , finalize
   ) where
@@ -28,72 +13,17 @@ import           Control.Monad.Except
 import           Data.Maybe             (fromJust)
 import           Data.Monoid
 import qualified Data.Text              as T
-import qualified Database.SQLite.Simple as SQLite
 import           Lens.Family2
 import           Lens.Family2.Stock     (_Just)
-import           Lens.Family2.Unchecked (lens)
 import qualified TOML
 import           TOML.Lens
 
+import           Hecate.Data
 import           Hecate.Interfaces
 import           Hecate.Error
 import           Hecate.GPG             (KeyId(..))
 
 
-class HasConfig t where
-  config                  :: Lens' t Config
-  configDataDirectory     :: Lens' t FilePath
-  configKeyId             :: Lens' t KeyId
-  configAllowMultipleKeys :: Lens' t Bool
-  configDatabaseDirectory :: Getter' t FilePath
-  configSchemaFile        :: Getter' t FilePath
-  configDatabaseFile      :: Getter' t FilePath
-  configDataDirectory     = config . configDataDirectory
-  configKeyId             = config . configKeyId
-  configAllowMultipleKeys = config . configAllowMultipleKeys
-  configDatabaseDirectory = config . configDatabaseDirectory
-  configSchemaFile        = config . configSchemaFile
-  configDatabaseFile      = config . configDatabaseFile
-
-class HasConfig t => HasAppContext t where
-  appContext           :: Lens' t AppContext
-  appContextConfig     :: Lens' t Config
-  appContextConnection :: Lens' t SQLite.Connection
-  appContextConfig     = appContext . appContextConfig
-  appContextConnection = appContext . appContextConnection
-
--- | A 'Config' represents our application's configuration
-data Config = Config
-  { _configDataDirectory     :: FilePath
-  , _configKeyId             :: KeyId
-  , _configAllowMultipleKeys :: Bool
-  } deriving (Show, Eq)
-
-instance HasConfig Config where
-  config                  = id
-  configDataDirectory     = lens _configDataDirectory     (\ c dir      -> c{_configDataDirectory     = dir})
-  configKeyId             = lens _configKeyId             (\ c keyId    -> c{_configKeyId             = keyId})
-  configAllowMultipleKeys = lens _configAllowMultipleKeys (\ c multKeys -> c{_configAllowMultipleKeys = multKeys})
-  configDatabaseDirectory = configDataDirectory     . to (++ "/db")
-  configSchemaFile        = configDatabaseDirectory . to (++ "/schema")
-  configDatabaseFile      = configDatabaseDirectory . to (++ "/db.sqlite")
-
--- | 'AppContext' represents the shared environment for computations which occur
--- within our application.  Values of this type are created by 'createContext'.
-data AppContext = AppContext
-  { _appContextConfig     :: Config
-  , _appContextConnection :: SQLite.Connection
-  }
-
-instance HasConfig AppContext where
-  config = lens _appContextConfig (\ a cfg -> a{_appContextConfig = cfg})
-
-instance HasAppContext AppContext where
-  appContext           = id
-  appContextConfig     = config
-  appContextConnection = lens _appContextConnection (\ a conn -> a{_appContextConnection = conn})
-
-
 getHomeFromEnv :: MonadInteraction m => m (Maybe FilePath)
 getHomeFromEnv
   = getEnv "HOME"
@@ -136,22 +66,6 @@ getAllowMultipleKeys tbl
   = tbl ^? tableAt "entries" . lup "allow_multiple_keys" . _Just . _Bool
 
 
--- | A 'PreConfig' is used in the creation of a 'Config'
-data PreConfig = PreConfig
-  { _preConfigDataDirectory     :: First FilePath
-  , _preConfigKeyId             :: First KeyId
-  , _preConfigAllowMultipleKeys :: First Bool
-  } deriving (Show, Eq)
-
-instance Monoid PreConfig where
-  mempty
-    = PreConfig mempty mempty mempty
-
-  PreConfig a b c `mappend` PreConfig d e f
-    = PreConfig (a `mappend` d)
-                (b `mappend` e)
-                (c `mappend` f)
-
 createPreConfig :: MonadInteraction m => m PreConfig
 createPreConfig = do
   dir   <- First <$> getDataDirectoryFromEnv

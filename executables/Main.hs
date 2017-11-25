@@ -8,6 +8,7 @@ import           Text.PrettyPrint.ANSI.Leijen
 
 import           Hecate.Carriers
 import           Hecate.Context
+import           Hecate.Data                  (AppContext)
 import           Hecate.Error
 import           Hecate.Evaluator
 import           Hecate.Parser

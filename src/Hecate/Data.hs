@@ -1,8 +1,12 @@
 {-# LANGUAGE DeriveGeneric #-}
 
 module Hecate.Data
-  ( -- * Import & Display Entries
-    CSVEntry
+  ( -- * Configuration
+    PreConfig(..)
+  , Config(..)
+  , AppContext(..)
+    -- * Import & Display Entries
+  , CSVEntry
   , _csvDescription
   , _csvIdentity
   , _csvPlaintext
@@ -45,7 +49,7 @@ module Hecate.Data
 import qualified Data.ByteString.Lazy             as BSL
 import qualified Data.Csv                         as CSV
 import           Data.Digest.Pure.SHA             (sha1, showDigest)
-import           Data.Monoid                      ((<>))
+import           Data.Monoid                      ((<>), First)
 import qualified Data.Text                        as T
 import           Data.Text.Encoding               (encodeUtf8)
 import           Data.Time.Clock                  (UTCTime)
@@ -57,7 +61,40 @@ import           GHC.Generics
 
 import           Hecate.GPG                       (KeyId(..), Plaintext, Ciphertext)
 
+-- * Configuration
 
+-- | A 'PreConfig' is used in the creation of a 'Config'
+data PreConfig = PreConfig
+  { _preConfigDataDirectory     :: First FilePath
+  , _preConfigKeyId             :: First KeyId
+  , _preConfigAllowMultipleKeys :: First Bool
+  } deriving (Show, Eq)
+
+instance Monoid PreConfig where
+  mempty
+    = PreConfig mempty mempty mempty
+
+  PreConfig a b c `mappend` PreConfig d e f
+    = PreConfig (a `mappend` d)
+                (b `mappend` e)
+                (c `mappend` f)
+
+
+-- | A 'Config' represents our application's configuration
+data Config = Config
+  { _configDataDirectory     :: FilePath
+  , _configKeyId             :: KeyId
+  , _configAllowMultipleKeys :: Bool
+  } deriving (Show, Eq)
+
+-- | 'AppContext' represents the shared environment for computations which occur
+-- within our application.  Values of this type are created by 'createContext'.
+data AppContext = AppContext
+  { _appContextConfig     :: Config
+  , _appContextConnection :: SQLite.Connection
+  }
+
+
 -- * Import and Display Entries
 
 -- | An 'CSVEntry' is a record that is imported or exported from a CSV file

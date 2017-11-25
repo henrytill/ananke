@@ -20,7 +20,6 @@ import qualified Data.Text            as T
 import qualified Data.Vector          as Vector
 import           Lens.Family2
 
-import           Hecate.Context
 import           Hecate.Data          hiding (query)
 import qualified Hecate.Data          as Data
 import           Hecate.Database      (SchemaVersion(..), currentSchemaVersion)

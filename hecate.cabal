@@ -45,7 +45,7 @@ executable hecate
 
 library
   exposed-modules:     Hecate.Carriers
-                     , Hecate.Context
+                     , Hecate.Configuration
                      , Hecate.Data
                      , Hecate.Database
                      , Hecate.Evaluator

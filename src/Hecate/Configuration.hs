@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
 
-module Hecate.Context
+module Hecate.Configuration
   ( configureWith
   , configure
   , createContext

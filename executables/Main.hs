@@ -7,7 +7,7 @@ import           System.IO
 import           Text.PrettyPrint.ANSI.Leijen
 
 import           Hecate.Carriers
-import           Hecate.Context
+import           Hecate.Configuration
 import           Hecate.Data                  (AppContext)
 import           Hecate.Error
 import           Hecate.Evaluator

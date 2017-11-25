@@ -21,7 +21,7 @@ import           Test.QuickCheck.Monadic
 import           Text.Printf             (printf)
 
 import           Hecate.Carriers         (runAppM)
-import           Hecate.Context
+import           Hecate.Configuration
 import           Hecate.Data
 import           Hecate.Interfaces
 import           Hecate.Evaluator        (importCSV, exportCSV, setup)

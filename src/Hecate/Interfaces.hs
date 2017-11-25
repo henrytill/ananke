@@ -6,6 +6,10 @@ module Hecate.Interfaces
   , MonadEncrypt(..)
   ) where
 
+import           Control.Monad.Catch
+import           Control.Monad.IO.Class
+import           Control.Monad.Reader   (MonadReader (..), ReaderT)
+import           Control.Monad.Trans    (lift)
 import qualified Data.ByteString.Lazy   as BSL
 import qualified Data.Text              as T
 import qualified Data.Text.IO           as TIO
@@ -19,6 +23,7 @@ import qualified System.Posix.Env       as Env
 
 import           Hecate.Data
 import           Hecate.Database        (SchemaVersion)
+import qualified Hecate.Database        as DB
 import           Hecate.GPG             (Ciphertext, KeyId, Plaintext)
 import qualified Hecate.GPG             as GPG
 
@@ -75,6 +80,22 @@ class Monad m => MonadStore m where
   createTable     :: m ()
   migrate         :: SchemaVersion -> KeyId -> m ()
 
+withConnection
+  :: (MonadReader r m, HasAppContext r)
+  => (SQLite.Connection -> m a)
+  -> m a
+withConnection f = ask >>= \ ctx -> f (ctx ^. appContextConnection)
+
+instance (MonadThrow m, MonadIO m, HasAppContext r) => MonadStore (ReaderT r m) where
+  put             e       = withConnection (`DB.put` e)
+  delete          e       = withConnection (`DB.delete` e)
+  query           q       = withConnection (`DB.query` q)
+  selectAll               = withConnection DB.selectAll
+  getCount                = withConnection DB.getCount
+  getCountOfKeyId kid     = withConnection (`DB.getCountOfKeyId` kid)
+  createTable             = withConnection DB.createTable
+  migrate         sv  kid = withConnection (\ conn -> DB.migrate conn sv kid)
+
 -- * MonadEncrypt
 
 class Monad m => MonadEncrypt m where
@@ -84,6 +105,10 @@ class Monad m => MonadEncrypt m where
 instance MonadEncrypt IO where
   encrypt = GPG.encrypt
   decrypt = GPG.decrypt
+
+instance MonadEncrypt m => MonadEncrypt (ReaderT r m) where
+  encrypt kid pt = lift (encrypt kid pt)
+  decrypt     ct = lift (decrypt ct)
 
 -- * MonadInteraction
 
@@ -118,3 +143,19 @@ instance MonadInteraction IO where
   getEnv                      = Env.getEnv
   message                     = putStrLn
   prompt s                    = putStr s >> hFlush stdout >> getLine
+
+instance MonadInteraction m => MonadInteraction (ReaderT r m)  where
+  now                              = lift now
+  doesFileExist                    = lift . doesFileExist
+  doesDirectoryExist               = lift . doesDirectoryExist
+  createDirectory                  = lift . createDirectory
+  openSQLiteFile                   = lift . openSQLiteFile
+  closeSQLiteConnection            = lift . closeSQLiteConnection
+  readFileAsString                 = lift . readFileAsString
+  readFileAsText                   = lift . readFileAsText
+  readFileAsLazyByteString         = lift . readFileAsLazyByteString
+  writeFileFromString fp s         = lift (writeFileFromString fp s)
+  writeFileFromLazyByteString fp s = lift (writeFileFromLazyByteString fp s)
+  getEnv                           = lift . getEnv
+  message                          = lift . message
+  prompt                           = lift . prompt

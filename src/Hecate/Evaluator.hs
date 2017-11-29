@@ -441,7 +441,6 @@ eval
      )
   => Command
   -> m Response
-
 eval Add{_addDescription, _addIdentity, _addMeta} =
   checkKey k
   where
@@ -449,7 +448,6 @@ eval Add{_addDescription, _addIdentity, _addMeta} =
         createEntryWrapper _addDescription _addIdentity _addMeta >>=
         put                                                      >>
         return Added
-
 eval Lookup{_lookupDescription, _lookupVerbosity} = do
   q   <- pure (Data.query Nothing (Just _lookupDescription) Nothing Nothing)
   res <- query q
@@ -457,15 +455,12 @@ eval Lookup{_lookupDescription, _lookupVerbosity} = do
     []  -> MultipleEntries <$> pure []                               <*> pure _lookupVerbosity
     [e] -> SingleEntry     <$> entryToDisplayEntry decrypt e         <*> pure _lookupVerbosity
     es  -> MultipleEntries <$> mapM (entryToDisplayEntry decrypt) es <*> pure _lookupVerbosity
-
 eval Import{_importFile} =
   checkKey (importCSV _importFile >>= mapM_ put >> return Added)
-
 eval Export{_exportFile}  = do
   es  <- selectAll
   _   <- exportCSV _exportFile es
   return Exported
-
 eval (Modify t c i m)     = modify t c i m
 eval (Redescribe t s)     = redescribe t s
 eval (Remove t)           = remove t

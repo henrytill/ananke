@@ -1,8 +1,9 @@
 module Hecate.Error (module Hecate.Error) where
 
-import Control.Exception
-import Data.Typeable
-import TOML              (TOMLError)
+import           Control.Exception
+import           Data.Typeable
+import           TOML              (TOMLError)
+
 
 -- | 'AppError' represents application errors
 data AppError

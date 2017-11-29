@@ -23,9 +23,9 @@ import           Text.Printf             (printf)
 import           Hecate.Carriers         (runAppM)
 import           Hecate.Configuration
 import           Hecate.Data
-import           Hecate.Interfaces
 import           Hecate.Evaluator        (importCSV, exportCSV, setup)
 import           Hecate.GPG              (Plaintext(..))
+import           Hecate.Interfaces
 import           Hecate.Orphans          ()
 
 

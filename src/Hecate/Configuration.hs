@@ -10,18 +10,18 @@ module Hecate.Configuration
 
 import           Control.Monad.Catch
 import           Control.Monad.Except
-import           Data.Maybe             (fromJust)
+import           Data.Maybe           (fromJust)
 import           Data.Monoid
-import qualified Data.Text              as T
+import qualified Data.Text            as T
 import           Lens.Family2
-import           Lens.Family2.Stock     (_Just)
+import           Lens.Family2.Stock   (_Just)
 import qualified TOML
 import           TOML.Lens
 
 import           Hecate.Data
-import           Hecate.Interfaces
 import           Hecate.Error
-import           Hecate.GPG             (KeyId(..))
+import           Hecate.GPG           (KeyId (..))
+import           Hecate.Interfaces
 
 
 getHomeFromEnv :: MonadInteraction m => m (Maybe FilePath)
@@ -65,7 +65,6 @@ getAllowMultipleKeys :: [(T.Text, TOML.Value)] -> Maybe Bool
 getAllowMultipleKeys tbl
   = tbl ^? tableAt "entries" . lup "allow_multiple_keys" . _Just . _Bool
 
-
 createPreConfig :: MonadInteraction m => m PreConfig
 createPreConfig = do
   dir   <- First <$> getDataDirectoryFromEnv

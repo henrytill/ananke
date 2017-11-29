@@ -27,6 +27,7 @@ import qualified Hecate.Database        as DB
 import           Hecate.GPG             (Ciphertext, KeyId, Plaintext)
 import qualified Hecate.GPG             as GPG
 
+
 -- * Has* Classes
 
 class HasConfig t where

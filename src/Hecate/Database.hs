@@ -17,8 +17,8 @@ module Hecate.Database
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Data.Monoid            ((<>))
-import qualified Database.SQLite.Simple as SQLite
 import           Database.SQLite.Simple (NamedParam ((:=)))
+import qualified Database.SQLite.Simple as SQLite
 
 import           Hecate.Data            hiding (query)
 import           Hecate.Error

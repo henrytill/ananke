@@ -12,6 +12,7 @@ import           Database.SQLite.Simple.FromField
 import           Database.SQLite.Simple.ToField
 import           GHC.Generics
 
+
 -- | Represents a ByteString which is displayed and stored in its base64-encoded
 -- version
 newtype ByteString64 = ByteString64 { unByteString64 :: BS.ByteString }

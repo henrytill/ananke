@@ -22,6 +22,7 @@ import qualified System.Process.ByteString        as BSP
 
 import           Hecate.Error
 
+
 -- | A 'KeyId' represents a GPG Key Id
 newtype KeyId = KeyId { unKeyId :: T.Text }
   deriving Eq
@@ -59,7 +60,6 @@ instance ToField Ciphertext where
 
 instance FromField Ciphertext where
   fromField f = Ciphertext <$> fromField f
-
 
 -- * Functions on them
 

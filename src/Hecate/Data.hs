@@ -49,17 +49,19 @@ module Hecate.Data
 import qualified Data.ByteString.Lazy             as BSL
 import qualified Data.Csv                         as CSV
 import           Data.Digest.Pure.SHA             (sha1, showDigest)
-import           Data.Monoid                      ((<>), First)
+import           Data.Monoid                      (First, (<>))
 import qualified Data.Text                        as T
 import           Data.Text.Encoding               (encodeUtf8)
 import           Data.Time.Clock                  (UTCTime)
-import           Data.Time.Format                 (defaultTimeLocale, formatTime)
+import           Data.Time.Format                 (defaultTimeLocale,
+                                                   formatTime)
 import qualified Database.SQLite.Simple           as SQLite
 import           Database.SQLite.Simple.FromField
 import           Database.SQLite.Simple.ToField
 import           GHC.Generics
 
-import           Hecate.GPG                       (KeyId(..), Plaintext, Ciphertext)
+import           Hecate.GPG                       (Ciphertext, KeyId (..),
+                                                   Plaintext)
 
 -- * Configuration
 
@@ -79,7 +81,6 @@ instance Monoid PreConfig where
                 (b `mappend` e)
                 (c `mappend` f)
 
-
 -- | A 'Config' represents our application's configuration
 data Config = Config
   { _configDataDirectory     :: FilePath
@@ -94,7 +95,6 @@ data AppContext = AppContext
   , _appContextConnection :: SQLite.Connection
   }
 
-
 -- * Import and Display Entries
 
 -- | An 'CSVEntry' is a record that is imported or exported from a CSV file
@@ -147,7 +147,6 @@ entryToDisplayEntry decrypt e
                                      plaintext
                                      (_entryMeta entry)
 
-
 -- * Entries
 
 -- | An 'Entry' is a record that stores an encrypted value along with associated
@@ -221,7 +220,6 @@ updateEntry keyId timestamp description identity ciphertext meta = do
   i         <- pure (createId keyId timestamp description identity)
   return (Entry i keyId timestamp description identity ciphertext meta)
 
-
 -- ** Their constituents
 
 -- | A 'Id' identifies a given 'Entry'.
@@ -297,7 +295,6 @@ instance CSV.ToField Metadata where
 instance CSV.FromField Metadata where
   parseField f = Metadata <$> CSV.parseField f
 
-
 -- ** And some updaters
 
 updateKeyId
@@ -359,7 +356,6 @@ updateMetadata now meta entry
                 (_entryCiphertext entry)
                 meta
 
-
 -- * Queries
 
 -- | A 'Query' represents a database query

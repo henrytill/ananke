@@ -14,6 +14,7 @@ import           Hecate.Evaluator
 import           Hecate.Parser
 import           Hecate.Printing
 
+
 hPutDocWrapper :: Handle -> Doc -> Doc -> IO ()
 hPutDocWrapper h f g = do
   supportsANSI <- hSupportsANSI h

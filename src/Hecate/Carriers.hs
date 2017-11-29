@@ -7,15 +7,15 @@ module Hecate.Carriers
 
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
-import           Control.Monad.Reader      (MonadReader, ReaderT, runReaderT)
+import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT)
 
-import           Hecate.Data               (AppContext)
+import           Hecate.Data            (AppContext)
 import           Hecate.Interfaces
+
 
 -- * AppM
 
-newtype AppM a
-  = AppM { unAppM :: ReaderT AppContext IO a }
+newtype AppM a = AppM { unAppM :: ReaderT AppContext IO a }
   deriving ( Functor
            , Applicative
            , Monad

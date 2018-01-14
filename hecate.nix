@@ -4,7 +4,7 @@
 , optparse-applicative, process, process-extras, QuickCheck
 , quickcheck-text, SHA, sqlite-simple, stdenv, text, time
 , toml-parser, transformers, unix, vector
-, gnupg1compat, sqlite
+, gnupg, sqlite
 }:
 mkDerivation {
   pname = "hecate";
@@ -23,12 +23,12 @@ mkDerivation {
   executableHaskellDepends = [
     ansi-terminal ansi-wl-pprint base directory mtl transformers
   ];
-  executableSystemDepends = [ sqlite gnupg1compat ];
+  executableSystemDepends = [ sqlite gnupg ];
   testHaskellDepends = [
     base directory exceptions hlint lens-family mtl QuickCheck
     quickcheck-text sqlite-simple text time transformers unix
   ];
-  testSystemDepends = [ sqlite gnupg1compat ];
+  testSystemDepends = [ sqlite gnupg ];
   preCheck = ''
     export GNUPGHOME="$PWD/example/gnupg"
   '';

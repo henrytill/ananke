@@ -65,8 +65,8 @@ instance FromField Ciphertext where
 
 gpgEncrypt :: String -> BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)
 gpgDecrypt ::           BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)
-gpgEncrypt keyid = BSP.readProcessWithExitCode "gpg" ["--batch", "-q", "-e", "-r", keyid]
-gpgDecrypt       = BSP.readProcessWithExitCode "gpg" ["--batch", "-q", "-d"]
+gpgEncrypt keyid = BSP.readProcessWithExitCode "gpg2" ["--batch", "-q", "-e", "-r", keyid]
+gpgDecrypt       = BSP.readProcessWithExitCode "gpg2" ["--batch", "-q", "-d"]
 
 convertResult
   :: (MonadThrow m, MonadIO m)

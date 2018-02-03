@@ -29,6 +29,7 @@ mkDerivation {
     quickcheck-text sqlite-simple text time transformers unix
   ];
   testSystemDepends = [ sqlite gnupg ];
+  doCheck = ! stdenv.isDarwin;
   preCheck = ''
     export GNUPGHOME="$PWD/example/gnupg"
   '';

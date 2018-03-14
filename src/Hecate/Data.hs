@@ -368,10 +368,10 @@ data Query = Query
 
 query :: Maybe String -> Maybe String -> Maybe String -> Maybe String -> Query
 query i d iden m =
-  Query { _queryId          = (Id          . T.pack) <$> i
-        , _queryDescription = (Description . T.pack) <$> d
-        , _queryIdentity    = (Identity    . T.pack) <$> iden
-        , _queryMeta        = (Metadata    . T.pack) <$> m
+  Query { _queryId          = Id          . T.pack <$> i
+        , _queryDescription = Description . T.pack <$> d
+        , _queryIdentity    = Identity    . T.pack <$> iden
+        , _queryMeta        = Metadata    . T.pack <$> m
         }
 
 queryIsEmpty :: Query -> Bool

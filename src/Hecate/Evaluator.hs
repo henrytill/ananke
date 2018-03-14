@@ -75,7 +75,7 @@ data Response
   deriving (Show, Eq)
 
 getSchemaVersionFromFile :: MonadInteraction m => FilePath -> m SchemaVersion
-getSchemaVersionFromFile path = (SchemaVersion . read) <$> readFileAsString path
+getSchemaVersionFromFile path = SchemaVersion . read <$> readFileAsString path
 
 createSchemaFile :: MonadInteraction m => FilePath -> SchemaVersion -> m ()
 createSchemaFile path version = writeFileFromString path (show version)

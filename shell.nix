@@ -3,4 +3,4 @@
 , doCheck ? true
 }:
 
-(import ./default.nix { inherit nixpkgs compiler doCheck; }).env
+(import ./release.nix { inherit nixpkgs compiler doCheck; }).hecate.env

@@ -203,7 +203,7 @@ createEntry
   -> Maybe Metadata
   -> m Entry
 createEntry encrypt keyId timestamp description identity plaintext meta = do
-  i         <- pure (createId keyId timestamp description identity)
+  let i = createId keyId timestamp description identity
   encrypted <- encrypt keyId plaintext
   return (Entry i keyId timestamp description identity encrypted meta)
 
@@ -217,7 +217,7 @@ updateEntry
   -> Maybe Metadata
   -> m Entry
 updateEntry keyId timestamp description identity ciphertext meta = do
-  i         <- pure (createId keyId timestamp description identity)
+  let i = createId keyId timestamp description identity
   return (Entry i keyId timestamp description identity ciphertext meta)
 
 -- ** Their constituents

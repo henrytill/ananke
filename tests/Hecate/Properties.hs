@@ -101,7 +101,7 @@ prop_roundTripEntriesToCSV :: AppContext -> Property
 prop_roundTripEntriesToCSV ctx = monadicIO $ do
   tds  <- pick (listOf1 (suchThat arbitrary isNotEmpty))
   x    <- pick (suchThat arbitrary (> 0))
-  file <- pure (createFilePath ctx x)
+  let file = createFilePath ctx x
   es   <- run (runAppM (mapM createEntryFromTestData tds) ctx)
   _    <- run (exportCSV file es)
   ies  <- run (runAppM (importCSV file) ctx)

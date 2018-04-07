@@ -212,7 +212,7 @@ exportCSV
   -> m ()
 exportCSV csvFile entries = do
   csvEntries <- mapM (entryToCSVEntry decrypt) entries
-  csv        <- pure (CSV.encode csvEntries)
+  let csv = CSV.encode csvEntries
   writeFileFromLazyByteString csvFile csv
 
 createEntryWrapper
@@ -449,7 +449,7 @@ eval Add{_addDescription, _addIdentity, _addMeta} =
         put                                                      >>
         return Added
 eval Lookup{_lookupDescription, _lookupVerbosity} = do
-  q   <- pure (Data.query Nothing (Just _lookupDescription) Nothing Nothing)
+  let q = Data.query Nothing (Just _lookupDescription) Nothing Nothing
   res <- query q
   case res of
     []  -> MultipleEntries <$> pure []                               <*> pure _lookupVerbosity

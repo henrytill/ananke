@@ -37,7 +37,7 @@ executable hecate
   -- other-modules:
   -- other-extensions:
   build-depends:       base                 >=4.8    && <4.11
-                     , ansi-terminal        >=0.6.2  && <0.8
+                     , ansi-terminal        >=0.6.2  && <0.9
                      , ansi-wl-pprint       >=0.6.7  && <0.7
                      , directory            >=1.2    && <1.4
                      , mtl                  >=2.2    && <2.3

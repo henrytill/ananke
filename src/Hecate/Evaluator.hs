@@ -111,7 +111,7 @@ setup
      , MonadEncrypt m
      , MonadStore m
      , MonadReader r m
-     , HasAppContext r
+     , HasConfig r
      )
   => m ()
 setup = do
@@ -158,7 +158,7 @@ checkKey
      , MonadInteraction m
      , MonadStore m
      , MonadReader r m
-     , HasAppContext r
+     , HasConfig r
      )
   => m Response
   -> m Response
@@ -290,7 +290,7 @@ modifyOnlySingletons
      , MonadInteraction m
      , MonadStore m
      , MonadReader r m
-     , HasAppContext r
+     , HasConfig r
      )
   => [Entry]
   -> ModifyAction
@@ -312,7 +312,7 @@ findAndModify
      , MonadInteraction m
      , MonadStore m
      , MonadReader r m
-     , HasAppContext r
+     , HasConfig r
      )
   => Query
   -> ModifyAction
@@ -328,7 +328,7 @@ modify
      , MonadInteraction m
      , MonadStore m
      , MonadReader r m
-     , HasAppContext r
+     , HasConfig r
      )
   => Target
   -> ModifyAction
@@ -346,7 +346,7 @@ redescribeOnlySingletons
      , MonadInteraction m
      , MonadStore m
      , MonadReader r m
-     , HasAppContext r
+     , HasConfig r
      )
   => [Entry]
   -> String
@@ -369,7 +369,7 @@ findAndRedescribe
      , MonadInteraction m
      , MonadStore m
      , MonadReader r m
-     , HasAppContext r
+     , HasConfig r
      )
   => Query
   -> String
@@ -384,7 +384,7 @@ redescribe
      , MonadInteraction m
      , MonadStore m
      , MonadReader r m
-     , HasAppContext r
+     , HasConfig r
      )
   => Target
   -> String
@@ -395,7 +395,7 @@ redescribe (TargetDescription tdesc) s =
   findAndRedescribe (Data.query Nothing (Just tdesc) Nothing Nothing) s
 
 removeOnlySingletons
-  :: (MonadThrow m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadStore m, MonadReader r m, HasConfig r)
   => [Entry]
   -> m Response
 removeOnlySingletons [e] =
@@ -404,14 +404,14 @@ removeOnlySingletons _ =
   throwM (AmbiguousInput "There are multiple entries matching your input criteria.")
 
 findAndRemove
-  :: (MonadThrow m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadStore m, MonadReader r m, HasConfig r)
   => Query
   -> m Response
 findAndRemove q =
   query q >>= removeOnlySingletons
 
 remove
-  :: (MonadThrow m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadStore m, MonadReader r m, HasConfig r)
   => Target
   -> m Response
 remove (TargetId rid) =
@@ -420,7 +420,7 @@ remove (TargetDescription rdesc) =
   findAndRemove (Data.query Nothing (Just rdesc) Nothing Nothing)
 
 check
-  :: (MonadThrow m, MonadStore m, MonadReader r m, HasAppContext r)
+  :: (MonadThrow m, MonadStore m, MonadReader r m, HasConfig r)
   => m Response
 check = do
   ctx <- ask
@@ -437,7 +437,7 @@ eval
      , MonadInteraction m
      , MonadStore m
      , MonadReader r m
-     , HasAppContext r
+     , HasConfig r
      )
   => Command
   -> m Response

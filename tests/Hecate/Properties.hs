@@ -67,7 +67,7 @@ addEntryToDatabase
   -> m [Entry]
 addEntryToDatabase tds = do
   es <- mapM createEntryFromTestData tds
-  _  <- mapM_ put es
+  mapM_ put es
   return es
 
 createFilePath :: AppContext -> Int -> FilePath

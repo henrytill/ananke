@@ -50,6 +50,7 @@ import qualified Data.ByteString.Lazy             as BSL
 import qualified Data.Csv                         as CSV
 import           Data.Digest.Pure.SHA             (sha1, showDigest)
 import           Data.Monoid                      (First, (<>))
+import qualified Data.Semigroup                   as Sem
 import qualified Data.Text                        as T
 import           Data.Text.Encoding               (encodeUtf8)
 import           Data.Time.Clock                  (UTCTime)
@@ -71,6 +72,9 @@ data PreConfig = PreConfig
   , _preConfigKeyId             :: First KeyId
   , _preConfigAllowMultipleKeys :: First Bool
   } deriving (Show, Eq)
+
+instance Sem.Semigroup PreConfig where
+  (<>) = mappend
 
 instance Monoid PreConfig where
   mempty

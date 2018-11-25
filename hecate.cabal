@@ -91,7 +91,7 @@ test-suite tests
   other-modules:       Hecate.Orphans
                      , Hecate.Properties
   build-depends:       base            >=4.8    && <4.13
-                     , QuickCheck      >=2.8    && <2.11
+                     , QuickCheck      >=2.8    && <2.13
                      , directory       >=1.2    && <1.4
                      , exceptions      >=0.8    && <0.11
                      , lens-family     >=1.2    && <1.3

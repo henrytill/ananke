@@ -4,17 +4,16 @@ let
   jobs = {
 
     hecate =
-      { compiler ? "ghc822"
+      { compiler ? "ghc862"
       , doCheck ? ! pkgs.stdenv.isDarwin
       }:
 
       let
         ltpSrc = pkgs.fetchFromGitHub {
-          owner           = "xngns";
-          repo            = "lens-toml-parser";
-          rev             = "d22e4782e1c10ec244cee5dfed6c7bf7b9375726";
-          sha256          = "1zn6micmqhf6462cnb19lk1mbxilfjgdx52z0bcvbgj8bnkhdpmf";
-          fetchSubmodules = true;
+          owner  = "xngns";
+          repo   = "lens-toml-parser";
+          rev    = "v0.1.0.3";
+          sha256 = "1km96lxc5bjcny5gjccjgcaw05ln7rr9kw1hbvbgpd1rjp0jj23x";
         };
         lens-toml-parser = pkgs.haskell.packages.${compiler}.callCabal2nix "lens-toml-parser" ltpSrc {};
         hecateRaw        = pkgs.haskell.packages.${compiler}.callCabal2nix "hecate" ./. { inherit lens-toml-parser; };

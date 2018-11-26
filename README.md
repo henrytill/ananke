@@ -14,11 +14,11 @@ It is worth noting that `hecate` stores information in a manner that allows manu
 
 To build and install `hecate`, you will need either:
 
-* [Nix](http://nixos.org/nix/) (**recommended**)
+* [cabal](https://www.haskell.org/cabal/) (version 2.2.0.0 or greater recommended)
 
   or
 
-* [Cabal](https://www.haskell.org/cabal/)
+* [Nix](http://nixos.org/nix/)
 
 To use `hecate`, you will need:
 
@@ -33,27 +33,23 @@ You should have a basic understanding of how to use GnuPG and have a keypair to 
 
 Currently, the recommended way of getting `hecate` is to build and install it from the [latest release](https://github.com/henrytill/hecate/releases/latest).
 
-### with Nix
+### with `cabal`
 
-```sh
-$ nix-env -f https://github.com/henrytill/hecate/archive/<version>.tar.gz -i hecate
-```
-
-### with Cabal
+(instructions are for version 2.2.0.0 or greater)
 
 After downloading and decompressing the [latest release](https://github.com/henrytill/hecate/releases/latest),
 
 ```sh
 $ cd hecate-<version>
-$ cabal sandbox init
-  ...
-$ cabal install --enable-relocatable
+$ cabal new-install exe:hecate
 ```
 
-You can then move the resultant `hecate` executable to a desired location.  For example:
+This will install the `hecate` executable in `$HOME/.cabal/bin`.
+
+### with `nix-env`
 
 ```sh
-$ mv <path to hecate dir>/.cabal-sandbox/bin/hecate /usr/local/bin
+$ nix-env -f https://github.com/henrytill/hecate/archive/<version>.tar.gz -i hecate
 ```
 
 ## Setup

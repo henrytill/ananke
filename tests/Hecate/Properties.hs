@@ -15,7 +15,7 @@ import           Data.Text.Arbitrary     ()
 import           Database.SQLite.Simple  hiding (Error)
 import           Lens.Family2
 import           System.Directory        (copyFile)
-import           System.Posix.Temp
+import           System.IO.Temp          (createTempDirectory, getCanonicalTemporaryDirectory)
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 import           Text.Printf             (printf)
@@ -116,11 +116,13 @@ tests =
 
 doProperties :: IO [Result]
 doProperties = do
-  dir     <- mkdtemp "/tmp/hecate-tests-"
+  sysTempDir <- getCanonicalTemporaryDirectory
+  dir        <- createTempDirectory sysTempDir "hecate"
+  _          <- print ("dir: " ++ dir)
   let preConfig = PreConfig (First (Just dir)) mempty mempty
-  _       <- copyFile "./example/hecate.toml" (dir ++ "/hecate.toml")
-  ctx     <- configureWith preConfig >>= createContext
-  _       <- runAppM setup ctx
-  results <- mapM (\ p -> quickCheckWithResult stdArgs (p ctx)) tests
-  _       <- close (ctx ^. appContextConnection)
+  _          <- copyFile "./example/hecate.toml" (dir ++ "/hecate.toml")
+  ctx        <- configureWith preConfig >>= createContext
+  _          <- runAppM setup ctx
+  results    <- mapM (\ p -> quickCheckWithResult stdArgs (p ctx)) tests
+  _          <- close (ctx ^. appContextConnection)
   return results

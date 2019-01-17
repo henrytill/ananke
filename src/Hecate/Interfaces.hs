@@ -19,7 +19,7 @@ import           Lens.Family2
 import           Lens.Family2.Unchecked (lens)
 import qualified System.Directory       as Directory
 import           System.IO              (hFlush, stdout)
-import qualified System.Posix.Env       as Env
+import qualified System.Environment     as Env
 
 import           Hecate.Data
 import           Hecate.Database        (SchemaVersion)
@@ -141,7 +141,7 @@ instance MonadInteraction IO where
   readFileAsLazyByteString    = BSL.readFile
   writeFileFromString         = writeFile
   writeFileFromLazyByteString = BSL.writeFile
-  getEnv                      = Env.getEnv
+  getEnv                      = Env.lookupEnv
   message                     = putStrLn
   prompt s                    = putStr s >> hFlush stdout >> getLine
 

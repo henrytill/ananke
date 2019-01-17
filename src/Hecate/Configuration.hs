@@ -15,6 +15,7 @@ import           Data.Monoid
 import qualified Data.Text            as T
 import           Lens.Family2
 import           Lens.Family2.Stock   (_Just)
+import           System.Info          (os)
 import qualified TOML
 import           TOML.Lens
 
@@ -24,9 +25,11 @@ import           Hecate.GPG           (KeyId (..))
 import           Hecate.Interfaces
 
 
-getHomeFromEnv :: MonadInteraction m => m (Maybe FilePath)
-getHomeFromEnv
-  = getEnv "HOME"
+getDefaultDataDirectory :: MonadInteraction m => m (Maybe FilePath)
+getDefaultDataDirectory = case os of
+  "mingw32" -> fmap (++ "/hecate")  <$> getEnv "APPDATA"
+  _         -> fmap (++ "/.hecate") <$> getEnv "HOME"
+
 
 getDataDirectoryFromEnv :: MonadInteraction m => m (Maybe FilePath)
 getDataDirectoryFromEnv
@@ -79,7 +82,7 @@ addDefaultConfig :: MonadInteraction m => PreConfig -> m PreConfig
 addDefaultConfig preConfig = mappend <$> pure preConfig <*> defaultConfig
   where
     defaultConfig = do
-      dir <- fmap (++ "/.hecate") <$> (First <$> getHomeFromEnv)
+      dir <- First <$> getDefaultDataDirectory
       return PreConfig { _preConfigDataDirectory     = dir
                        , _preConfigKeyId             = mempty
                        , _preConfigAllowMultipleKeys = First (Just False)

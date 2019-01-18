@@ -1,0 +1,22 @@
+environment:
+  global:
+    CABAL_OPTIONS: "--store-dir=C:\\CABAL_STORE --http-transport=plain-http"
+    CABAL_VERSION: "2.4.1.0"
+  matrix:
+    - GHC_VERSION: "8.6.2"
+
+cache:
+  - "C:\\CABAL_STORE"
+
+install:
+  - choco install -y ghc --version %GHC_VERSION%
+  - choco install -y cabal --version %CABAL_VERSION%
+  - refreshenv
+  - ghc --version
+  - cabal --version
+  - cabal %CABAL_OPTIONS% new-update -v
+
+build: off
+
+test_script:
+  - cabal %CABAL_OPTIONS% new-build all test:tests

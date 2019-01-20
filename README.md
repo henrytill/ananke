@@ -24,9 +24,6 @@ To build and install `hecate`, you will need either:
 To use `hecate`, you will need:
 
 * [GnuPG](https://gnupg.org/)
-* [SQLite](https://sqlite.org/)
-
-**NOTE:** SQLite is pre-installed on macOS and some Linux distributions.
 
 You should have a basic understanding of how to use GnuPG and have a keypair to use for encryption and decryption of passwords.  If not, you should familiarize yourself with GnuPG by reading the GnuPG MiniHOWTO available [here](https://gnupg.org/documentation/howtos.html).
 

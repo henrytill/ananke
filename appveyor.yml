@@ -2,7 +2,7 @@ environment:
   global:
     CABAL_OPTIONS: "--store-dir=C:\\CABAL_STORE --http-transport=plain-http"
     CABAL_VERSION: "3.2.0.0"
-    GNUPGHOME: '%APPVEYOR_BUILD_FOLDER%\example\gnupg'
+    GNUPGHOME: 'example/gnupg'  # This shouldn't work
   matrix:
     - GHC_VERSION: "8.8.3"
     - GHC_VERSION: "8.6.5"
@@ -14,6 +14,7 @@ cache:
   - "C:\\CABAL_STORE"
 
 install:
+  # https://help.appveyor.com/discussions/questions/20054-installing-gnupg-for-tests
   - ps: |
           $path = [Environment]::GetEnvironmentVariable("path", "machine")
           $newPath = ($path.Split(';') | Where-Object { $_ -eq 'C:\ProgramData\chocolatey\bin' }) -join ';'

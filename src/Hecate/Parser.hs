@@ -1,8 +1,13 @@
+{-# LANGUAGE CPP #-}
+
 module Hecate.Parser
   ( runCLIParser
   ) where
 
+#if __GLASGOW_HASKELL__ < 808
 import           Data.Monoid         ((<>))
+#endif
+
 import           Options.Applicative
 
 import           Hecate.Evaluator

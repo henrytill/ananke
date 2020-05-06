@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP           #-}
 {-# LANGUAGE DeriveGeneric #-}
 
 module Hecate.Data
@@ -46,10 +47,15 @@ module Hecate.Data
   , unCount
   ) where
 
+#if __GLASGOW_HASKELL__ < 808
+import           Data.Monoid                      (First, (<>))
+#else
+import           Data.Monoid                      (First)
+#endif
+
 import qualified Data.ByteString.Lazy             as BSL
 import qualified Data.Csv                         as CSV
 import           Data.Digest.Pure.SHA             (sha1, showDigest)
-import           Data.Monoid                      (First, (<>))
 import qualified Data.Semigroup                   as Sem
 import qualified Data.Text                        as T
 import           Data.Text.Encoding               (encodeUtf8)

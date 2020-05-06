@@ -1,10 +1,14 @@
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Hecate.Properties
   ( doProperties
   ) where
 
+#if __GLASGOW_HASKELL__ < 808
 import           Control.Monad           (zipWithM)
+#endif
+
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader

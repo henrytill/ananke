@@ -20,7 +20,7 @@ install:
           [Environment]::SetEnvironmentVariable("path", $newPath, "machine")
   - appveyor-retry choco install -y ghc --version %GHC_VERSION%
   - appveyor-retry choco install -y cabal --version %CABAL_VERSION%
-  - appveyor-retry choco install -y gnupg-modern
+  - appveyor-retry choco install -y gnupg
   - refreshenv
   - gpg --version
   - ghc --version

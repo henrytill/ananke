@@ -22,6 +22,7 @@ install:
   - appveyor-retry choco install -y cabal --version %CABAL_VERSION%
   - appveyor-retry choco install -y gnupg-modern
   - refreshenv
+  - gpg --version
   - ghc --version
   - cabal --version
   - cabal %CABAL_OPTIONS% new-update -v

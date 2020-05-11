@@ -30,6 +30,3 @@ install:
 
 build_script:
   - cabal %CABAL_OPTIONS% new-build all test:tests
-
-test_script:
-  - cabal %CABAL_OPTIONS% new-test test:tests

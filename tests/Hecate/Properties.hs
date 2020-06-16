@@ -5,13 +5,7 @@ module Hecate.Properties
   ( doProperties
   ) where
 
-#if __GLASGOW_HASKELL__ < 808
 import           Control.Monad           (zipWithM)
-#endif
-
-import           Control.Monad.Catch
-import           Control.Monad.IO.Class
-import           Control.Monad.Reader
 import           Data.List               ((\\))
 import           Data.Monoid             (First(..))
 import qualified Data.Text               as T
@@ -45,14 +39,14 @@ instance Arbitrary TestData where
   shrink (TestData as bs cs ds) = TestData <$> shrink as <*> shrink bs <*> shrink cs <*> shrink ds
 
 createEntryFromTestData
-  :: (MonadThrow m, MonadInteraction m, MonadEncrypt m, MonadReader r m, HasAppContext r)
+  :: (MonadAppError m, MonadInteraction m, MonadEncrypt m, MonadConfigReader m)
   => TestData
   -> m Entry
 createEntryFromTestData td = do
-  ctx       <- ask
+  cfg       <- askConfig
   timestamp <- now
   createEntry encrypt
-              (ctx ^. configKeyId)
+              (cfg ^. configKeyId)
               timestamp
               (_testDescription td)
               (_testIdentity td)
@@ -60,12 +54,11 @@ createEntryFromTestData td = do
               (_testMetadata td)
 
 addEntryToDatabase
-  :: ( MonadThrow m
+  :: ( MonadAppError m
      , MonadInteraction m
      , MonadEncrypt m
      , MonadStore m
-     , MonadReader r m
-     , HasAppContext r
+     , MonadConfigReader m
      )
   => [TestData]
   -> m [Entry]
@@ -85,7 +78,7 @@ isNotEmpty testData
     _testPlaintext   testData /= Plaintext      T.empty  &&
     _testMetadata    testData /= Just (Metadata T.empty)
 
-entriesHaveSameContent :: (MonadThrow m, MonadIO m, MonadEncrypt m) => Entry -> Entry -> m Bool
+entriesHaveSameContent :: (MonadAppError m, MonadEncrypt m) => Entry -> Entry -> m Bool
 entriesHaveSameContent e1 e2 = do
   plaintext1 <- decrypt (_entryCiphertext e1)
   plaintext2 <- decrypt (_entryCiphertext e2)

@@ -7,7 +7,7 @@ module Hecate.Properties
 
 import           Control.Monad           (zipWithM)
 import           Data.List               ((\\))
-import           Data.Monoid             (First(..))
+import           Data.Monoid             (First (..))
 import qualified Data.Text               as T
 import           Data.Text.Arbitrary     ()
 import           Database.SQLite.Simple  hiding (Error)
@@ -21,8 +21,8 @@ import           Text.Printf             (printf)
 import           Hecate.Carriers         (runAppM)
 import           Hecate.Configuration
 import           Hecate.Data
-import           Hecate.Evaluator        (importCSV, exportCSV, setup)
-import           Hecate.GPG              (Plaintext(..))
+import           Hecate.Evaluator        (exportCSV, importCSV, setup)
+import           Hecate.GPG              (Plaintext (..))
 import           Hecate.Interfaces
 import           Hecate.Orphans          ()
 

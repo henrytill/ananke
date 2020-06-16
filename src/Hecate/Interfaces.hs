@@ -100,14 +100,14 @@ withConnection
 withConnection f = ask >>= \ ctx -> f (ctx ^. appContextConnection)
 
 instance (MonadThrow m, MonadIO m, HasAppContext r) => MonadStore (ReaderT r m) where
-  put             e       = withConnection (`DB.put` e)
-  delete          e       = withConnection (`DB.delete` e)
-  query           q       = withConnection (`DB.query` q)
-  selectAll               = withConnection DB.selectAll
-  getCount                = withConnection DB.getCount
-  getCountOfKeyId kid     = withConnection (`DB.getCountOfKeyId` kid)
-  createTable             = withConnection DB.createTable
-  migrate         sv  kid = withConnection (\ conn -> DB.migrate conn sv kid)
+  put             e       = withConnection (\ conn -> DB.put             conn e)
+  delete          e       = withConnection (\ conn -> DB.delete          conn e)
+  query           q       = withConnection (\ conn -> DB.query           conn q)
+  selectAll               = withConnection (\ conn -> DB.selectAll       conn)
+  getCount                = withConnection (\ conn -> DB.getCount        conn)
+  getCountOfKeyId kid     = withConnection (\ conn -> DB.getCountOfKeyId conn kid)
+  createTable             = withConnection (\ conn -> DB.createTable     conn)
+  migrate         sv  kid = withConnection (\ conn -> DB.migrate         conn sv kid)
 
 -- * MonadEncrypt
 

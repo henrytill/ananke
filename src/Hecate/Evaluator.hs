@@ -1,4 +1,4 @@
-{-# LANGUAGE NamedFieldPuns   #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Hecate.Evaluator
   ( ModifyAction(..)
@@ -12,16 +12,16 @@ module Hecate.Evaluator
   , setup
   ) where
 
-import           Data.Char            (toLower)
-import qualified Data.Csv             as CSV
-import qualified Data.Text            as T
-import qualified Data.Vector          as Vector
+import           Data.Char         (toLower)
+import qualified Data.Csv          as CSV
+import qualified Data.Text         as T
+import qualified Data.Vector       as Vector
 import           Lens.Family2
 
-import           Hecate.Data          hiding (query)
-import qualified Hecate.Data          as Data
-import           Hecate.Database      (SchemaVersion(..), currentSchemaVersion)
-import           Hecate.GPG           (KeyId, Plaintext(..))
+import           Hecate.Data       hiding (query)
+import qualified Hecate.Data       as Data
+import           Hecate.Database   (SchemaVersion (..), currentSchemaVersion)
+import           Hecate.GPG        (KeyId, Plaintext (..))
 import           Hecate.Interfaces
 
 

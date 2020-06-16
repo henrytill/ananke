@@ -21,9 +21,11 @@ newtype AppM a = AppM { unAppM :: ReaderT AppContext IO a }
            , Monad
            , MonadIO
            , MonadReader AppContext
+           , MonadConfigReader
            , MonadStore
            , MonadEncrypt
            , MonadInteraction
+           , MonadAppError
            )
 
 runAppM :: AppM a -> AppContext -> IO a

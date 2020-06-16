@@ -1,14 +1,16 @@
 module Hecate.Interfaces
   ( HasConfig(..)
   , HasAppContext(..)
-  , MonadInteraction(..)
+  , MonadConfigReader(..)
   , MonadStore(..)
   , MonadEncrypt(..)
+  , MonadInteraction(..)
+  , MonadAppError(..)
   ) where
 
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
-import           Control.Monad.Reader   (MonadReader (..), ReaderT)
+import           Control.Monad.Reader   (MonadReader (..), ReaderT, asks)
 import           Control.Monad.Trans    (lift)
 import qualified Data.ByteString.Lazy   as BSL
 import qualified Data.Text              as T
@@ -18,12 +20,14 @@ import qualified Database.SQLite.Simple as SQLite
 import           Lens.Family2
 import           Lens.Family2.Unchecked (lens)
 import qualified System.Directory       as Directory
-import           System.IO              (hFlush, stdout)
 import qualified System.Environment     as Env
+import           System.IO              (hFlush, stdout)
+import           TOML                   (TOMLError)
 
 import           Hecate.Data
 import           Hecate.Database        (SchemaVersion)
 import qualified Hecate.Database        as DB
+import           Hecate.Error           (AppError (..))
 import           Hecate.GPG             (Ciphertext, KeyId, Plaintext)
 import qualified Hecate.GPG             as GPG
 
@@ -68,6 +72,14 @@ instance HasAppContext AppContext where
   appContext           = id
   appContextConfig     = config
   appContextConnection = lens _appContextConnection (\ a conn -> a{_appContextConnection = conn})
+
+-- * MonadConfigReaer
+
+class Monad m => MonadConfigReader m where
+  askConfig :: m Config
+
+instance (Monad m, HasAppContext r) => MonadConfigReader (ReaderT r m) where
+  askConfig = asks (view appContextConfig)
 
 -- * MonadStore
 
@@ -160,3 +172,38 @@ instance MonadInteraction m => MonadInteraction (ReaderT r m)  where
   getEnv                           = lift . getEnv
   message                          = lift . message
   prompt                           = lift . prompt
+
+-- * MonadAppError
+
+class Monad m => MonadAppError m where
+  csvDecodingError    :: String    -> m a
+  tomlError           :: TOMLError -> m a
+  configurationError  :: String    -> m a
+  gpgError            :: String    -> m a
+  databaseError       :: String    -> m a
+  fileSystemError     :: String    -> m a
+  ambiguousInputError :: String    -> m a
+  migrationError      :: String    -> m a
+  defaultError        :: String    -> m a
+
+instance MonadAppError IO where
+  csvDecodingError    = throwM . CsvDecoding
+  tomlError           = throwM . TOML
+  configurationError  = throwM . Configuration
+  gpgError            = throwM . GPG
+  databaseError       = throwM . Database
+  fileSystemError     = throwM . FileSystem
+  ambiguousInputError = throwM . AmbiguousInput
+  migrationError      = throwM . Migration
+  defaultError        = throwM . Default
+
+instance MonadAppError m => MonadAppError (ReaderT r m) where
+  csvDecodingError    = lift . csvDecodingError
+  tomlError           = lift . tomlError
+  configurationError  = lift . configurationError
+  gpgError            = lift . gpgError
+  databaseError       = lift . databaseError
+  fileSystemError     = lift . fileSystemError
+  ambiguousInputError = lift . ambiguousInputError
+  migrationError      = lift . migrationError
+  defaultError        = lift . defaultError

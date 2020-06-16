@@ -77,7 +77,7 @@ createPreConfig = do
                    }
 
 addDefaultConfig :: MonadInteraction m => PreConfig -> m PreConfig
-addDefaultConfig preConfig = mappend <$> pure preConfig <*> defaultConfig
+addDefaultConfig preConfig = mappend preConfig <$> defaultConfig
   where
     defaultConfig = do
       dir <- First <$> getDefaultDataDirectory
@@ -87,7 +87,7 @@ addDefaultConfig preConfig = mappend <$> pure preConfig <*> defaultConfig
                        }
 
 addTOMLConfig :: (MonadAppError m, MonadInteraction m) => PreConfig -> m PreConfig
-addTOMLConfig preConfig = mappend <$> pure preConfig <*> tomlConfig
+addTOMLConfig preConfig = mappend preConfig <$> tomlConfig
   where
     tomlConfig = do
       let dataDir = fromJust (getFirst (_preConfigDataDirectory preConfig))

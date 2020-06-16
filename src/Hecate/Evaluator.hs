@@ -440,7 +440,7 @@ eval Lookup{_lookupDescription, _lookupVerbosity} = do
   let q = Data.query Nothing (Just _lookupDescription) Nothing Nothing
   res <- query q
   case res of
-    []  -> MultipleEntries <$> pure []                               <*> pure _lookupVerbosity
+    []  -> pure (MultipleEntries [] _lookupVerbosity)
     [e] -> SingleEntry     <$> entryToDisplayEntry decrypt e         <*> pure _lookupVerbosity
     es  -> MultipleEntries <$> mapM (entryToDisplayEntry decrypt) es <*> pure _lookupVerbosity
 eval Import{_importFile} =

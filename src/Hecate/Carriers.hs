@@ -28,8 +28,8 @@ newtype AppM a = AppM { unAppM :: ReaderT AppContext IO a }
            , MonadAppError
            )
 
-runAppM :: AppM a -> AppContext -> IO a
-runAppM m = runReaderT (unAppM m)
-
 instance MonadThrow AppM where
   throwM = liftIO . throwM
+
+runAppM :: AppM a -> AppContext -> IO a
+runAppM m = runReaderT (unAppM m)

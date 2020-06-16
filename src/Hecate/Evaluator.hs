@@ -12,8 +12,6 @@ module Hecate.Evaluator
   , setup
   ) where
 
-import           Control.Monad.Catch
-import           Control.Monad.Reader
 import           Data.Char            (toLower)
 import qualified Data.Csv             as CSV
 import qualified Data.Text            as T
@@ -24,7 +22,6 @@ import           Hecate.Data          hiding (query)
 import qualified Hecate.Data          as Data
 import           Hecate.Database      (SchemaVersion(..), currentSchemaVersion)
 import           Hecate.GPG           (KeyId, Plaintext(..))
-import           Hecate.Error
 import           Hecate.Interfaces
 
 
@@ -110,23 +107,22 @@ setup
   :: ( MonadInteraction m
      , MonadEncrypt m
      , MonadStore m
-     , MonadReader r m
-     , HasConfig r
+     , MonadConfigReader m
      )
   => m ()
 setup = do
-  ctx <- ask
-  let schemaFile = ctx ^. configSchemaFile
-      keyId      = ctx ^. configKeyId
+  cfg <- askConfig
+  let schemaFile = cfg ^. configSchemaFile
+      keyId      = cfg ^. configKeyId
   schemaVersion <- getSchemaVersion schemaFile
   initDatabase schemaFile schemaVersion keyId
 
-ensureFile :: (MonadThrow m, MonadInteraction m) => FilePath -> m FilePath
+ensureFile :: (MonadAppError m, MonadInteraction m) => FilePath -> m FilePath
 ensureFile file = do
   exists <- doesFileExist file
   if exists
     then return file
-    else throwM (FileSystem "File does not exist")
+    else fileSystemError "File does not exist"
 
 reencryptAll
   :: (MonadEncrypt m, MonadStore m)
@@ -139,7 +135,7 @@ reencryptAll keyId = do
   mapM_ delete es
 
 binaryChoice
-  :: (MonadThrow m, MonadInteraction m)
+  :: (MonadAppError m, MonadInteraction m)
   => String
   -> m a
   -> m a
@@ -147,48 +143,47 @@ binaryChoice
 binaryChoice s yes no = do
   ans <- prompt (s ++ " [N/y] ")
   case map toLower ans of
-    ""   -> no
-    "n"  -> no
-    "y"  -> yes
-    _    -> throwM (Default "Please answer y or n")
+    ""  -> no
+    "n" -> no
+    "y" -> yes
+    _   -> defaultError "Please answer y or n"
 
 checkKey
-  :: ( MonadThrow m
+  :: ( MonadAppError m
      , MonadEncrypt m
      , MonadInteraction m
      , MonadStore m
-     , MonadReader r m
-     , HasConfig r
+     , MonadConfigReader m
      )
   => m Response
   -> m Response
 checkKey k = do
-  ctx <- ask
-  let keyId         = ctx ^. configKeyId
-      allowMultKeys = ctx ^. configAllowMultipleKeys
+  cfg <- askConfig
+  let keyId         = cfg ^. configKeyId
+      allowMultKeys = cfg ^. configAllowMultipleKeys
   total <- getCount
   if total == 0
     then k
     else do
     let q     = "New keyid found: do you want to re-encrypt all entries?"
         reenc = reencryptAll keyId
-        err   = throwM (Default "You have set allow_multiple_keys to false")
+        err   = defaultError "You have set allow_multiple_keys to false"
     count <- getCountOfKeyId keyId
     case (count, allowMultKeys) of
       (0, False)              -> binaryChoice q (reenc >> k) err
       (x, _    ) | x == total -> k
       (_, True )              -> binaryChoice q (reenc >> k) k
-      (_, False)              -> throwM (Default "All entries do not have the same keyid")
+      (_, False)              -> defaultError "All entries do not have the same keyid"
 
 csvEntryToEntry
-  :: (MonadEncrypt m, MonadInteraction m, MonadReader r m, HasConfig r)
+  :: (MonadEncrypt m, MonadInteraction m, MonadConfigReader m)
   => CSVEntry
   -> m Entry
 csvEntryToEntry entry = do
-  ctx       <- ask
+  cfg       <- askConfig
   timestamp <- now
   createEntry encrypt
-              (ctx ^. configKeyId)
+              (cfg ^. configKeyId)
               timestamp
               (_csvDescription entry)
               (_csvIdentity entry)
@@ -196,13 +191,13 @@ csvEntryToEntry entry = do
               (_csvMeta entry)
 
 importCSV
-  :: (MonadThrow m, MonadEncrypt m, MonadInteraction m, MonadReader r m, HasConfig r)
+  :: (MonadAppError m, MonadEncrypt m, MonadInteraction m, MonadConfigReader m)
   => FilePath
   -> m [Entry]
 importCSV csvFile = do
   file <- ensureFile csvFile
   bs   <- readFileAsLazyByteString file
-  ies  <- either (throwM . CsvDecoding) (pure . Vector.toList) (CSV.decode CSV.NoHeader bs)
+  ies  <- either csvDecodingError (pure . Vector.toList) (CSV.decode CSV.NoHeader bs)
   mapM csvEntryToEntry ies
 
 exportCSV
@@ -216,17 +211,17 @@ exportCSV csvFile entries = do
   writeFileFromLazyByteString csvFile csv
 
 createEntryWrapper
-  :: (MonadEncrypt m, MonadInteraction m, MonadReader r m, HasConfig r)
+  :: (MonadEncrypt m, MonadInteraction m, MonadConfigReader m)
   => String
   -> Maybe String
   -> Maybe String
   -> String
   -> m Entry
 createEntryWrapper d i m t = do
-  ctx       <- ask
+  cfg       <- askConfig
   timestamp <- now
   createEntry encrypt
-              (ctx ^. configKeyId)
+              (cfg ^. configKeyId)
               timestamp
               (Description . T.pack  $  d)
               (Identity    . T.pack <$> i)
@@ -259,15 +254,15 @@ updateWrapper miden mmeta e =
   updateMetadata ts (Metadata . T.pack <$> mmeta)
 
 updateCiphertext
-  :: (MonadEncrypt m, MonadInteraction m, MonadReader r m, HasConfig r)
+  :: (MonadEncrypt m, MonadInteraction m, MonadConfigReader m)
   => Plaintext
   -> Entry
   -> m Entry
 updateCiphertext plaintext entry = do
-  ctx       <- ask
+  cfg       <- askConfig
   timestamp <- now
   createEntry encrypt
-              (ctx ^. configKeyId)
+              (cfg ^. configKeyId)
               timestamp
               (_entryDescription entry)
               (_entryIdentity entry)
@@ -275,7 +270,7 @@ updateCiphertext plaintext entry = do
               (_entryMeta entry)
 
 updateCiphertextWrapper
-  :: (MonadEncrypt m, MonadInteraction m, MonadReader r m, HasConfig r)
+  :: (MonadEncrypt m, MonadInteraction m, MonadConfigReader m)
   => ModifyAction
   -> Entry
   -> m Entry
@@ -285,12 +280,11 @@ updateCiphertextWrapper Keep e =
   return e
 
 modifyOnlySingletons
-  :: ( MonadThrow m
+  :: ( MonadAppError m
      , MonadEncrypt m
      , MonadInteraction m
      , MonadStore m
-     , MonadReader r m
-     , HasConfig r
+     , MonadConfigReader m
      )
   => [Entry]
   -> ModifyAction
@@ -304,15 +298,14 @@ modifyOnlySingletons [e] maction miden mmeta = do
   _   <- delete e
   return Modified
 modifyOnlySingletons _ _ _ _ =
-  throwM (AmbiguousInput "There are multiple entries matching your input criteria.")
+  ambiguousInputError "There are multiple entries matching your input criteria."
 
 findAndModify
-  :: ( MonadThrow m
+  :: ( MonadAppError m
      , MonadEncrypt m
      , MonadInteraction m
      , MonadStore m
-     , MonadReader r m
-     , HasConfig r
+     , MonadConfigReader m
      )
   => Query
   -> ModifyAction
@@ -323,12 +316,11 @@ findAndModify q maction miden mmeta
   = checkKey (query q >>= \ rs -> modifyOnlySingletons rs maction miden mmeta)
 
 modify
-  :: ( MonadThrow m
+  :: ( MonadAppError m
      , MonadEncrypt m
      , MonadInteraction m
      , MonadStore m
-     , MonadReader r m
-     , HasConfig r
+     , MonadConfigReader m
      )
   => Target
   -> ModifyAction
@@ -341,12 +333,11 @@ modify (TargetDescription mdesc) maction miden mmeta =
   findAndModify (Data.query Nothing (Just mdesc) Nothing Nothing) maction miden mmeta
 
 redescribeOnlySingletons
-  :: ( MonadThrow m
+  :: ( MonadAppError m
      , MonadEncrypt m
      , MonadInteraction m
      , MonadStore m
-     , MonadReader r m
-     , HasConfig r
+     , MonadConfigReader m
      )
   => [Entry]
   -> String
@@ -361,15 +352,14 @@ redescribeOnlySingletons [e] s
       _   <- delete e
       return Redescribed
 redescribeOnlySingletons _ _ =
-  throwM (AmbiguousInput "There are multiple entries matching your input criteria.")
+  ambiguousInputError "There are multiple entries matching your input criteria."
 
 findAndRedescribe
-  :: ( MonadThrow m
+  :: ( MonadAppError m
      , MonadEncrypt m
      , MonadInteraction m
      , MonadStore m
-     , MonadReader r m
-     , HasConfig r
+     , MonadConfigReader m
      )
   => Query
   -> String
@@ -379,12 +369,11 @@ findAndRedescribe q s = do
   redescribeOnlySingletons rs s
 
 redescribe
-  :: ( MonadThrow m
+  :: ( MonadAppError m
      , MonadEncrypt m
      , MonadInteraction m
      , MonadStore m
-     , MonadReader r m
-     , HasConfig r
+     , MonadConfigReader m
      )
   => Target
   -> String
@@ -395,23 +384,23 @@ redescribe (TargetDescription tdesc) s =
   findAndRedescribe (Data.query Nothing (Just tdesc) Nothing Nothing) s
 
 removeOnlySingletons
-  :: (MonadThrow m, MonadStore m, MonadReader r m, HasConfig r)
+  :: (MonadAppError m, MonadStore m, MonadConfigReader m)
   => [Entry]
   -> m Response
 removeOnlySingletons [e] =
   delete e >> return Removed
 removeOnlySingletons _ =
-  throwM (AmbiguousInput "There are multiple entries matching your input criteria.")
+  ambiguousInputError "There are multiple entries matching your input criteria."
 
 findAndRemove
-  :: (MonadThrow m, MonadStore m, MonadReader r m, HasConfig r)
+  :: (MonadAppError m, MonadStore m, MonadConfigReader m)
   => Query
   -> m Response
 findAndRemove q =
   query q >>= removeOnlySingletons
 
 remove
-  :: (MonadThrow m, MonadStore m, MonadReader r m, HasConfig r)
+  :: (MonadAppError m, MonadStore m, MonadConfigReader m)
   => Target
   -> m Response
 remove (TargetId rid) =
@@ -420,24 +409,23 @@ remove (TargetDescription rdesc) =
   findAndRemove (Data.query Nothing (Just rdesc) Nothing Nothing)
 
 check
-  :: (MonadThrow m, MonadStore m, MonadReader r m, HasConfig r)
+  :: (MonadAppError m, MonadStore m, MonadConfigReader m)
   => m Response
 check = do
-  ctx <- ask
+  cfg <- askConfig
   t   <- getCount
-  let keyId = ctx ^. configKeyId
+  let keyId = cfg ^. configKeyId
   r <- getCountOfKeyId keyId
   if t == r
     then return CheckedForMultipleKeys
-    else throwM (Default "All entries do not have the same keyid")
+    else defaultError "All entries do not have the same keyid"
 
 eval
-  :: ( MonadThrow m
+  :: ( MonadAppError m
      , MonadEncrypt m
      , MonadInteraction m
      , MonadStore m
-     , MonadReader r m
-     , HasConfig r
+     , MonadConfigReader m
      )
   => Command
   -> m Response

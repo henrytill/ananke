@@ -6,9 +6,6 @@ environment:
   matrix:
     - GHC_VERSION: "8.8.3"
     - GHC_VERSION: "8.6.5"
-    - GHC_VERSION: "8.4.4"
-    - GHC_VERSION: "8.2.2"
-    - GHC_VERSION: "8.0.2"
 
 cache:
   - "C:\\CABAL_STORE"

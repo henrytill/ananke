@@ -14,13 +14,6 @@ module Hecate.Database
   , migrate
   ) where
 
---
--- This module uses `mappend` because conditionally importing Data.Monoid.(<>)
--- for older versions of GHC causes us to hit this problem:
---
--- <https://gitlab.haskell.org/ghc/ghc/issues/10230>
---
-
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import           Database.SQLite.Simple (NamedParam ((:=)))
@@ -132,7 +125,7 @@ queryFolder
   -> Maybe (SQLite.Query, [SQLite.NamedParam])
   -> (SQLite.Query, [SQLite.NamedParam])
 queryFolder ("", [])       (Just (qs, np)) = (qs, np)
-queryFolder (accQs, accNp) (Just (qs, np)) = (accQs `mappend` " AND " `mappend` qs, accNp `mappend` np)
+queryFolder (accQs, accNp) (Just (qs, np)) = (accQs <> " AND " <> qs, accNp <> np)
 queryFolder (accQs, accNp) Nothing         = (accQs, accNp)
 
 queryParts :: Query -> [Maybe (SQLite.Query, [SQLite.NamedParam])]
@@ -144,7 +137,7 @@ queryParts q =
   ]
 
 generateQuery :: Query -> (SQLite.Query, [SQLite.NamedParam])
-generateQuery = mappend select . foldl queryFolder ("", []) . queryParts
+generateQuery = (select <>) . foldl queryFolder ("", []) . queryParts
   where
     q = "SELECT id, keyid, timestamp, description, identity, ciphertext, meta \
         \FROM entries \

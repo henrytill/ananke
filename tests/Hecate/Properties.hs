@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Hecate.Properties
@@ -111,17 +110,6 @@ tests =
   , prop_roundTripEntriesToCSV
   ]
 
-#ifdef mingw32_HOST_OS
-args :: Args
-args = stdArgs
-  { maxSuccess = 10             -- default: 100
-  , maxSize    = 50             -- default: 100
-  }
-#else
-args :: Args
-args = stdArgs
-#endif
-
 doProperties :: IO [Result]
 doProperties = do
   sysTempDir <- getCanonicalTemporaryDirectory
@@ -131,6 +119,6 @@ doProperties = do
   _          <- copyFile "./example/hecate.toml" (dir ++ "/hecate.toml")
   ctx        <- configureWith preConfig >>= createContext
   _          <- runAppM setup ctx
-  results    <- mapM (\ p -> quickCheckWithResult args (p ctx)) tests
+  results    <- mapM (\ p -> quickCheckWithResult stdArgs (p ctx)) tests
   _          <- close (ctx ^. appContextConnection)
   return results

@@ -1,10 +1,10 @@
 module Main (main) where
 
-import           Control.Monad
-import           System.Exit
+import qualified Control.Monad     as Monad
+import qualified System.Exit       as Exit
 import qualified Test.QuickCheck   as QC
 
-import           Hecate.Properties
+import qualified Hecate.Properties as Properties
 
 
 -- Included for backwards compatibility
@@ -14,5 +14,5 @@ isSuccess _            = False
 
 main :: IO ()
 main = do
-  rs <- doProperties
-  unless (all isSuccess rs) exitFailure
+  rs <- Properties.doProperties
+  Monad.unless (all isSuccess rs) Exit.exitFailure

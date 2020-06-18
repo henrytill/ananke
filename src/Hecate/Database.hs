@@ -13,13 +13,13 @@ module Hecate.Database
   , migrate
   ) where
 
-import           Control.Monad.Catch
-import           Control.Monad.IO.Class
+import           Control.Monad.Catch    (MonadThrow (..))
+import           Control.Monad.IO.Class (MonadIO (..))
 import           Database.SQLite.Simple (NamedParam ((:=)))
 import qualified Database.SQLite.Simple as SQLite
 
 import           Hecate.Data            hiding (query)
-import           Hecate.Error
+import           Hecate.Error           (AppError (..))
 
 
 currentSchemaVersion :: SchemaVersion

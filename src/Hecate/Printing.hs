@@ -6,17 +6,18 @@ module Hecate.Printing
 
 import qualified Data.Text                    as T
 import           Data.Time.Clock              (UTCTime)
-import           Data.Time.Format             (defaultTimeLocale, formatTime)
+import qualified Data.Time.Format             as Format
 import           Prelude                      hiding ((<$>))
-import           Text.PrettyPrint.ANSI.Leijen
+import           Text.PrettyPrint.ANSI.Leijen (Doc, (<$>), (<+>))
+import qualified Text.PrettyPrint.ANSI.Leijen as Leijen
 
 import           Hecate.Data
-import           Hecate.Error
-import           Hecate.Evaluator
+import           Hecate.Error                 (AppError (..))
+import           Hecate.Evaluator             (Command, Response (..), Verbosity (..))
 
 
 prettyText :: T.Text -> Doc
-prettyText = text . T.unpack
+prettyText = Leijen.text . T.unpack
 
 prettyId :: Id -> Doc
 prettyId i = prettyText (unId i)
@@ -25,21 +26,21 @@ prettyTimestamp :: UTCTime -> Doc
 prettyTimestamp t = prettyText (showTime t)
   where
     showTime :: UTCTime -> T.Text
-    showTime = T.pack . formatTime defaultTimeLocale "%c"
+    showTime = T.pack . Format.formatTime Format.defaultTimeLocale "%c"
 
 prettyDescription :: Description -> Doc
 prettyDescription (Description d) = prettyText d
 
 prettyIdentity :: Maybe Identity -> Doc
 prettyIdentity (Just (Identity i)) = prettyText i
-prettyIdentity Nothing             = text "<none>"
+prettyIdentity Nothing             = Leijen.text "<none>"
 
 prettyPlaintext :: Plaintext -> Doc
 prettyPlaintext (Plaintext t) = prettyText t
 
 prettyMeta :: Maybe Metadata -> Doc
 prettyMeta (Just (Metadata m)) = prettyText m
-prettyMeta Nothing             = text "<none>"
+prettyMeta Nothing             = Leijen.text "<none>"
 
 printOne :: DisplayEntry -> Doc
 printOne entry =
@@ -59,51 +60,51 @@ printOneVerbose entry =
 
 prettyResponse :: Command -> Response -> Doc
 prettyResponse _ (SingleEntry de Normal) =
-  printOne de <> linebreak
+  printOne de <> Leijen.linebreak
 prettyResponse _ (SingleEntry de Verbose) =
-  printOneVerbose de <> linebreak
+  printOneVerbose de <> Leijen.linebreak
 prettyResponse _ (MultipleEntries [] _) =
-  text "Not found" <> linebreak
+  Leijen.text "Not found" <> Leijen.linebreak
 prettyResponse _ (MultipleEntries ds Normal) =
-  foldl (\ acc b -> printOne b <$> acc) empty ds
+  foldl (\ acc b -> printOne b <$> acc) Leijen.empty ds
 prettyResponse _ (MultipleEntries ds Verbose) =
-  foldl (\ acc b -> printOneVerbose b <$> acc) empty ds
+  foldl (\ acc b -> printOneVerbose b <$> acc) Leijen.empty ds
 prettyResponse _ Added =
-  text "Added" <> linebreak
+  Leijen.text "Added" <> Leijen.linebreak
 prettyResponse _ Exported =
-  text "Exported" <> linebreak
+  Leijen.text "Exported" <> Leijen.linebreak
 prettyResponse _ Modified =
-  text "Modified" <> linebreak
+  Leijen.text "Modified" <> Leijen.linebreak
 prettyResponse _ Redescribed =
-  text "Redescribed" <> linebreak
+  Leijen.text "Redescribed" <> Leijen.linebreak
 prettyResponse _ Removed =
-  text "Removed" <> linebreak
+  Leijen.text "Removed" <> Leijen.linebreak
 prettyResponse _ CheckedForMultipleKeys =
-  text "All entries have the same keyid" <> linebreak
+  Leijen.text "All entries have the same keyid" <> Leijen.linebreak
 
 ansiPrettyResponse :: Command -> Response -> Doc
 ansiPrettyResponse _ (SingleEntry de Normal) =
-  printOne de <> linebreak
+  printOne de <> Leijen.linebreak
 ansiPrettyResponse _ (SingleEntry de Verbose) =
-  printOneVerbose de <> linebreak
+  printOneVerbose de <> Leijen.linebreak
 ansiPrettyResponse _ (MultipleEntries [] _) =
-  red (text "Not found") <> linebreak
+  Leijen.red (Leijen.text "Not found") <> Leijen.linebreak
 ansiPrettyResponse _ (MultipleEntries ds Normal) =
-  foldl (\ acc b -> printOne b <$> acc) empty ds
+  foldl (\ acc b -> printOne b <$> acc) Leijen.empty ds
 ansiPrettyResponse _ (MultipleEntries ds Verbose) =
-  foldl (\ acc b -> printOneVerbose b <$> acc) empty ds
+  foldl (\ acc b -> printOneVerbose b <$> acc) Leijen.empty ds
 ansiPrettyResponse _ Added =
-  green (text "Added") <> linebreak
+  Leijen.green (Leijen.text "Added") <> Leijen.linebreak
 ansiPrettyResponse _ Exported =
-  green (text "Exported") <> linebreak
+  Leijen.green (Leijen.text "Exported") <> Leijen.linebreak
 ansiPrettyResponse _ Modified =
-  green (text "Modified") <> linebreak
+  Leijen.green (Leijen.text "Modified") <> Leijen.linebreak
 ansiPrettyResponse _ Redescribed =
-  green (text "Redescribed") <> linebreak
+  Leijen.green (Leijen.text "Redescribed") <> Leijen.linebreak
 ansiPrettyResponse _ Removed =
-  green (text "Removed") <> linebreak
+  Leijen.green (Leijen.text "Removed") <> Leijen.linebreak
 ansiPrettyResponse _ CheckedForMultipleKeys =
-  green (text "All entries have the same keyid") <> linebreak
+  Leijen.green (Leijen.text "All entries have the same keyid") <> Leijen.linebreak
 
 prettyError :: Command -> AppError -> Doc
-prettyError _ e = text (show e) <> linebreak
+prettyError _ e = Leijen.text (show e) <> Leijen.linebreak

@@ -5,8 +5,8 @@ module Hecate.Carriers
   , runAppM
   ) where
 
-import           Control.Monad.Catch
-import           Control.Monad.IO.Class
+import           Control.Monad.Catch    (MonadThrow (..))
+import           Control.Monad.IO.Class (MonadIO (..))
 import           Control.Monad.Reader   (MonadReader, ReaderT, runReaderT)
 
 import           Hecate.Data            (AppContext)

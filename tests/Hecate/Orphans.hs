@@ -3,9 +3,9 @@
 module Hecate.Orphans () where
 
 import           Data.Text.Arbitrary ()
-import           Test.QuickCheck
+import           Test.QuickCheck     (Arbitrary (..))
 
-import           Hecate.Data
+import           Hecate.Data         (Description (..), Identity (..), Metadata (..), Plaintext (..))
 
 
 instance Arbitrary Description where

@@ -1,7 +1,7 @@
 module Hecate.Error (module Hecate.Error) where
 
-import           Control.Exception
-import           Data.Typeable
+import           Control.Exception (Exception)
+import           Data.Typeable     (Typeable)
 import           TOML              (TOMLError)
 
 

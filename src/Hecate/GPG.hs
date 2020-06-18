@@ -3,16 +3,16 @@ module Hecate.GPG
   , decrypt
   ) where
 
-import           Control.Monad.Catch
-import           Control.Monad.IO.Class
+import           Control.Monad.Catch       (MonadThrow (..))
+import           Control.Monad.IO.Class    (MonadIO (..))
 import qualified Data.ByteString           as BS
 import qualified Data.Text                 as T
-import           Data.Text.Encoding        (decodeUtf8, encodeUtf8)
-import           System.Exit
+import qualified Data.Text.Encoding        as Encoding
+import           System.Exit               (ExitCode (..))
 import qualified System.Process.ByteString as BSP
 
 import           Hecate.Data               (Ciphertext, KeyId (..), Plaintext (..), mkCiphertext, unCiphertext)
-import           Hecate.Error
+import           Hecate.Error              (AppError (..))
 
 
 gpgEncrypt :: String -> BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)
@@ -27,7 +27,7 @@ convertResult
 convertResult (ExitSuccess  , stdout, _     ) = pure stdout
 convertResult (ExitFailure _, _     , stderr) = perr stderr
   where
-    perr x = throwM (GPG (T.unpack (decodeUtf8 x)))
+    perr x = throwM (GPG (T.unpack (Encoding.decodeUtf8 x)))
 
 lifter
   :: (MonadThrow m, MonadIO m)
@@ -40,14 +40,14 @@ encryptWrapper
   => (BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString))
   -> T.Text
   -> m Ciphertext
-encryptWrapper f = (mkCiphertext <$>) . lifter . f . encodeUtf8
+encryptWrapper f = (mkCiphertext <$>) . lifter . f . Encoding.encodeUtf8
 
 decryptWrapper
   :: (MonadThrow m, MonadIO m)
   => (BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString))
   -> Ciphertext
   -> m Plaintext
-decryptWrapper f = (Plaintext . decodeUtf8 <$>) . lifter . f . unCiphertext
+decryptWrapper f = (Plaintext . Encoding.decodeUtf8 <$>) . lifter . f . unCiphertext
 
 encrypt
   :: (MonadThrow m, MonadIO m)

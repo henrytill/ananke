@@ -12,7 +12,7 @@ module Hecate.Evaluator
   , setup
   ) where
 
-import           Data.Char         (toLower)
+import qualified Data.Char         as Char
 import qualified Data.Csv          as CSV
 import qualified Data.Text         as T
 import qualified Data.Vector       as Vector
@@ -142,7 +142,7 @@ binaryChoice
   -> m a
 binaryChoice s yes no = do
   ans <- prompt (s ++ " [N/y] ")
-  case map toLower ans of
+  case map Char.toLower ans of
     ""  -> no
     "n" -> no
     "y" -> yes

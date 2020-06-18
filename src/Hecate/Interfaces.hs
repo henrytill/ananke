@@ -8,20 +8,21 @@ module Hecate.Interfaces
   , MonadAppError(..)
   ) where
 
-import           Control.Monad.Catch
-import           Control.Monad.IO.Class
+import           Control.Monad.Catch    (MonadThrow (..))
+import           Control.Monad.IO.Class (MonadIO (..))
 import           Control.Monad.Reader   (MonadReader (..), ReaderT, asks)
 import           Control.Monad.Trans    (lift)
 import qualified Data.ByteString.Lazy   as BSL
 import qualified Data.Text              as T
 import qualified Data.Text.IO           as TIO
-import           Data.Time.Clock        (UTCTime, getCurrentTime)
+import           Data.Time.Clock        (UTCTime)
+import qualified Data.Time.Clock        as Clock
 import qualified Database.SQLite.Simple as SQLite
 import           Lens.Family2
 import           Lens.Family2.Unchecked (lens)
 import qualified System.Directory       as Directory
 import qualified System.Environment     as Env
-import           System.IO              (hFlush, stdout)
+import qualified System.IO              as IO
 import           TOML                   (TOMLError)
 
 import           Hecate.Data
@@ -142,7 +143,7 @@ class Monad m => MonadInteraction m where
   prompt                      :: String            -> m String
 
 instance MonadInteraction IO where
-  now                         = getCurrentTime
+  now                         = Clock.getCurrentTime
   doesFileExist               = Directory.doesFileExist
   doesDirectoryExist          = Directory.doesDirectoryExist
   createDirectory             = Directory.createDirectory
@@ -155,7 +156,7 @@ instance MonadInteraction IO where
   writeFileFromLazyByteString = BSL.writeFile
   getEnv                      = Env.lookupEnv
   message                     = putStrLn
-  prompt s                    = putStr s >> hFlush stdout >> getLine
+  prompt s                    = putStr s >> IO.hFlush IO.stdout >> getLine
 
 instance MonadInteraction m => MonadInteraction (ReaderT r m)  where
   now                              = lift now

@@ -8,13 +8,13 @@ module Hecate.Configuration
   , finalize
   ) where
 
-import           Control.Monad.Except (unless)
-import           Data.Maybe           (fromJust)
-import           Data.Monoid
+import qualified Control.Monad.Except as Except
+import qualified Data.Maybe           as Maybe
+import           Data.Monoid          (First (..))
 import qualified Data.Text            as T
 import           Lens.Family2
 import           Lens.Family2.Stock   (_Just)
-import           System.Info          (os)
+import qualified System.Info          as Info
 import qualified TOML
 import           TOML.Lens
 
@@ -23,7 +23,7 @@ import           Hecate.Interfaces
 
 
 getDefaultDataDirectory :: MonadInteraction m => m (Maybe FilePath)
-getDefaultDataDirectory = case os of
+getDefaultDataDirectory = case Info.os of
   "mingw32" -> fmap (++ "/hecate")  <$> getEnv "APPDATA"
   _         -> fmap (++ "/.hecate") <$> getEnv "HOME"
 
@@ -89,7 +89,7 @@ addTOMLConfig :: (MonadAppError m, MonadInteraction m) => PreConfig -> m PreConf
 addTOMLConfig preConfig = mappend preConfig <$> tomlConfig
   where
     tomlConfig = do
-      let dataDir = fromJust (getFirst (_preConfigDataDirectory preConfig))
+      let dataDir = Maybe.fromJust (getFirst (_preConfigDataDirectory preConfig))
       txt <- readFileAsText (dataDir ++ "/hecate.toml")
       tbl <- either tomlError pure (TOML.parseTOML txt)
       let keyId = First (getKeyId tbl)
@@ -121,7 +121,7 @@ createContext cfg = do
   let dbDir  = cfg ^. configDatabaseDirectory
       dbFile = cfg ^. configDatabaseFile
   dbDirExists <- doesDirectoryExist dbDir
-  unless dbDirExists (createDirectory dbDir)
+  Except.unless dbDirExists (createDirectory dbDir)
   AppContext cfg <$> openSQLiteFile dbFile
 
 finalize :: MonadInteraction m => AppContext -> m ()

@@ -55,19 +55,20 @@ module Hecate.Data
 
 import qualified Data.ByteString                  as BS
 import qualified Data.ByteString.Lazy             as BSL
-import           Data.ByteString64
+import           Data.ByteString64                (ByteString64 (..))
 import qualified Data.Csv                         as CSV
-import           Data.Digest.Pure.SHA             (sha1, showDigest)
+import qualified Data.Digest.Pure.SHA             as SHA
 import           Data.Monoid                      (First)
 import qualified Data.Semigroup                   as Sem
 import qualified Data.Text                        as T
-import           Data.Text.Encoding               (encodeUtf8)
+import qualified Data.Text.Encoding               as Encoding
 import           Data.Time.Clock                  (UTCTime)
-import           Data.Time.Format                 (defaultTimeLocale, formatTime)
+import qualified Data.Time.Format                 as Format
 import qualified Database.SQLite.Simple           as SQLite
-import           Database.SQLite.Simple.FromField
-import           Database.SQLite.Simple.ToField
-import           GHC.Generics
+import           Database.SQLite.Simple.FromField (FromField (..))
+import           Database.SQLite.Simple.ToField   (ToField (..))
+import           GHC.Generics                     (Generic)
+
 
 -- * Configuration
 
@@ -242,10 +243,10 @@ instance SQLite.ToRow Entry where
                              )
 
 showTime :: UTCTime -> T.Text
-showTime = T.pack . formatTime defaultTimeLocale "%s%Q"
+showTime = T.pack . Format.formatTime Format.defaultTimeLocale "%s%Q"
 
 ider :: T.Text -> Id
-ider = Id . T.pack . showDigest . sha1 . BSL.fromStrict . encodeUtf8
+ider = Id . T.pack . SHA.showDigest . SHA.sha1 . BSL.fromStrict . Encoding.encodeUtf8
 
 createId :: KeyId -> UTCTime -> Description -> Maybe Identity -> Id
 createId (KeyId k) ts (Description d) (Just (Identity i)) =

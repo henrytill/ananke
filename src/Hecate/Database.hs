@@ -21,7 +21,6 @@ import qualified Database.SQLite.Simple as SQLite
 
 import           Hecate.Data            hiding (query)
 import           Hecate.Error
-import           Hecate.GPG             (KeyId)
 
 
 -- | A 'SchemaVersion' represents the database's schema version

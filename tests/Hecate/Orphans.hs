@@ -6,7 +6,6 @@ import           Data.Text.Arbitrary ()
 import           Test.QuickCheck
 
 import           Hecate.Data
-import           Hecate.GPG          (Plaintext (..))
 
 
 instance Arbitrary Description where

@@ -13,7 +13,6 @@ import           Text.PrettyPrint.ANSI.Leijen
 import           Hecate.Data
 import           Hecate.Error
 import           Hecate.Evaluator
-import           Hecate.GPG
 
 
 prettyText :: T.Text -> Doc

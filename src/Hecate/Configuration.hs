@@ -19,7 +19,6 @@ import qualified TOML
 import           TOML.Lens
 
 import           Hecate.Data
-import           Hecate.GPG           (KeyId (..))
 import           Hecate.Interfaces
 
 

@@ -21,7 +21,6 @@ import           Lens.Family2
 import           Hecate.Data       hiding (query)
 import qualified Hecate.Data       as Data
 import           Hecate.Database   (SchemaVersion (..), currentSchemaVersion)
-import           Hecate.GPG        (KeyId, Plaintext (..))
 import           Hecate.Interfaces
 
 

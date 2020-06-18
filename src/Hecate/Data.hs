@@ -14,6 +14,10 @@ module Hecate.Data
   , entryToCSVEntry
   , DisplayEntry(..)
   , entryToDisplayEntry
+  , KeyId(..)
+    -- * Decrypted and encrypted values
+  , Plaintext(..)
+  , Ciphertext(..)
     -- * Entries
   , Entry
   , _entryId
@@ -47,6 +51,7 @@ module Hecate.Data
   ) where
 
 import qualified Data.ByteString.Lazy             as BSL
+import           Data.ByteString64
 import qualified Data.Csv                         as CSV
 import           Data.Digest.Pure.SHA             (sha1, showDigest)
 import           Data.Monoid                      (First)
@@ -54,15 +59,11 @@ import qualified Data.Semigroup                   as Sem
 import qualified Data.Text                        as T
 import           Data.Text.Encoding               (encodeUtf8)
 import           Data.Time.Clock                  (UTCTime)
-import           Data.Time.Format                 (defaultTimeLocale,
-                                                   formatTime)
+import           Data.Time.Format                 (defaultTimeLocale, formatTime)
 import qualified Database.SQLite.Simple           as SQLite
 import           Database.SQLite.Simple.FromField
 import           Database.SQLite.Simple.ToField
 import           GHC.Generics
-
-import           Hecate.GPG                       (Ciphertext, KeyId (..),
-                                                   Plaintext)
 
 -- * Configuration
 
@@ -150,6 +151,45 @@ entryToDisplayEntry decrypt e
                                      (_entryIdentity entry)
                                      plaintext
                                      (_entryMeta entry)
+
+-- | A 'KeyId' represents a GPG Key Id
+newtype KeyId = KeyId { unKeyId :: T.Text }
+  deriving Eq
+
+instance Show KeyId where
+  show (KeyId a) = show a
+
+instance ToField KeyId where
+  toField (KeyId bs) = toField bs
+
+instance FromField KeyId where
+  fromField f = KeyId <$> fromField f
+
+-- * Decrypted and encrypted values
+
+-- | A 'Plaintext' represents a decrypted value
+newtype Plaintext = Plaintext T.Text
+  deriving Eq
+
+instance Show Plaintext where
+  show (Plaintext t) = show t
+
+instance CSV.ToField Plaintext where
+  toField (Plaintext bs) = CSV.toField bs
+
+instance CSV.FromField Plaintext where
+  parseField f = Plaintext <$> CSV.parseField f
+
+-- | A 'Ciphertext' represents an encrypted value
+newtype Ciphertext = Ciphertext ByteString64
+  deriving (Show, Eq)
+
+instance ToField Ciphertext where
+  toField (Ciphertext bs) = toField bs
+
+instance FromField Ciphertext where
+  fromField f = Ciphertext <$> fromField f
+
 
 -- * Entries
 

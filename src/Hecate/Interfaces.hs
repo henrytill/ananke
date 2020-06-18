@@ -28,7 +28,6 @@ import           Hecate.Data
 import           Hecate.Database        (SchemaVersion)
 import qualified Hecate.Database        as DB
 import           Hecate.Error           (AppError (..))
-import           Hecate.GPG             (Ciphertext, KeyId, Plaintext)
 import qualified Hecate.GPG             as GPG
 
 

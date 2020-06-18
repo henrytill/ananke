@@ -8,7 +8,6 @@ module Hecate.Database
   , getCount
   , getCountOfKeyId
   , addKeyId
-  , SchemaVersion(..)
   , currentSchemaVersion
   , createTable
   , migrate
@@ -22,13 +21,6 @@ import qualified Database.SQLite.Simple as SQLite
 import           Hecate.Data            hiding (query)
 import           Hecate.Error
 
-
--- | A 'SchemaVersion' represents the database's schema version
-newtype SchemaVersion = SchemaVersion { unSchemaVersion :: Int }
-  deriving Eq
-
-instance Show SchemaVersion where
-  show = show . unSchemaVersion
 
 currentSchemaVersion :: SchemaVersion
 currentSchemaVersion = SchemaVersion 2

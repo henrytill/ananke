@@ -20,7 +20,6 @@ import           Lens.Family2
 
 import           Hecate.Data       hiding (query)
 import qualified Hecate.Data       as Data
-import           Hecate.Database   (SchemaVersion (..), currentSchemaVersion)
 import           Hecate.Interfaces
 
 
@@ -76,12 +75,13 @@ getSchemaVersionFromFile path = SchemaVersion . read <$> readFileAsString path
 createSchemaFile :: MonadInteraction m => FilePath -> SchemaVersion -> m ()
 createSchemaFile path version = writeFileFromString path (show version)
 
-getSchemaVersion :: MonadInteraction m => FilePath -> m SchemaVersion
+getSchemaVersion :: (MonadInteraction m, MonadStore m) => FilePath -> m SchemaVersion
 getSchemaVersion path = do
-  exists <- doesFileExist path
+  version <- currentSchemaVersion
+  exists  <- doesFileExist path
   if exists
     then getSchemaVersionFromFile path
-    else createSchemaFile path currentSchemaVersion >> return currentSchemaVersion
+    else createSchemaFile path version >> return version
 
 initDatabase
   :: (MonadInteraction m, MonadEncrypt m, MonadStore m)
@@ -89,18 +89,19 @@ initDatabase
   -> SchemaVersion
   -> KeyId
   -> m ()
-initDatabase path schemaVersion keyId =
-  if schemaVersion == currentSchemaVersion
+initDatabase path schemaVersion keyId = do
+  current <- currentSchemaVersion
+  if schemaVersion == current
   then createTable
   else do
     message ("Migrating database from schema version "
              ++ show schemaVersion
              ++ " to version "
-             ++ show currentSchemaVersion
+             ++ show current
              ++ "...")
     migrate schemaVersion keyId
     reencryptAll keyId
-    createSchemaFile path currentSchemaVersion
+    createSchemaFile path current
 
 setup
   :: ( MonadInteraction m

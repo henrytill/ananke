@@ -25,7 +25,6 @@ import           System.IO              (hFlush, stdout)
 import           TOML                   (TOMLError)
 
 import           Hecate.Data
-import           Hecate.Database        (SchemaVersion)
 import qualified Hecate.Database        as DB
 import           Hecate.Error           (AppError (..))
 import qualified Hecate.GPG             as GPG
@@ -83,14 +82,15 @@ instance (Monad m, HasAppContext r) => MonadConfigReader (ReaderT r m) where
 -- * MonadStore
 
 class Monad m => MonadStore m where
-  put             :: Entry         -> m ()
-  delete          :: Entry         -> m ()
-  query           :: Query         -> m [Entry]
-  selectAll       :: m [Entry]
-  getCount        :: m Int
-  getCountOfKeyId :: KeyId         -> m Int
-  createTable     :: m ()
-  migrate         :: SchemaVersion -> KeyId -> m ()
+  put                  :: Entry         -> m ()
+  delete               :: Entry         -> m ()
+  query                :: Query         -> m [Entry]
+  selectAll            :: m [Entry]
+  getCount             :: m Int
+  getCountOfKeyId      :: KeyId         -> m Int
+  createTable          :: m ()
+  migrate              :: SchemaVersion -> KeyId -> m ()
+  currentSchemaVersion :: m SchemaVersion
 
 withConnection
   :: (MonadReader r m, HasAppContext r)
@@ -107,6 +107,7 @@ instance (MonadThrow m, MonadIO m, HasAppContext r) => MonadStore (ReaderT r m) 
   getCountOfKeyId kid     = withConnection (\ conn -> DB.getCountOfKeyId conn kid)
   createTable             = withConnection (\ conn -> DB.createTable     conn)
   migrate         sv  kid = withConnection (\ conn -> DB.migrate         conn sv kid)
+  currentSchemaVersion    = pure DB.currentSchemaVersion
 
 -- * MonadEncrypt
 

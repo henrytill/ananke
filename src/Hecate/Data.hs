@@ -5,6 +5,7 @@ module Hecate.Data
     PreConfig(..)
   , Config(..)
   , AppContext(..)
+  , SchemaVersion(..)
     -- * Import & Display Entries
   , CSVEntry
   , _csvDescription
@@ -99,6 +100,13 @@ data AppContext = AppContext
   { _appContextConfig     :: Config
   , _appContextConnection :: SQLite.Connection
   }
+
+-- | A 'SchemaVersion' represents the database's schema version
+newtype SchemaVersion = SchemaVersion { unSchemaVersion :: Int }
+  deriving Eq
+
+instance Show SchemaVersion where
+  show = show . unSchemaVersion
 
 -- * Import and Display Entries
 

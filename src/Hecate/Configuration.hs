@@ -5,6 +5,7 @@ module Hecate.Configuration
   ( configureWith
   , configure
   , createContext
+  , initialize
   , finalize
   ) where
 
@@ -123,6 +124,9 @@ createContext cfg = do
   dbDirExists <- doesDirectoryExist dbDir
   Except.unless dbDirExists (createDirectory dbDir)
   AppContext cfg <$> openSQLiteFile dbFile
+
+initialize :: (MonadAppError m, MonadInteraction m) => m AppContext
+initialize = configure >>= createContext
 
 finalize :: MonadInteraction m => AppContext -> m ()
 finalize ctx = closeSQLiteConnection conn

@@ -26,9 +26,6 @@ hPutDocWrapper h f g = do
     then Leijen.hPutDoc h f
     else Leijen.hPutDoc h g
 
-initialize :: IO AppContext
-initialize = Configuration.configure >>= Configuration.createContext
-
 exceptionHandler :: Command -> AppError -> IO ExitCode
 exceptionHandler command err = do
   Leijen.hPutDoc IO.stderr (Printing.prettyError command err)
@@ -46,4 +43,4 @@ runApp ctx = do
                   (exceptionHandler command)
 
 main :: IO ()
-main = Exception.bracket initialize Configuration.finalize runApp >>= Exit.exitWith
+main = Exception.bracket Configuration.initialize Configuration.finalize runApp >>= Exit.exitWith

@@ -6,13 +6,12 @@ module Hecate.GPG
 import           Control.Monad.Catch
 import           Control.Monad.IO.Class
 import qualified Data.ByteString           as BS
-import           Data.ByteString64
 import qualified Data.Text                 as T
 import           Data.Text.Encoding        (decodeUtf8, encodeUtf8)
 import           System.Exit
 import qualified System.Process.ByteString as BSP
 
-import           Hecate.Data               (Ciphertext (..), KeyId (..), Plaintext (..))
+import           Hecate.Data               (Ciphertext, KeyId (..), Plaintext (..), mkCiphertext, unCiphertext)
 import           Hecate.Error
 
 
@@ -41,14 +40,14 @@ encryptWrapper
   => (BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString))
   -> T.Text
   -> m Ciphertext
-encryptWrapper f = (Ciphertext . ByteString64 <$>) . lifter . f . encodeUtf8
+encryptWrapper f = (mkCiphertext <$>) . lifter . f . encodeUtf8
 
 decryptWrapper
   :: (MonadThrow m, MonadIO m)
   => (BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString))
-  -> ByteString64
+  -> Ciphertext
   -> m Plaintext
-decryptWrapper f = (Plaintext . decodeUtf8 <$>) . lifter . f . unByteString64
+decryptWrapper f = (Plaintext . decodeUtf8 <$>) . lifter . f . unCiphertext
 
 encrypt
   :: (MonadThrow m, MonadIO m)
@@ -61,4 +60,4 @@ decrypt
   :: (MonadThrow m, MonadIO m)
   => Ciphertext
   -> m Plaintext
-decrypt (Ciphertext ct) = decryptWrapper gpgDecrypt ct
+decrypt = decryptWrapper gpgDecrypt

@@ -18,7 +18,9 @@ module Hecate.Data
   , KeyId(..)
     -- * Decrypted and encrypted values
   , Plaintext(..)
-  , Ciphertext(..)
+  , Ciphertext
+  , mkCiphertext
+  , unCiphertext
     -- * Entries
   , Entry
   , _entryId
@@ -51,6 +53,7 @@ module Hecate.Data
   , unCount
   ) where
 
+import qualified Data.ByteString                  as BS
 import qualified Data.ByteString.Lazy             as BSL
 import           Data.ByteString64
 import qualified Data.Csv                         as CSV
@@ -191,6 +194,12 @@ instance CSV.FromField Plaintext where
 -- | A 'Ciphertext' represents an encrypted value
 newtype Ciphertext = Ciphertext ByteString64
   deriving (Show, Eq)
+
+mkCiphertext :: BS.ByteString -> Ciphertext
+mkCiphertext = Ciphertext . ByteString64
+
+unCiphertext :: Ciphertext -> BS.ByteString
+unCiphertext (Ciphertext bs64) = unByteString64 bs64
 
 instance ToField Ciphertext where
   toField (Ciphertext bs) = toField bs

@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                hecate
-version:             0.6.0.4
+version:             0.7.0.0
 synopsis:            A minimal password manager
 description:         hecate is a minimal password manager.
 license:             Apache-2.0

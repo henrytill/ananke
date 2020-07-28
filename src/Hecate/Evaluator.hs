@@ -41,6 +41,7 @@ data Command
         , _addMeta        :: Maybe String
         }
   | Lookup { _lookupDescription :: String
+           , _lookupIdentity    :: Maybe String
            , _lookupVerbosity   :: Verbosity
            }
   | Import { _importFile :: FilePath }
@@ -436,8 +437,8 @@ eval Add{_addDescription, _addIdentity, _addMeta} =
         createEntryWrapper _addDescription _addIdentity _addMeta >>=
         put                                                      >>
         return Added
-eval Lookup{_lookupDescription, _lookupVerbosity} = do
-  let q = Data.query Nothing (Just _lookupDescription) Nothing Nothing
+eval Lookup{_lookupDescription, _lookupIdentity, _lookupVerbosity} = do
+  let q = Data.query Nothing (Just _lookupDescription) _lookupIdentity Nothing
   res <- query q
   case res of
     []  -> pure (MultipleEntries [] _lookupVerbosity)

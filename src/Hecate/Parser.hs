@@ -57,6 +57,7 @@ addP = Add <$> descArgP
 
 lookupP :: Parser Command
 lookupP = Lookup <$> descArgP
+                 <*> optional idenOptP
                  <*> verbosityFlagP
 
 importP :: Parser Command

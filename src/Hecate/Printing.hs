@@ -42,6 +42,9 @@ prettyMeta :: Maybe Metadata -> Doc
 prettyMeta (Just (Metadata m)) = prettyText m
 prettyMeta Nothing             = Leijen.text "<none>"
 
+printPlain :: DisplayEntry -> Doc
+printPlain entry = prettyPlaintext (_displayPlaintext entry)
+
 printOne :: DisplayEntry -> Doc
 printOne entry =
   prettyDescription (_displayDescription entry) <+>
@@ -60,7 +63,7 @@ printOneVerbose entry =
 
 prettyResponse :: Command -> Response -> Doc
 prettyResponse _ (SingleEntry de Normal) =
-  printOne de <> Leijen.linebreak
+  printPlain de <> Leijen.linebreak
 prettyResponse _ (SingleEntry de Verbose) =
   printOneVerbose de <> Leijen.linebreak
 prettyResponse _ (MultipleEntries [] _) =
@@ -84,7 +87,7 @@ prettyResponse _ CheckedForMultipleKeys =
 
 ansiPrettyResponse :: Command -> Response -> Doc
 ansiPrettyResponse _ (SingleEntry de Normal) =
-  printOne de <> Leijen.linebreak
+  printPlain de <> Leijen.linebreak
 ansiPrettyResponse _ (SingleEntry de Verbose) =
   printOneVerbose de <> Leijen.linebreak
 ansiPrettyResponse _ (MultipleEntries [] _) =

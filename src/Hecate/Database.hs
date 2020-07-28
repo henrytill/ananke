@@ -107,7 +107,7 @@ descriptionMatcher :: Description -> (SQLite.Query, [SQLite.NamedParam])
 identityMatcher    :: Identity    -> (SQLite.Query, [SQLite.NamedParam])
 metadataMatcher    :: Metadata    -> (SQLite.Query, [SQLite.NamedParam])
 idMatcher          i               = ("id = :id",                      [":id"          := unId i])
-descriptionMatcher (Description d) = ("description LIKE :description", [":description" := d])
+descriptionMatcher (Description d) = ("description LIKE :description", [":description" := "%" <> d <> "%"])
 identityMatcher    (Identity i)    = ("identity LIKE :identity",       [":identity"    := i])
 metadataMatcher    (Metadata m)    = ("meta LIKE :meta",               [":meta"        := m])
 

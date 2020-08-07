@@ -25,9 +25,7 @@ instance Show ByteString64 where
   show (ByteString64 bs) = T.unpack (toBase64 bs)
 
 instance ToField ByteString64 where
-  toField (ByteString64 bs) =
-    toField (toBase64 bs)
+  toField (ByteString64 bs) = toField (toBase64 bs)
 
 instance FromField ByteString64 where
-  fromField f =
-    fromField f >>= either fail (pure . ByteString64) . Base64.decode . encodeUtf8
+  fromField f = fromField f >>= either fail (pure . ByteString64) . Base64.decode . encodeUtf8

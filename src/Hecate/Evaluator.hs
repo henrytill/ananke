@@ -12,15 +12,16 @@ module Hecate.Evaluator
   , setup
   ) where
 
-import qualified Data.Aeson        as Aeson
-import qualified Data.Char         as Char
-import qualified Data.Csv          as CSV
-import qualified Data.Text         as T
-import qualified Data.Vector       as Vector
+import qualified Data.Aeson.Encode.Pretty as Aeson
+import qualified Data.Char                as Char
+import qualified Data.Csv                 as CSV
+import qualified Data.List                as List
+import qualified Data.Text                as T
+import qualified Data.Vector              as Vector
 import           Lens.Family2
 
-import           Hecate.Data       hiding (query)
-import qualified Hecate.Data       as Data
+import           Hecate.Data              hiding (query)
+import qualified Hecate.Data              as Data
 import           Hecate.Interfaces
 
 
@@ -220,7 +221,8 @@ exportJSON
   -> m ()
 exportJSON jsonFile entries = writeFileFromLazyByteString jsonFile json
   where
-    json = Aeson.encode entries
+    cfg  = Aeson.defConfig{Aeson.confCompare = Aeson.keyOrder entryKeyOrder}
+    json = Aeson.encodePretty' cfg (List.sort entries)
 
 createEntryWrapper
   :: (MonadEncrypt m, MonadInteraction m, MonadConfigReader m)

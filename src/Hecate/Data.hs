@@ -1,4 +1,5 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Hecate.Data
   ( -- * Configuration
@@ -28,6 +29,7 @@ module Hecate.Data
   , _entryIdentity
   , _entryCiphertext
   , _entryMeta
+  , entryKeyOrder
   , createEntry
     -- ** Their constituents
   , Id
@@ -53,13 +55,14 @@ module Hecate.Data
   , unCount
   ) where
 
-import           Data.Aeson                       (FromJSON, ToJSON)
+import           Data.Aeson                       (FromJSON (..), ToJSON (..))
 import qualified Data.ByteString                  as BS
 import qualified Data.ByteString.Lazy             as BSL
 import           Data.ByteString64                (ByteString64 (..))
 import qualified Data.Csv                         as CSV
 import qualified Data.Digest.Pure.SHA             as SHA
 import           Data.Monoid                      (First)
+import qualified Data.Ord                         as Ord
 import qualified Data.Semigroup                   as Sem
 import qualified Data.Text                        as T
 import qualified Data.Text.Encoding               as Encoding
@@ -167,14 +170,16 @@ entryToDisplayEntry decrypt e
 
 -- | A 'KeyId' represents a GPG Key Id
 newtype KeyId = KeyId { unKeyId :: T.Text }
-  deriving (Eq, Generic)
+  deriving (Eq, Ord, Generic)
 
 instance Show KeyId where
   show (KeyId a) = show a
 
 instance ToJSON KeyId where
+  toJSON = toJSON . unKeyId
 
 instance FromJSON KeyId where
+  parseJSON = fmap KeyId . parseJSON
 
 instance ToField KeyId where
   toField (KeyId bs) = toField bs
@@ -199,7 +204,7 @@ instance CSV.FromField Plaintext where
 
 -- | A 'Ciphertext' represents an encrypted value
 newtype Ciphertext = Ciphertext ByteString64
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Ord, Generic)
 
 mkCiphertext :: BS.ByteString -> Ciphertext
 mkCiphertext = Ciphertext . ByteString64
@@ -231,6 +236,29 @@ data Entry = Entry
   , _entryCiphertext  :: Ciphertext
   , _entryMeta        :: Maybe Metadata
   } deriving (Show, Eq, Generic)
+
+entryKeyOrder :: [T.Text]
+entryKeyOrder =
+  [ "_entryTimestamp"
+  , "_entryId"
+  , "_entryKeyId"
+  , "_entryDescription"
+  , "_entryIdentity"
+  , "_entryCiphertext"
+  , "_entryMeta"
+  ]
+
+entryOrdering :: Entry -> Entry -> Ordering
+entryOrdering x y | _entryTimestamp   x /= _entryTimestamp   y = Ord.comparing _entryTimestamp   x y
+                  | _entryId          x /= _entryId          y = Ord.comparing _entryId          x y
+                  | _entryKeyId       x /= _entryKeyId       y = Ord.comparing _entryKeyId       x y
+                  | _entryDescription x /= _entryDescription y = Ord.comparing _entryDescription x y
+                  | _entryIdentity    x /= _entryIdentity    y = Ord.comparing _entryIdentity    x y
+                  | _entryCiphertext  x /= _entryCiphertext  y = Ord.comparing _entryCiphertext  x y
+                  | otherwise                                  = Ord.comparing _entryMeta        x y
+
+instance Ord Entry where
+  compare = entryOrdering
 
 instance FromJSON Entry where
 
@@ -299,14 +327,16 @@ updateEntry keyId timestamp description identity ciphertext meta = do
 
 -- | A 'Id' identifies a given 'Entry'.
 newtype Id = Id { unId :: T.Text }
-  deriving (Eq, Generic)
+  deriving (Eq, Ord, Generic)
 
 instance Show Id where
   show (Id d) = show d
 
 instance ToJSON Id where
+  toJSON = toJSON . unId
 
 instance FromJSON Id where
+  parseJSON = fmap Id . parseJSON
 
 instance ToField Id where
   toField (Id bs) = toField bs
@@ -317,7 +347,7 @@ instance FromField Id where
 -- | A 'Description' identifies a given 'Entry'.  It could be a URI or a
 -- descriptive name.
 newtype Description = Description T.Text
-  deriving (Eq, Generic)
+  deriving (Eq, Ord, Generic)
 
 instance Show Description where
   show (Description d) = show d
@@ -341,7 +371,7 @@ instance CSV.FromField Description where
 -- | An 'Identity' represents an identifying value.  It could be the username in
 -- a username/password pair
 newtype Identity = Identity T.Text
-  deriving (Eq, Generic)
+  deriving (Eq, Ord, Generic)
 
 instance Show Identity where
   show (Identity i) = show i
@@ -365,7 +395,7 @@ instance CSV.FromField Identity where
 -- | A 'Metadata' value contains additional non-specific information for a given
 -- 'Entry'
 newtype Metadata = Metadata T.Text
-  deriving (Eq, Generic)
+  deriving (Eq, Ord, Generic)
 
 instance Show Metadata where
   show (Metadata m) = show m

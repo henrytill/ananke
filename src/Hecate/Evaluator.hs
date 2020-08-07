@@ -12,6 +12,7 @@ module Hecate.Evaluator
   , setup
   ) where
 
+import qualified Data.Aeson        as Aeson
 import qualified Data.Char         as Char
 import qualified Data.Csv          as CSV
 import qualified Data.Text         as T
@@ -46,6 +47,7 @@ data Command
            }
   | Import { _importFile :: FilePath }
   | Export { _exportFile :: FilePath }
+  | ExportJSON { _exportFile :: FilePath }
   | Modify { _modifyTarget     :: Target
            , _modifyCiphertext :: ModifyAction
            , _modifyIdentity   :: Maybe String
@@ -210,6 +212,15 @@ exportCSV csvFile entries = do
   csvEntries <- mapM (entryToCSVEntry decrypt) entries
   let csv = CSV.encode csvEntries
   writeFileFromLazyByteString csvFile csv
+
+exportJSON
+  :: (MonadInteraction m, MonadEncrypt m)
+  => FilePath
+  -> [Entry]
+  -> m ()
+exportJSON jsonFile entries = writeFileFromLazyByteString jsonFile json
+  where
+    json = Aeson.encode entries
 
 createEntryWrapper
   :: (MonadEncrypt m, MonadInteraction m, MonadConfigReader m)
@@ -449,6 +460,10 @@ eval Import{_importFile} =
 eval Export{_exportFile}  = do
   es  <- selectAll
   _   <- exportCSV _exportFile es
+  return Exported
+eval ExportJSON{_exportFile} = do
+  es  <- selectAll
+  _   <- exportJSON _exportFile es
   return Exported
 eval (Modify t c i m)     = modify t c i m
 eval (Redescribe t s)     = redescribe t s

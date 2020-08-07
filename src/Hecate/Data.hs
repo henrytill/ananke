@@ -53,6 +53,7 @@ module Hecate.Data
   , unCount
   ) where
 
+import           Data.Aeson                       (FromJSON, ToJSON)
 import qualified Data.ByteString                  as BS
 import qualified Data.ByteString.Lazy             as BSL
 import           Data.ByteString64                (ByteString64 (..))
@@ -166,10 +167,14 @@ entryToDisplayEntry decrypt e
 
 -- | A 'KeyId' represents a GPG Key Id
 newtype KeyId = KeyId { unKeyId :: T.Text }
-  deriving Eq
+  deriving (Eq, Generic)
 
 instance Show KeyId where
   show (KeyId a) = show a
+
+instance ToJSON KeyId where
+
+instance FromJSON KeyId where
 
 instance ToField KeyId where
   toField (KeyId bs) = toField bs
@@ -194,13 +199,17 @@ instance CSV.FromField Plaintext where
 
 -- | A 'Ciphertext' represents an encrypted value
 newtype Ciphertext = Ciphertext ByteString64
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
 
 mkCiphertext :: BS.ByteString -> Ciphertext
 mkCiphertext = Ciphertext . ByteString64
 
 unCiphertext :: Ciphertext -> BS.ByteString
 unCiphertext (Ciphertext bs64) = unByteString64 bs64
+
+instance ToJSON Ciphertext where
+
+instance FromJSON Ciphertext where
 
 instance ToField Ciphertext where
   toField (Ciphertext bs) = toField bs
@@ -221,7 +230,11 @@ data Entry = Entry
   , _entryIdentity    :: Maybe Identity
   , _entryCiphertext  :: Ciphertext
   , _entryMeta        :: Maybe Metadata
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
+
+instance FromJSON Entry where
+
+instance ToJSON Entry where
 
 instance SQLite.FromRow Entry where
   fromRow = Entry <$> SQLite.field
@@ -286,10 +299,14 @@ updateEntry keyId timestamp description identity ciphertext meta = do
 
 -- | A 'Id' identifies a given 'Entry'.
 newtype Id = Id { unId :: T.Text }
-  deriving Eq
+  deriving (Eq, Generic)
 
 instance Show Id where
   show (Id d) = show d
+
+instance ToJSON Id where
+
+instance FromJSON Id where
 
 instance ToField Id where
   toField (Id bs) = toField bs
@@ -300,10 +317,14 @@ instance FromField Id where
 -- | A 'Description' identifies a given 'Entry'.  It could be a URI or a
 -- descriptive name.
 newtype Description = Description T.Text
-  deriving Eq
+  deriving (Eq, Generic)
 
 instance Show Description where
   show (Description d) = show d
+
+instance ToJSON Description where
+
+instance FromJSON Description where
 
 instance ToField Description where
   toField (Description bs) = toField bs
@@ -320,10 +341,14 @@ instance CSV.FromField Description where
 -- | An 'Identity' represents an identifying value.  It could be the username in
 -- a username/password pair
 newtype Identity = Identity T.Text
-  deriving Eq
+  deriving (Eq, Generic)
 
 instance Show Identity where
   show (Identity i) = show i
+
+instance ToJSON Identity where
+
+instance FromJSON Identity where
 
 instance ToField Identity where
   toField (Identity bs) = toField bs
@@ -340,10 +365,14 @@ instance CSV.FromField Identity where
 -- | A 'Metadata' value contains additional non-specific information for a given
 -- 'Entry'
 newtype Metadata = Metadata T.Text
-  deriving Eq
+  deriving (Eq, Generic)
 
 instance Show Metadata where
   show (Metadata m) = show m
+
+instance ToJSON Metadata where
+
+instance FromJSON Metadata where
 
 instance ToField Metadata where
   toField (Metadata bs) = toField bs

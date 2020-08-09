@@ -29,6 +29,13 @@ module Hecate.Data
   , _entryIdentity
   , _entryCiphertext
   , _entryMeta
+  , entryId
+  , entryKeyId
+  , entryTimestamp
+  , entryDescription
+  , entryIdentity
+  , entryCiphertext
+  , entryMeta
   , entryKeyOrder
   , createEntry
     -- ** Their constituents
@@ -72,6 +79,8 @@ import qualified Database.SQLite.Simple           as SQLite
 import           Database.SQLite.Simple.FromField (FromField (..))
 import           Database.SQLite.Simple.ToField   (ToField (..))
 import           GHC.Generics                     (Generic)
+import           Lens.Family2                     (Lens')
+import           Lens.Family2.Unchecked           (lens)
 
 
 -- * Configuration
@@ -236,6 +245,28 @@ data Entry = Entry
   , _entryCiphertext  :: Ciphertext
   , _entryMeta        :: Maybe Metadata
   } deriving (Show, Eq, Generic)
+
+entryId          :: Lens' Entry Id
+entryKeyId       :: Lens' Entry KeyId
+entryTimestamp   :: Lens' Entry UTCTime
+entryDescription :: Lens' Entry Description
+entryIdentity    :: Lens' Entry (Maybe Identity)
+entryCiphertext  :: Lens' Entry Ciphertext
+entryMeta        :: Lens' Entry (Maybe Metadata)
+entryId          = lens _entryId          (\ e v -> e{_entryId          = v})
+entryKeyId       = lens _entryKeyId       (\ e v -> e{_entryKeyId       = v})
+entryTimestamp   = lens _entryTimestamp   (\ e v -> e{_entryTimestamp   = v})
+entryDescription = lens _entryDescription (\ e v -> e{_entryDescription = v})
+entryIdentity    = lens _entryIdentity    (\ e v -> e{_entryIdentity    = v})
+entryCiphertext  = lens _entryCiphertext  (\ e v -> e{_entryCiphertext  = v})
+entryMeta        = lens _entryMeta        (\ e v -> e{_entryMeta        = v})
+{-# INLINE entryId          #-}
+{-# INLINE entryKeyId       #-}
+{-# INLINE entryTimestamp   #-}
+{-# INLINE entryDescription #-}
+{-# INLINE entryIdentity    #-}
+{-# INLINE entryCiphertext  #-}
+{-# INLINE entryMeta        #-}
 
 entryKeyOrder :: [T.Text]
 entryKeyOrder =

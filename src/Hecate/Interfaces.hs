@@ -1,6 +1,9 @@
+{-# OPTIONS -Wno-unused-top-binds #-}
+
 module Hecate.Interfaces
   ( HasConfig(..)
   , HasAppContext(..)
+  , HasAppState(..)
   , MonadConfigReader(..)
   , MonadStore(..)
   , MonadEncrypt(..)
@@ -10,6 +13,7 @@ module Hecate.Interfaces
 
 import           Control.Monad.Catch    (MonadThrow (..))
 import           Control.Monad.Reader   (ReaderT)
+import           Control.Monad.State    (StateT)
 import           Control.Monad.Trans    (lift)
 import qualified Data.ByteString.Lazy   as BSL
 import qualified Data.Text              as T
@@ -24,6 +28,8 @@ import qualified System.Environment     as Env
 import qualified System.IO              as IO
 import           TOML                   (TOMLError)
 
+import           Hecate.AppState        (AppState, EntriesMap)
+import qualified Hecate.AppState        as AppState
 import           Hecate.Data
 import           Hecate.Error           (AppError (..))
 import qualified Hecate.GPG             as GPG
@@ -70,6 +76,16 @@ instance HasAppContext AppContext where
   appContextConfig     = config
   appContextConnection = lens _appContextConnection (\ a conn -> a{_appContextConnection = conn})
 
+class HasAppState t where
+  appState      :: Lens' t AppState
+  appStateDirty :: Lens' t Bool
+  appStateData  :: Lens' t EntriesMap
+
+instance HasAppState AppState where
+  appState      = id
+  appStateDirty = AppState.appStateDirty
+  appStateData  = AppState.appStateData
+
 -- * MonadConfigReaer
 
 class Monad m => MonadConfigReader m where
@@ -99,6 +115,10 @@ instance MonadEncrypt IO where
   decrypt = GPG.decrypt
 
 instance MonadEncrypt m => MonadEncrypt (ReaderT r m) where
+  encrypt kid pt = lift (encrypt kid pt)
+  decrypt     ct = lift (decrypt ct)
+
+instance MonadEncrypt m => MonadEncrypt (StateT s m) where
   encrypt kid pt = lift (encrypt kid pt)
   decrypt     ct = lift (decrypt ct)
 
@@ -152,6 +172,22 @@ instance MonadInteraction m => MonadInteraction (ReaderT r m)  where
   message                          = lift . message
   prompt                           = lift . prompt
 
+instance MonadInteraction m => MonadInteraction (StateT s m)  where
+  now                              = lift now
+  doesFileExist                    = lift . doesFileExist
+  doesDirectoryExist               = lift . doesDirectoryExist
+  createDirectory                  = lift . createDirectory
+  openSQLiteFile                   = lift . openSQLiteFile
+  closeSQLiteConnection            = lift . closeSQLiteConnection
+  readFileAsString                 = lift . readFileAsString
+  readFileAsText                   = lift . readFileAsText
+  readFileAsLazyByteString         = lift . readFileAsLazyByteString
+  writeFileFromString fp s         = lift (writeFileFromString fp s)
+  writeFileFromLazyByteString fp s = lift (writeFileFromLazyByteString fp s)
+  getEnv                           = lift . getEnv
+  message                          = lift . message
+  prompt                           = lift . prompt
+
 -- * MonadAppError
 
 class Monad m => MonadAppError m where
@@ -177,6 +213,17 @@ instance MonadAppError IO where
   defaultError        = throwM . Default
 
 instance MonadAppError m => MonadAppError (ReaderT r m) where
+  csvDecodingError    = lift . csvDecodingError
+  tomlError           = lift . tomlError
+  configurationError  = lift . configurationError
+  gpgError            = lift . gpgError
+  databaseError       = lift . databaseError
+  fileSystemError     = lift . fileSystemError
+  ambiguousInputError = lift . ambiguousInputError
+  migrationError      = lift . migrationError
+  defaultError        = lift . defaultError
+
+instance MonadAppError m => MonadAppError (StateT s m) where
   csvDecodingError    = lift . csvDecodingError
   tomlError           = lift . tomlError
   configurationError  = lift . configurationError

@@ -51,6 +51,7 @@
 # - ignore: {name: Use let}
 # - ignore: {name: Use const, within: SpecialModule} # Only within certain modules
 - ignore: {name: Avoid lambda}
+- ignore: {name: "Use ?~"}
 
 
 # Define some custom infix operators

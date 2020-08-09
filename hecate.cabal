@@ -51,6 +51,8 @@ executable hecate
 
 library
   exposed-modules:     Hecate.AppM
+                     , Hecate.AppState
+                     , Hecate.AppStateM
                      , Hecate.Configuration
                      , Hecate.Data
                      , Hecate.Database
@@ -68,6 +70,7 @@ library
                      , base64-bytestring    >=1.0    && <1.2
                      , bytestring           >=0.10   && <0.11
                      , cassava              >=0.4.5  && <0.6
+                     , containers           >=0.6    && <0.7
                      , directory            >=1.2    && <1.4
                      , exceptions           >=0.8    && <0.11
                      , filepath             >=1.4    && <1.5

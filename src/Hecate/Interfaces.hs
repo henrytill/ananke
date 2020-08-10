@@ -9,8 +9,7 @@ module Hecate.Interfaces
   ) where
 
 import           Control.Monad.Catch    (MonadThrow (..))
-import           Control.Monad.IO.Class (MonadIO (..))
-import           Control.Monad.Reader   (MonadReader (..), ReaderT, asks)
+import           Control.Monad.Reader   (ReaderT)
 import           Control.Monad.Trans    (lift)
 import qualified Data.ByteString.Lazy   as BSL
 import qualified Data.Text              as T
@@ -26,7 +25,6 @@ import qualified System.IO              as IO
 import           TOML                   (TOMLError)
 
 import           Hecate.Data
-import qualified Hecate.Database        as DB
 import           Hecate.Error           (AppError (..))
 import qualified Hecate.GPG             as GPG
 
@@ -77,9 +75,6 @@ instance HasAppContext AppContext where
 class Monad m => MonadConfigReader m where
   askConfig :: m Config
 
-instance (Monad m, HasAppContext r) => MonadConfigReader (ReaderT r m) where
-  askConfig = asks (view appContextConfig)
-
 -- * MonadStore
 
 class Monad m => MonadStore m where
@@ -92,23 +87,6 @@ class Monad m => MonadStore m where
   createTable          :: m ()
   migrate              :: SchemaVersion -> KeyId -> m ()
   currentSchemaVersion :: m SchemaVersion
-
-withConnection
-  :: (MonadReader r m, HasAppContext r)
-  => (SQLite.Connection -> m a)
-  -> m a
-withConnection f = ask >>= \ ctx -> f (ctx ^. appContextConnection)
-
-instance (MonadThrow m, MonadIO m, HasAppContext r) => MonadStore (ReaderT r m) where
-  put             e       = withConnection (\ conn -> DB.put             conn e)
-  delete          e       = withConnection (\ conn -> DB.delete          conn e)
-  query           q       = withConnection (\ conn -> DB.query           conn q)
-  selectAll               = withConnection (\ conn -> DB.selectAll       conn)
-  getCount                = withConnection (\ conn -> DB.getCount        conn)
-  getCountOfKeyId kid     = withConnection (\ conn -> DB.getCountOfKeyId conn kid)
-  createTable             = withConnection (\ conn -> DB.createTable     conn)
-  migrate         sv  kid = withConnection (\ conn -> DB.migrate         conn sv kid)
-  currentSchemaVersion    = pure DB.currentSchemaVersion
 
 -- * MonadEncrypt
 

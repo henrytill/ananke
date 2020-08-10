@@ -18,7 +18,7 @@ import qualified Test.QuickCheck         as QuickCheck
 import qualified Test.QuickCheck.Monadic as Monadic
 import qualified Text.Printf             as Printf
 
-import qualified Hecate.Carriers         as Carriers
+import qualified Hecate.AppM             as AppM
 import qualified Hecate.Configuration    as Configuration
 import           Hecate.Data
 import qualified Hecate.Evaluator        as Evaluator
@@ -89,8 +89,8 @@ entriesHaveSameContent e1 e2 = do
 prop_roundTripEntriesToDatabase :: AppContext -> Property
 prop_roundTripEntriesToDatabase ctx = Monadic.monadicIO $ do
   tds <- Monadic.pick (QuickCheck.listOf1 arbitrary)
-  es  <- Monadic.run (Carriers.runAppM (addEntryToDatabase tds) ctx)
-  res <- Monadic.run (Carriers.runAppM selectAll ctx)
+  es  <- Monadic.run (AppM.runAppM (addEntryToDatabase tds) ctx)
+  res <- Monadic.run (AppM.runAppM selectAll ctx)
   Monadic.assert (null (es \\ res))
 
 prop_roundTripEntriesToCSV :: AppContext -> Property
@@ -98,9 +98,9 @@ prop_roundTripEntriesToCSV ctx = Monadic.monadicIO $ do
   tds  <- Monadic.pick (QuickCheck.listOf1 (QuickCheck.suchThat arbitrary isNotEmpty))
   x    <- Monadic.pick (QuickCheck.suchThat arbitrary (> 0))
   let file = createFilePath ctx x
-  es   <- Monadic.run (Carriers.runAppM (mapM createEntryFromTestData tds) ctx)
+  es   <- Monadic.run (AppM.runAppM (mapM createEntryFromTestData tds) ctx)
   _    <- Monadic.run (Evaluator.exportCSV file es)
-  ies  <- Monadic.run (Carriers.runAppM (Evaluator.importCSV file) ctx)
+  ies  <- Monadic.run (AppM.runAppM (Evaluator.importCSV file) ctx)
   bs   <- Monadic.run (Monad.zipWithM entriesHaveSameContent es ies)
   Monadic.assert (and bs)
 
@@ -118,7 +118,7 @@ doProperties = do
   let preConfig = PreConfig (First (Just dir)) mempty mempty
   _          <- Directory.copyFile "./example/hecate.toml" (dir ++ "/hecate.toml")
   ctx        <- Configuration.configureWith preConfig >>= Configuration.createContext
-  _          <- Carriers.runAppM Evaluator.setup ctx
+  _          <- AppM.runAppM Evaluator.setup ctx
   results    <- mapM (\ p -> QuickCheck.quickCheckWithResult QuickCheck.stdArgs (p ctx)) tests
   _          <- close (ctx ^. appContextConnection)
   return results

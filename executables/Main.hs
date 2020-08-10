@@ -9,7 +9,7 @@ import qualified System.IO                    as IO
 import           Text.PrettyPrint.ANSI.Leijen (Doc)
 import qualified Text.PrettyPrint.ANSI.Leijen as Leijen
 
-import qualified Hecate.Carriers              as Carriers
+import qualified Hecate.AppM                  as AppM
 import qualified Hecate.Configuration         as Configuration
 import           Hecate.Data                  (AppContext)
 import           Hecate.Error                 (AppError)
@@ -39,7 +39,7 @@ resultHandler command res = do
 runApp :: AppContext -> IO ExitCode
 runApp ctx = do
   command <- Parser.runCLIParser
-  Exception.catch (Carriers.runAppM (Evaluator.setup >> Evaluator.eval command) ctx >>= resultHandler command)
+  Exception.catch (AppM.runAppM (Evaluator.setup >> Evaluator.eval command) ctx >>= resultHandler command)
                   (exceptionHandler command)
 
 main :: IO ()

@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Hecate.Carriers
+module Hecate.AppM
   ( AppM
   , runAppM
   ) where

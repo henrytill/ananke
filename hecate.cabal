@@ -50,7 +50,7 @@ executable hecate
   ghc-options:         -Wall
 
 library
-  exposed-modules:     Hecate.Carriers
+  exposed-modules:     Hecate.AppM
                      , Hecate.Configuration
                      , Hecate.Data
                      , Hecate.Database

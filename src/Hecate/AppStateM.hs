@@ -12,9 +12,9 @@ import           Control.Monad.State    (MonadState, StateT, runStateT)
 import           Lens.Family2           (view)
 import           Lens.Family2.State     (uses, (%=))
 
-import           Hecate.AppState        (AppState)
+import           Hecate.AppState        (AppState, HasAppState (..))
 import qualified Hecate.AppState        as AppState
-import           Hecate.Data            (Config (..), SchemaVersion (..))
+import           Hecate.Data            (Config (..), HasConfig (..), SchemaVersion (..))
 import           Hecate.Interfaces
 
 

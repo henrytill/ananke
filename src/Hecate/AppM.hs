@@ -11,7 +11,7 @@ import           Control.Monad.Reader   (MonadReader, ReaderT, ask, asks, runRea
 import qualified Database.SQLite.Simple as SQLite
 import           Lens.Family2           (view)
 
-import           Hecate.Data            (AppContext)
+import           Hecate.Data            (AppContext, HasAppContext (..))
 import qualified Hecate.Database        as DB
 import           Hecate.Interfaces
 

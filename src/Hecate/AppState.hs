@@ -1,8 +1,7 @@
 module Hecate.AppState
   ( EntriesMap
   , AppState
-  , appStateDirty
-  , appStateData
+  , HasAppState (..)
   , mkAppState
   , mark
   , put
@@ -29,12 +28,19 @@ data AppState = AppState
   , _appStateData  :: EntriesMap
   } deriving (Show, Eq)
 
-appStateDirty :: Lens' AppState Bool
-appStateData  :: Lens' AppState EntriesMap
-appStateDirty = lens _appStateDirty (\ s v -> s{_appStateDirty = v})
-appStateData  = lens _appStateData  (\ s v -> s{_appStateData  = v})
-{-# INLINE appStateDirty #-}
-{-# INLINE appStateData  #-}
+class HasAppState t where
+  appState      :: Lens' t AppState
+  appStateDirty :: Lens' t Bool
+  appStateData  :: Lens' t EntriesMap
+  appStateDirty = appState . appStateDirty
+  appStateData  = appState . appStateData
+
+instance HasAppState AppState where
+  appState      = id
+  appStateDirty = lens _appStateDirty (\ s v -> s{_appStateDirty = v})
+  appStateData  = lens _appStateData  (\ s v -> s{_appStateData  = v})
+  {-# INLINE appStateDirty #-}
+  {-# INLINE appStateData  #-}
 
 mkAppState :: [Entry] -> AppState
 mkAppState entries = AppState

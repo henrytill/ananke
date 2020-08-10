@@ -5,7 +5,9 @@ module Hecate.Data
   ( -- * Configuration
     PreConfig(..)
   , Config(..)
+  , HasConfig(..)
   , AppContext(..)
+  , HasAppContext(..)
   , SchemaVersion(..)
     -- * Import & Display Entries
   , CSVEntry
@@ -79,7 +81,7 @@ import qualified Database.SQLite.Simple           as SQLite
 import           Database.SQLite.Simple.FromField (FromField (..))
 import           Database.SQLite.Simple.ToField   (ToField (..))
 import           GHC.Generics                     (Generic)
-import           Lens.Family2                     (Lens')
+import           Lens.Family2                     (Getter', Lens', to)
 import           Lens.Family2.Unchecked           (lens)
 
 
@@ -111,12 +113,70 @@ data Config = Config
   , _configAllowMultipleKeys :: Bool
   } deriving (Show, Eq)
 
+class HasConfig t where
+  config                  :: Lens' t Config
+  configDataDirectory     :: Lens' t FilePath
+  configKeyId             :: Lens' t KeyId
+  configAllowMultipleKeys :: Lens' t Bool
+  configDatabaseDirectory :: Getter' t FilePath
+  configSchemaFile        :: Getter' t FilePath
+  configDatabaseFile      :: Getter' t FilePath
+  configDataDirectory     = config . configDataDirectory
+  configKeyId             = config . configKeyId
+  configAllowMultipleKeys = config . configAllowMultipleKeys
+  configDatabaseDirectory = config . configDatabaseDirectory
+  configSchemaFile        = config . configSchemaFile
+  configDatabaseFile      = config . configDatabaseFile
+  {-# INLINE configDataDirectory     #-}
+  {-# INLINE configKeyId             #-}
+  {-# INLINE configAllowMultipleKeys #-}
+  {-# INLINE configDatabaseDirectory #-}
+  {-# INLINE configSchemaFile        #-}
+  {-# INLINE configDatabaseFile      #-}
+
+instance HasConfig Config where
+  config                  = id
+  configDataDirectory     = lens _configDataDirectory     (\ c v -> c{_configDataDirectory     = v})
+  configKeyId             = lens _configKeyId             (\ c v -> c{_configKeyId             = v})
+  configAllowMultipleKeys = lens _configAllowMultipleKeys (\ c v -> c{_configAllowMultipleKeys = v})
+  configDatabaseDirectory = configDataDirectory     . to (++ "/db")
+  configSchemaFile        = configDatabaseDirectory . to (++ "/schema")
+  configDatabaseFile      = configDatabaseDirectory . to (++ "/db.sqlite")
+  {-# INLINE config                  #-}
+  {-# INLINE configDataDirectory     #-}
+  {-# INLINE configKeyId             #-}
+  {-# INLINE configAllowMultipleKeys #-}
+  {-# INLINE configDatabaseDirectory #-}
+  {-# INLINE configSchemaFile        #-}
+  {-# INLINE configDatabaseFile      #-}
+
 -- | 'AppContext' represents the shared environment for computations which occur
 -- within our application.  Values of this type are created by 'createContext'.
 data AppContext = AppContext
   { _appContextConfig     :: Config
   , _appContextConnection :: SQLite.Connection
   }
+
+instance HasConfig AppContext where
+  config = lens _appContextConfig (\ a v -> a{_appContextConfig = v})
+  {-# INLINE config #-}
+
+class HasConfig t => HasAppContext t where
+  appContext           :: Lens' t AppContext
+  appContextConfig     :: Lens' t Config
+  appContextConnection :: Lens' t SQLite.Connection
+  appContextConfig     = appContext . appContextConfig
+  appContextConnection = appContext . appContextConnection
+  {-# INLINE appContextConfig     #-}
+  {-# INLINE appContextConnection #-}
+
+instance HasAppContext AppContext where
+  appContext           = id
+  appContextConfig     = config
+  appContextConnection = lens _appContextConnection (\ a v -> a{_appContextConnection = v})
+  {-# INLINE appContext           #-}
+  {-# INLINE appContextConfig     #-}
+  {-# INLINE appContextConnection #-}
 
 -- | A 'SchemaVersion' represents the database's schema version
 newtype SchemaVersion = SchemaVersion { unSchemaVersion :: Int }

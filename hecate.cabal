@@ -63,6 +63,7 @@ library
                      , Hecate.Parser
                      , Hecate.Printing
                      , Data.ByteString64
+                     , Data.Multimap
   build-depends:       base                 >=4.8    && <5
                      , aeson                >=1.5    && <1.6
                      , aeson-pretty         >=0.8.7  && <0.9

@@ -95,9 +95,12 @@ library
 test-suite tests
   type:                exitcode-stdio-1.0
   main-is:             Main.hs
-  other-modules:       Hecate.Orphans
+  other-modules:       Data.Multimap.Tests
+                     , Hecate.Orphans
                      , Hecate.Properties
   build-depends:       base            >=4.8    && <5
+                     , containers      >=0.6    && <0.7
+                     , dwergaz         >=0.2    && <0.3
                      , QuickCheck      >=2.8    && <2.15
                      , directory       >=1.2    && <1.4
                      , exceptions      >=0.8    && <0.11

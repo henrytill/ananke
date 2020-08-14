@@ -9,9 +9,15 @@ module Data.Multimap
   , fromList
   , elems
   , size
+  , foldr
+  , foldl
+  , foldrWithKey
+  , foldlWithKey
+  , foldMapWithKey
   ) where
 
-import           Prelude    hiding (lookup, null)
+import           Prelude    hiding (foldl, foldr, lookup, null)
+import qualified Prelude
 
 import           Data.Map   (Map)
 import qualified Data.Map   as Map
@@ -56,7 +62,7 @@ lookup :: Ord k => k -> Multimap k v -> Set v
 lookup k (Multimap m) = Maybe.fromMaybe Set.empty (Map.lookup k m)
 
 fromList :: (Ord k, Ord v) => [(k, v)] -> Multimap k v
-fromList = foldr f empty
+fromList = Prelude.foldr f empty
   where
     f (k, v) = insert k v
 
@@ -65,3 +71,18 @@ elems (Multimap m) = Map.elems m >>= Set.elems
 
 size :: Multimap k v -> Int
 size = length . elems
+
+foldr :: (Set a -> b -> b) -> b -> Multimap k a -> b
+foldr f b (Multimap m) = Map.foldr f b m
+
+foldl :: (a -> Set b -> a) -> a -> Multimap k b -> a
+foldl f a (Multimap m) = Map.foldl f a m
+
+foldrWithKey :: (k -> Set a -> b -> b) -> b -> Multimap k a -> b
+foldrWithKey f b (Multimap m) = Map.foldrWithKey f b m
+
+foldlWithKey :: (a -> k -> Set b -> a) -> a -> Multimap k b -> a
+foldlWithKey f a (Multimap m) = Map.foldlWithKey f a m
+
+foldMapWithKey :: Monoid m => (k -> Set a -> m) -> Multimap k a -> m
+foldMapWithKey f (Multimap m) = Map.foldMapWithKey f m

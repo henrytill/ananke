@@ -8,6 +8,7 @@ module Data.Multimap
   , lookup
   , fromList
   , elems
+  , size
   ) where
 
 import           Prelude    hiding (lookup, null)
@@ -61,3 +62,6 @@ fromList = foldr f empty
 
 elems :: Multimap k v -> [v]
 elems (Multimap m) = Map.elems m >>= Set.elems
+
+size :: Multimap k v -> Int
+size = length . elems

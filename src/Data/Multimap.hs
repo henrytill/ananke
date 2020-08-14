@@ -46,14 +46,11 @@ deleteAll :: Ord k => k -> Multimap k v -> Multimap k v
 deleteAll k (Multimap m) = Multimap $ Map.delete k m
 
 deleter :: Ord v => v -> Maybe (Set v) -> Maybe (Set v)
-deleter _ Nothing  = Nothing
-deleter v (Just s) =
-  let
+deleter _ Nothing                     = Nothing
+deleter v (Just s) | Set.null updated = Nothing
+                   | otherwise        = Just updated
+  where
     updated = Set.delete v s
-  in
-    if Set.null updated
-    then Nothing
-    else Just updated
 
 delete :: (Ord k, Ord v) => k -> v -> Multimap k v -> Multimap k v
 delete k v (Multimap m) = Multimap $ Map.alter (deleter v) k m

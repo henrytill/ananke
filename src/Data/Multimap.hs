@@ -12,12 +12,14 @@ module Data.Multimap
 
 import           Prelude    hiding (lookup, null)
 
+import           Data.Map   (Map)
 import qualified Data.Map   as Map
 import qualified Data.Maybe as Maybe
+import           Data.Set   (Set)
 import qualified Data.Set   as Set
 
 
-newtype Multimap k v = Multimap { unMultimap :: Map.Map k (Set.Set v) }
+newtype Multimap k v = Multimap { unMultimap :: Map k (Set v) }
   deriving (Eq, Ord, Show)
 
 empty :: Multimap k v
@@ -26,7 +28,7 @@ empty = Multimap Map.empty
 null :: Multimap k v -> Bool
 null (Multimap m) = Map.null m
 
-inserter :: Ord v => v -> Maybe (Set.Set v) -> Maybe (Set.Set v)
+inserter :: Ord v => v -> Maybe (Set v) -> Maybe (Set v)
 inserter v Nothing  = Just (Set.singleton v)
 inserter v (Just s) = Just (Set.insert v s)
 
@@ -36,7 +38,7 @@ insert k v (Multimap m) = Multimap $ Map.alter (inserter v) k m
 deleteAll :: Ord k => k -> Multimap k v -> Multimap k v
 deleteAll k (Multimap m) = Multimap $ Map.delete k m
 
-deleter :: Ord v => v -> Maybe (Set.Set v) -> Maybe (Set.Set v)
+deleter :: Ord v => v -> Maybe (Set v) -> Maybe (Set v)
 deleter _ Nothing  = Nothing
 deleter v (Just s) =
   let
@@ -49,7 +51,7 @@ deleter v (Just s) =
 delete :: (Ord k, Ord v) => k -> v -> Multimap k v -> Multimap k v
 delete k v (Multimap m) = Multimap $ Map.alter (deleter v) k m
 
-lookup :: Ord k => k -> Multimap k v -> Set.Set v
+lookup :: Ord k => k -> Multimap k v -> Set v
 lookup k (Multimap m) = Maybe.fromMaybe Set.empty (Map.lookup k m)
 
 fromList :: (Ord k, Ord v) => [(k, v)] -> Multimap k v

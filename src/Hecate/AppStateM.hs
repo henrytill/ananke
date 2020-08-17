@@ -7,14 +7,12 @@ module Hecate.AppStateM
 
 import           Control.Monad.Catch    (MonadThrow (..))
 import           Control.Monad.IO.Class (MonadIO (..))
-import           Control.Monad.Reader   (MonadReader, ReaderT, asks, runReaderT)
-import           Control.Monad.State    (MonadState, StateT, runStateT)
-import           Lens.Family2           (view)
-import           Lens.Family2.State     (uses, (%=))
+import           Control.Monad.Reader   (MonadReader, ReaderT, ask, runReaderT)
+import           Control.Monad.State    (MonadState, StateT, gets, modify, runStateT)
 
-import           Hecate.AppState        (AppState, HasAppState (..))
+import           Hecate.AppState        (AppState)
 import qualified Hecate.AppState        as AppState
-import           Hecate.Data            (Config (..), HasConfig (..), SchemaVersion (..))
+import           Hecate.Data            (Config (..), SchemaVersion (..))
 import           Hecate.Interfaces
 
 
@@ -41,15 +39,15 @@ runAppStateM m state cfg = runStateT (runReaderT (unAppStateM m) cfg) state
 -- * Instances
 
 instance MonadConfigReader AppStateM where
-  askConfig = asks (view config)
+  askConfig = ask
 
 instance MonadStore AppStateM where
-  put             e     = appState %= AppState.put    e
-  delete          e     = appState %= AppState.delete e
-  query           q     = uses appState (AppState.query  q)
-  selectAll             = uses appState AppState.selectAll
-  getCount              = uses appState AppState.getCount
-  getCountOfKeyId kid   = uses appState (AppState.getCountOfKeyId kid)
+  put             e     = modify $ AppState.put    e
+  delete          e     = modify $ AppState.delete e
+  query           q     = gets (AppState.query  q)
+  selectAll             = gets AppState.selectAll
+  getCount              = gets AppState.getCount
+  getCountOfKeyId kid   = gets (AppState.getCountOfKeyId kid)
   createTable           = pure ()
   migrate         _   _ = pure ()
   currentSchemaVersion  = pure (SchemaVersion 2)

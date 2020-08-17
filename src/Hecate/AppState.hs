@@ -1,9 +1,10 @@
+{-# LANGUAGE NamedFieldPuns #-}
+
 module Hecate.AppState
   ( EntriesMap
   , AppState
   , HasAppState (..)
   , mkAppState
-  , mark
   , put
   , delete
   , query
@@ -12,16 +13,19 @@ module Hecate.AppState
   , getCountOfKeyId
   ) where
 
-import qualified Data.Map.Strict        as Map
+import qualified Data.Maybe             as Maybe
+import           Data.Multimap          (Multimap)
+import qualified Data.Multimap          as Multimap
+import           Data.Set               (Set)
+import qualified Data.Set               as Set
+import qualified Data.Text              as Text
 import           Lens.Family2
-import           Lens.Family2.Stock     (at)
 import           Lens.Family2.Unchecked (lens)
 
 import           Hecate.Data            hiding (query)
 
--- http://docs.ganeti.org/ganeti/2.12/api/hs/Ganeti/Lens.html
--- http://docs.ganeti.org/ganeti/2.12/api/hs/Ganeti/Utils/MultiMap.html
-type EntriesMap = Map.Map Description Entry
+
+type EntriesMap = Multimap Description Entry
 
 data AppState = AppState
   { _appStateDirty :: Bool
@@ -45,27 +49,50 @@ instance HasAppState AppState where
 mkAppState :: [Entry] -> AppState
 mkAppState entries = AppState
   { _appStateDirty = False
-  , _appStateData  = Map.fromList (tupler <$> entries)
+  , _appStateData  = Multimap.fromList (tupler <$> entries)
   }
   where
     tupler entry = (entry ^. entryDescription, entry)
 
-mark :: AppState -> AppState
-mark = appStateDirty .~ True
+update :: (EntriesMap -> EntriesMap) -> AppState -> AppState
+update f state = state{_appStateDirty = True, _appStateData = updated}
+  where
+    updated = f (_appStateData state)
 
 put    :: Entry -> AppState -> AppState
 delete :: Entry -> AppState -> AppState
-put    entry = mark . (appStateData . at (entry ^. entryDescription) .~ Just entry)
-delete entry = mark . (appStateData . at (entry ^. entryDescription) .~ Nothing)
+put    entry = update (Multimap.insert (_entryDescription entry) entry)
+delete entry = update (Multimap.delete (_entryDescription entry) entry)
+
+idenIsInfixOf :: Identity    -> Identity    -> Bool
+descIsInfixOf :: Description -> Description -> Bool
+idenIsInfixOf (Identity    needle) (Identity    haystack) = Text.isInfixOf needle haystack
+descIsInfixOf (Description needle) (Description haystack) = Text.isInfixOf needle haystack
+
+idenMatcher :: Maybe Identity    -> Maybe Identity -> Bool
+idenMatcher queryIden entryIden = Maybe.fromMaybe True (idenIsInfixOf <$> queryIden <*> entryIden)
+
+filterEntries :: (Maybe Identity -> Bool) -> Set Entry -> [Entry]
+filterEntries predicate = Set.foldr f []
+  where
+    f e acc | predicate (_entryIdentity e) = e : acc
+            | otherwise                    = acc
+
+queryFolder :: Query -> Description -> Set Entry -> [Entry] -> [Entry]
+queryFolder q d es acc | Just True <- descMatches = filterEntries idenMatches es ++ acc
+                       | otherwise                = acc
+  where
+    descMatches = descIsInfixOf <$> pure d <*> _queryDescription q
+    idenMatches = idenMatcher (_queryIdentity q)
 
 query :: Query -> AppState -> [Entry]
-query = undefined
+query q AppState{_appStateData} = Multimap.foldrWithKey (queryFolder q) [] _appStateData
 
 selectAll :: AppState -> [Entry]
-selectAll = views appStateData Map.elems
+selectAll = Multimap.elems . _appStateData
 
 getCount :: AppState -> Int
-getCount = views appStateData Map.size
+getCount = Multimap.size . _appStateData
 
 getCountOfKeyId :: KeyId -> AppState -> Int
 getCountOfKeyId = undefined

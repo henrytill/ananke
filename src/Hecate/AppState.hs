@@ -2,7 +2,7 @@
 
 module Hecate.AppState
   ( EntriesMap
-  , AppState
+  , AppState (..)
   , HasAppState (..)
   , mkAppState
   , put
@@ -82,7 +82,7 @@ queryFolder :: Query -> Description -> Set Entry -> [Entry] -> [Entry]
 queryFolder q d es acc | Just True <- descMatches = filterEntries idenMatches es ++ acc
                        | otherwise                = acc
   where
-    descMatches = descIsInfixOf <$> pure d <*> _queryDescription q
+    descMatches = descIsInfixOf <$> _queryDescription q <*> pure d
     idenMatches = idenMatcher (_queryIdentity q)
 
 query :: Query -> AppState -> [Entry]
@@ -95,4 +95,4 @@ getCount :: AppState -> Int
 getCount = Multimap.size . _appStateData
 
 getCountOfKeyId :: KeyId -> AppState -> Int
-getCountOfKeyId = undefined
+getCountOfKeyId keyid = length . filter (\ e -> _entryKeyId e == keyid) . selectAll

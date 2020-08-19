@@ -214,11 +214,7 @@ exportCSV csvFile entries = do
   let csv = CSV.encode csvEntries
   writeFileFromLazyByteString csvFile csv
 
-exportJSON
-  :: (MonadInteraction m, MonadEncrypt m)
-  => FilePath
-  -> [Entry]
-  -> m ()
+exportJSON :: (MonadInteraction m) => FilePath -> [Entry] -> m ()
 exportJSON jsonFile entries = writeFileFromLazyByteString jsonFile json
   where
     cfg  = Aeson.defConfig{Aeson.confCompare = Aeson.keyOrder entryKeyOrder}

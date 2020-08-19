@@ -49,6 +49,21 @@ executable hecate
   default-language:    Haskell2010
   ghc-options:         -Wall
 
+executable hecate-unstable
+  main-is:             MainState.hs
+  -- other-modules:
+  -- other-extensions:
+  build-depends:       base                 >=4.8    && <5
+                     , ansi-terminal        >=0.6.2  && <0.11
+                     , ansi-wl-pprint       >=0.6.7  && <0.7
+                     , directory            >=1.2    && <1.4
+                     , mtl                  >=2.2    && <2.3
+                     , transformers         >=0.5    && <0.6
+                     , hecate
+  hs-source-dirs:      executables
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
 library
   exposed-modules:     Hecate.AppM
                      , Hecate.AppState

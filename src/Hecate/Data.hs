@@ -27,6 +27,7 @@ module Hecate.Data
     -- * Entries
   , Entry
   , _entryId
+  , _entryKeyId
   , _entryDescription
   , _entryIdentity
   , _entryCiphertext
@@ -121,18 +122,21 @@ class HasConfig t where
   configDatabaseDirectory :: Getter' t FilePath
   configSchemaFile        :: Getter' t FilePath
   configDatabaseFile      :: Getter' t FilePath
+  configDataFile          :: Getter' t FilePath
   configDataDirectory     = config . configDataDirectory
   configKeyId             = config . configKeyId
   configAllowMultipleKeys = config . configAllowMultipleKeys
   configDatabaseDirectory = config . configDatabaseDirectory
   configSchemaFile        = config . configSchemaFile
   configDatabaseFile      = config . configDatabaseFile
+  configDataFile          = config . configDataFile
   {-# INLINE configDataDirectory     #-}
   {-# INLINE configKeyId             #-}
   {-# INLINE configAllowMultipleKeys #-}
   {-# INLINE configDatabaseDirectory #-}
   {-# INLINE configSchemaFile        #-}
   {-# INLINE configDatabaseFile      #-}
+  {-# INLINE configDataFile          #-}
 
 instance HasConfig Config where
   config                  = id
@@ -142,6 +146,7 @@ instance HasConfig Config where
   configDatabaseDirectory = configDataDirectory     . to (++ "/db")
   configSchemaFile        = configDatabaseDirectory . to (++ "/schema")
   configDatabaseFile      = configDatabaseDirectory . to (++ "/db.sqlite")
+  configDataFile          = configDataDirectory     . to (++ "/hecate.json")
   {-# INLINE config                  #-}
   {-# INLINE configDataDirectory     #-}
   {-# INLINE configKeyId             #-}
@@ -149,6 +154,7 @@ instance HasConfig Config where
   {-# INLINE configDatabaseDirectory #-}
   {-# INLINE configSchemaFile        #-}
   {-# INLINE configDatabaseFile      #-}
+  {-# INLINE configDataFile          #-}
 
 -- | 'AppContext' represents the shared environment for computations which occur
 -- within our application.  Values of this type are created by 'createContext'.

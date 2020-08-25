@@ -90,8 +90,8 @@ entriesHaveSameContent e1 e2 = do
 prop_roundTripEntriesToDatabase :: AppContext -> Property
 prop_roundTripEntriesToDatabase ctx = Monadic.monadicIO $ do
   tds <- Monadic.pick (QuickCheck.listOf1 arbitrary)
-  es  <- Monadic.run (SQLite.runSQLite (addEntryToDatabase tds) ctx)
-  res <- Monadic.run (SQLite.runSQLite selectAll ctx)
+  es  <- Monadic.run (SQLite.run (addEntryToDatabase tds) ctx)
+  res <- Monadic.run (SQLite.run selectAll ctx)
   Monadic.assert (null (es \\ res))
 
 prop_roundTripEntriesToCSV :: AppContext -> Property
@@ -99,9 +99,9 @@ prop_roundTripEntriesToCSV ctx = Monadic.monadicIO $ do
   tds  <- Monadic.pick (QuickCheck.listOf1 (QuickCheck.suchThat arbitrary isNotEmpty))
   x    <- Monadic.pick (QuickCheck.suchThat arbitrary (> 0))
   let file = createFilePath ctx x
-  es   <- Monadic.run (SQLite.runSQLite (mapM createEntryFromTestData tds) ctx)
+  es   <- Monadic.run (SQLite.run (mapM createEntryFromTestData tds) ctx)
   _    <- Monadic.run (Evaluator.exportCSV file es)
-  ies  <- Monadic.run (SQLite.runSQLite (Evaluator.importCSV file) ctx)
+  ies  <- Monadic.run (SQLite.run (Evaluator.importCSV file) ctx)
   bs   <- Monadic.run (Monad.zipWithM entriesHaveSameContent es ies)
   Monadic.assert (and bs)
 
@@ -116,10 +116,10 @@ doProperties = do
   sysTempDir <- Temp.getCanonicalTemporaryDirectory
   dir        <- Temp.createTempDirectory sysTempDir "hecate"
   _          <- print ("dir: " ++ dir)
-  let preConfig = PreConfig (First (Just dir)) mempty mempty
+  let preConfig = PreConfig (First (Just dir)) mempty mempty mempty
   _          <- Directory.copyFile "./example/hecate.toml" (dir ++ "/hecate.toml")
-  ctx        <- Configuration.configureWith preConfig >>= SQLite.createContext
-  _          <- SQLite.runSQLite Evaluator.setup ctx
+  ctx        <- Configuration.configureWith preConfig >>= SQLite.initialize
+  _          <- SQLite.run Evaluator.setup ctx
   results    <- mapM (\ p -> QuickCheck.quickCheckWithResult QuickCheck.stdArgs (p ctx)) tests
   _          <- close (ctx ^. appContextConnection)
   return results

@@ -2,7 +2,9 @@
 {-# LANGUAGE RankNTypes        #-}
 
 module Hecate.Configuration
-  ( configureWith
+  ( Config(..)
+  , Backend(..)
+  , configureWith
   , configure
   ) where
 
@@ -18,6 +20,12 @@ import           TOML.Lens
 import           Hecate.Data
 import           Hecate.Interfaces
 
+
+mkBackend :: T.Text -> Backend
+mkBackend txt = case T.toLower txt of
+  "json" -> JSON
+  _      -> SQLite
+
 getDefaultDataDirectory :: MonadInteraction m => m (Maybe FilePath)
 getDefaultDataDirectory = case Info.os of
   "mingw32" -> fmap (++ "/hecate")  <$> getEnv "APPDATA"
@@ -26,6 +34,10 @@ getDefaultDataDirectory = case Info.os of
 getDataDirectoryFromEnv :: MonadInteraction m => m (Maybe FilePath)
 getDataDirectoryFromEnv
   = getEnv "HECATE_DATA_DIR"
+
+getBackendFromEnv :: MonadInteraction m => m (Maybe Backend)
+getBackendFromEnv
+  = fmap (mkBackend . T.pack) <$> getEnv "HECATE_BACKEND"
 
 getKeyIdFromEnv :: MonadInteraction m => m (Maybe KeyId)
 getKeyIdFromEnv
@@ -52,6 +64,10 @@ tableAt
   -> f [(T.Text, TOML.Value)]
 tableAt k = lup k . _Just . _Table
 
+getBackend :: [(T.Text, TOML.Value)] -> Maybe Backend
+getBackend tbl
+  = tbl ^? tableAt "core" . lup "backend" . _Just . _String . to mkBackend
+
 getKeyId :: [(T.Text, TOML.Value)] -> Maybe KeyId
 getKeyId tbl
   = tbl ^? tableAt "gnupg" . lup "keyid" . _Just . _String . to KeyId
@@ -62,10 +78,12 @@ getAllowMultipleKeys tbl
 
 createPreConfig :: MonadInteraction m => m PreConfig
 createPreConfig = do
-  dir   <- First <$> getDataDirectoryFromEnv
-  keyId <- First <$> getKeyIdFromEnv
-  mult  <- First <$> getAllowMultipleKeysFromEnv
+  dir     <- First <$> getDataDirectoryFromEnv
+  backend <- First <$> getBackendFromEnv
+  keyId   <- First <$> getKeyIdFromEnv
+  mult    <- First <$> getAllowMultipleKeysFromEnv
   return PreConfig { _preConfigDataDirectory     = dir
+                   , _preConfigBackend           = backend
                    , _preConfigKeyId             = keyId
                    , _preConfigAllowMultipleKeys = mult
                    }
@@ -76,6 +94,7 @@ addDefaultConfig preConfig = mappend preConfig <$> defaultConfig
     defaultConfig = do
       dir <- First <$> getDefaultDataDirectory
       return PreConfig { _preConfigDataDirectory     = dir
+                       , _preConfigBackend           = mempty
                        , _preConfigKeyId             = mempty
                        , _preConfigAllowMultipleKeys = First (Just False)
                        }
@@ -87,9 +106,11 @@ addTOMLConfig preConfig = mappend preConfig <$> tomlConfig
       let dataDir = Maybe.fromJust (getFirst (_preConfigDataDirectory preConfig))
       txt <- readFileAsText (dataDir ++ "/hecate.toml")
       tbl <- either tomlError pure (TOML.parseTOML txt)
-      let keyId = First (getKeyId tbl)
-          mult  = First (getAllowMultipleKeys tbl)
+      let backend = First (getBackend tbl)
+          keyId   = First (getKeyId tbl)
+          mult    = First (getAllowMultipleKeys tbl)
       return PreConfig { _preConfigDataDirectory     = mempty
+                       , _preConfigBackend           = backend
                        , _preConfigKeyId             = keyId
                        , _preConfigAllowMultipleKeys = mult
                        }
@@ -97,11 +118,13 @@ addTOMLConfig preConfig = mappend preConfig <$> tomlConfig
 preConfigToConfig :: MonadAppError m => PreConfig -> m Config
 preConfigToConfig preConfig =
   Config <$> firstOrError dirMsg (_preConfigDataDirectory     preConfig)
+         <*> firstOrError bakMsg (_preConfigBackend           preConfig)
          <*> firstOrError keyMsg (_preConfigKeyId             preConfig)
          <*> firstOrError mulMsg (_preConfigAllowMultipleKeys preConfig)
   where
     firstOrError msg = maybe (configurationError msg) pure . getFirst
     dirMsg = "Please set HECATE_DATA_DIR"
+    bakMsg = "Please set HECATE_BACKEND or core.backend in hecate.toml"
     keyMsg = "Please set HECATE_KEYID or gnupg.keyid in hecate.toml"
     mulMsg = "Please set HECATE_ALLOW_MULTIPLE_KEYS or entries.allow_multiple_keys in hecate.toml"
 

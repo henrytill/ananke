@@ -3,7 +3,8 @@
 
 module Hecate.Data
   ( -- * Configuration
-    PreConfig(..)
+    Backend(..)
+  , PreConfig(..)
   , Config(..)
   , HasConfig(..)
   , SchemaVersion(..)
@@ -86,9 +87,13 @@ import           Lens.Family2.Unchecked           (lens)
 
 -- * Configuration
 
+data Backend = SQLite | JSON
+  deriving (Eq, Show)
+
 -- | A 'PreConfig' is used in the creation of a 'Config'
 data PreConfig = PreConfig
   { _preConfigDataDirectory     :: First FilePath
+  , _preConfigBackend           :: First Backend
   , _preConfigKeyId             :: First KeyId
   , _preConfigAllowMultipleKeys :: First Bool
   } deriving (Show, Eq)
@@ -98,16 +103,18 @@ instance Sem.Semigroup PreConfig where
 
 instance Monoid PreConfig where
   mempty
-    = PreConfig mempty mempty mempty
+    = PreConfig mempty mempty mempty mempty
 
-  PreConfig a b c `mappend` PreConfig d e f
-    = PreConfig (a `mappend` d)
-                (b `mappend` e)
-                (c `mappend` f)
+  PreConfig a b c d `mappend` PreConfig e f g h
+    = PreConfig (a `mappend` e)
+                (b `mappend` f)
+                (c `mappend` g)
+                (d `mappend` h)
 
 -- | A 'Config' represents our application's configuration
 data Config = Config
   { _configDataDirectory     :: FilePath
+  , _configBackend           :: Backend
   , _configKeyId             :: KeyId
   , _configAllowMultipleKeys :: Bool
   } deriving (Show, Eq)
@@ -115,6 +122,7 @@ data Config = Config
 class HasConfig t where
   config                  :: Lens' t Config
   configDataDirectory     :: Lens' t FilePath
+  configBackend           :: Lens' t Backend
   configKeyId             :: Lens' t KeyId
   configAllowMultipleKeys :: Lens' t Bool
   configDatabaseDirectory :: Getter' t FilePath
@@ -122,6 +130,7 @@ class HasConfig t where
   configDatabaseFile      :: Getter' t FilePath
   configDataFile          :: Getter' t FilePath
   configDataDirectory     = config . configDataDirectory
+  configBackend           = config . configBackend
   configKeyId             = config . configKeyId
   configAllowMultipleKeys = config . configAllowMultipleKeys
   configDatabaseDirectory = config . configDatabaseDirectory
@@ -129,6 +138,7 @@ class HasConfig t where
   configDatabaseFile      = config . configDatabaseFile
   configDataFile          = config . configDataFile
   {-# INLINE configDataDirectory     #-}
+  {-# INLINE configBackend           #-}
   {-# INLINE configKeyId             #-}
   {-# INLINE configAllowMultipleKeys #-}
   {-# INLINE configDatabaseDirectory #-}
@@ -139,6 +149,7 @@ class HasConfig t where
 instance HasConfig Config where
   config                  = id
   configDataDirectory     = lens _configDataDirectory     (\ c v -> c{_configDataDirectory     = v})
+  configBackend           = lens _configBackend           (\ c v -> c{_configBackend           = v})
   configKeyId             = lens _configKeyId             (\ c v -> c{_configKeyId             = v})
   configAllowMultipleKeys = lens _configAllowMultipleKeys (\ c v -> c{_configAllowMultipleKeys = v})
   configDatabaseDirectory = configDataDirectory     . to (++ "/db")
@@ -147,6 +158,7 @@ instance HasConfig Config where
   configDataFile          = configDataDirectory     . to (++ "/hecate.json")
   {-# INLINE config                  #-}
   {-# INLINE configDataDirectory     #-}
+  {-# INLINE configBackend           #-}
   {-# INLINE configKeyId             #-}
   {-# INLINE configAllowMultipleKeys #-}
   {-# INLINE configDatabaseDirectory #-}

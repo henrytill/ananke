@@ -1,3 +1,6 @@
+[core]
+backend = "sqlite"
+
 [gnupg]
 keyid = "371C136C"
 

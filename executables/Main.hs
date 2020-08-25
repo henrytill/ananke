@@ -9,8 +9,11 @@ import qualified System.IO                    as IO
 import           Text.PrettyPrint.ANSI.Leijen (Doc)
 import qualified Text.PrettyPrint.ANSI.Leijen as Leijen
 
+import           Hecate.Backend.JSON          (AppState)
+import qualified Hecate.Backend.JSON          as JSON
 import           Hecate.Backend.SQLite        (AppContext)
 import qualified Hecate.Backend.SQLite        as SQLite
+import           Hecate.Configuration         (Backend (..), Config, configure, _configBackend)
 import           Hecate.Error                 (AppError)
 import           Hecate.Evaluator             (Command, Response)
 import qualified Hecate.Evaluator             as Evaluator
@@ -35,11 +38,22 @@ resultHandler command res = do
   hPutDocWrapper IO.stdout (Printing.ansiPrettyResponse command res) (Printing.prettyResponse command res)
   return ExitSuccess
 
-runApp :: AppContext -> IO ExitCode
-runApp ctx = do
+runJSONApp :: (Config, AppState) -> IO ExitCode
+runJSONApp (cfg, state) = do
   command <- Parser.runCLIParser
-  Exception.catch (SQLite.runSQLite (Evaluator.setup >> Evaluator.eval command) ctx >>= resultHandler command)
+  Exception.catch (JSON.run (Evaluator.eval command) state cfg >>= resultHandler command)
+                  (exceptionHandler command)
+
+runSQLiteApp :: AppContext -> IO ExitCode
+runSQLiteApp ctx = do
+  command <- Parser.runCLIParser
+  Exception.catch (SQLite.run (Evaluator.setup >> Evaluator.eval command) ctx >>= resultHandler command)
                   (exceptionHandler command)
 
 main :: IO ()
-main = Exception.bracket SQLite.initialize SQLite.finalize runApp >>= Exit.exitWith
+main = do
+  cfg    <- configure
+  result <- case _configBackend cfg of
+    JSON   -> Exception.bracket (JSON.initialize   cfg) JSON.finalize   runJSONApp
+    SQLite -> Exception.bracket (SQLite.initialize cfg) SQLite.finalize runSQLiteApp
+  Exit.exitWith result

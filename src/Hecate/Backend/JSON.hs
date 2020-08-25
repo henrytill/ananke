@@ -6,7 +6,6 @@ module Hecate.Backend.JSON
   , initialize
   , finalize
   , AppState
-  , Config
   ) where
 
 import           Control.Monad                (when)
@@ -22,7 +21,6 @@ import           Lens.Family2
 
 import           Hecate.Backend.JSON.AppState (AppState, appStateDirty)
 import qualified Hecate.Backend.JSON.AppState as AppState
-import           Hecate.Configuration         (configure)
 import           Hecate.Data                  (Config, HasConfig (..), entryKeyOrder)
 import           Hecate.Interfaces
 
@@ -70,9 +68,8 @@ createState cfg = do
   dataBS <- readFileAsLazyByteString dataFile
   maybe (aesonError "could not decode") (pure . AppState.mkAppState) (Aeson.decode dataBS)
 
-initialize :: (MonadAppError m, MonadInteraction m) => m (Config, AppState)
-initialize = do
-  cfg   <- configure
+initialize :: (MonadAppError m, MonadInteraction m) => Config -> m (Config, AppState)
+initialize cfg = do
   state <- createState cfg
   return (cfg, state)
 

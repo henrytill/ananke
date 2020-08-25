@@ -2,8 +2,7 @@
 
 module Hecate.Backend.SQLite
   ( SQLite
-  , runSQLite
-  , createContext
+  , run
   , initialize
   , finalize
   , AppContext
@@ -19,7 +18,6 @@ import           Lens.Family2                     (view, (^.))
 
 import           Hecate.Backend.SQLite.AppContext (AppContext (..), HasAppContext (..))
 import qualified Hecate.Backend.SQLite.Database   as Database
-import           Hecate.Configuration             (configure)
 import           Hecate.Data                      (Config, HasConfig (..))
 import           Hecate.Interfaces
 
@@ -43,16 +41,16 @@ instance MonadThrow SQLite where
 runSQLite :: SQLite a -> AppContext -> IO a
 runSQLite m = runReaderT (unSQLite m)
 
-createContext :: MonadInteraction m => Config -> m AppContext
-createContext cfg = do
+run :: SQLite a -> AppContext -> IO a
+run = runSQLite
+
+initialize :: MonadInteraction m => Config -> m AppContext
+initialize cfg = do
   let dbDir  = cfg ^. configDatabaseDirectory
       dbFile = cfg ^. configDatabaseFile
   dbDirExists <- doesDirectoryExist dbDir
   Except.unless dbDirExists (createDirectory dbDir)
   AppContext cfg <$> openSQLiteFile dbFile
-
-initialize :: (MonadAppError m, MonadInteraction m) => m AppContext
-initialize = configure >>= createContext
 
 finalize :: MonadInteraction m => AppContext -> m ()
 finalize ctx = closeSQLiteConnection conn

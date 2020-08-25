@@ -1,6 +1,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
-module Hecate.AppState
+module Hecate.Backend.JSON.AppState
   ( EntriesMap
   , AppState (..)
   , HasAppState (..)

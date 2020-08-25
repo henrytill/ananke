@@ -9,8 +9,8 @@ import qualified System.IO                    as IO
 import           Text.PrettyPrint.ANSI.Leijen (Doc)
 import qualified Text.PrettyPrint.ANSI.Leijen as Leijen
 
-import           Hecate.AppM                  (AppContext)
-import qualified Hecate.AppM                  as AppM
+import           Hecate.Backend.SQLite        (AppContext)
+import qualified Hecate.Backend.SQLite        as SQLite
 import           Hecate.Error                 (AppError)
 import           Hecate.Evaluator             (Command, Response)
 import qualified Hecate.Evaluator             as Evaluator
@@ -38,8 +38,8 @@ resultHandler command res = do
 runApp :: AppContext -> IO ExitCode
 runApp ctx = do
   command <- Parser.runCLIParser
-  Exception.catch (AppM.runAppM (Evaluator.setup >> Evaluator.eval command) ctx >>= resultHandler command)
+  Exception.catch (SQLite.runSQLite (Evaluator.setup >> Evaluator.eval command) ctx >>= resultHandler command)
                   (exceptionHandler command)
 
 main :: IO ()
-main = Exception.bracket AppM.initialize AppM.finalize runApp >>= Exit.exitWith
+main = Exception.bracket SQLite.initialize SQLite.finalize runApp >>= Exit.exitWith

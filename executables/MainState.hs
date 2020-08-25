@@ -9,8 +9,8 @@ import qualified System.IO                    as IO
 import           Text.PrettyPrint.ANSI.Leijen (Doc)
 import qualified Text.PrettyPrint.ANSI.Leijen as Leijen
 
-import           Hecate.AppStateM             (AppState, Config)
-import qualified Hecate.AppStateM             as AppStateM
+import           Hecate.Backend.JSON          (AppState, Config)
+import qualified Hecate.Backend.JSON          as JSON
 import           Hecate.Error                 (AppError)
 import           Hecate.Evaluator             (Command, Response)
 import qualified Hecate.Evaluator             as Evaluator
@@ -38,8 +38,8 @@ resultHandler command res = do
 runApp :: (Config, AppState) -> IO ExitCode
 runApp (cfg, state) = do
   command <- Parser.runCLIParser
-  Exception.catch (AppStateM.run (Evaluator.eval command) state cfg >>= resultHandler command)
+  Exception.catch (JSON.run (Evaluator.eval command) state cfg >>= resultHandler command)
                   (exceptionHandler command)
 
 main :: IO ()
-main = Exception.bracket AppStateM.initialize AppStateM.finalize runApp >>= Exit.exitWith
+main = Exception.bracket JSON.initialize JSON.finalize runApp >>= Exit.exitWith

@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Hecate.AppStateM
-  ( AppStateM
+module Hecate.Backend.JSON
+  ( JSON
   , run
   , initialize
   , finalize
@@ -9,27 +9,27 @@ module Hecate.AppStateM
   , Config
   ) where
 
-import           Control.Monad            (when)
-import           Control.Monad.Catch      (MonadThrow (..))
-import qualified Control.Monad.Except     as Except
-import           Control.Monad.IO.Class   (MonadIO (..))
-import           Control.Monad.Reader     (MonadReader, ReaderT, ask, runReaderT)
-import           Control.Monad.State      (MonadState, StateT, gets, modify, runStateT)
-import qualified Data.Aeson               as Aeson
-import qualified Data.Aeson.Encode.Pretty as AesonPretty
-import qualified Data.List                as List
+import           Control.Monad                (when)
+import           Control.Monad.Catch          (MonadThrow (..))
+import qualified Control.Monad.Except         as Except
+import           Control.Monad.IO.Class       (MonadIO (..))
+import           Control.Monad.Reader         (MonadReader, ReaderT, ask, runReaderT)
+import           Control.Monad.State          (MonadState, StateT, gets, modify, runStateT)
+import qualified Data.Aeson                   as Aeson
+import qualified Data.Aeson.Encode.Pretty     as AesonPretty
+import qualified Data.List                    as List
 import           Lens.Family2
 
-import           Hecate.AppState          (AppState, appStateDirty)
-import qualified Hecate.AppState          as AppState
-import           Hecate.Configuration     (configure)
-import           Hecate.Data              (Config, HasConfig (..), entryKeyOrder)
+import           Hecate.Backend.JSON.AppState (AppState, appStateDirty)
+import qualified Hecate.Backend.JSON.AppState as AppState
+import           Hecate.Configuration         (configure)
+import           Hecate.Data                  (Config, HasConfig (..), entryKeyOrder)
 import           Hecate.Interfaces
 
 
--- * AppStateM
+-- * JSON
 
-newtype AppStateM a = AppStateM { unAppStateM :: ReaderT Config (StateT AppState IO) a }
+newtype JSON a = JSON { unJSON :: ReaderT Config (StateT AppState IO) a }
   deriving ( Functor
            , Applicative
            , Monad
@@ -41,11 +41,11 @@ newtype AppStateM a = AppStateM { unAppStateM :: ReaderT Config (StateT AppState
            , MonadAppError
            )
 
-instance MonadThrow AppStateM where
+instance MonadThrow JSON where
   throwM = liftIO . throwM
 
-runAppStateM :: AppStateM a -> AppState -> Config -> IO (a, AppState)
-runAppStateM m state cfg = runStateT (runReaderT (unAppStateM m) cfg) state
+runJSON :: JSON a -> AppState -> Config -> IO (a, AppState)
+runJSON m state cfg = runStateT (runReaderT (unJSON m) cfg) state
 
 writeState :: (MonadAppError m, MonadInteraction m) => AppState -> Config -> m ()
 writeState state cfg = when (state ^. appStateDirty) $ do
@@ -55,9 +55,9 @@ writeState state cfg = when (state ^. appStateDirty) $ do
       dataBS   = AesonPretty.encodePretty' aesonCfg (List.sort entries)
   writeFileFromLazyByteString dataFile dataBS
 
-run :: AppStateM a -> AppState -> Config -> IO a
+run :: JSON a -> AppState -> Config -> IO a
 run m state cfg = do
-  (res, state') <- runAppStateM m state cfg
+  (res, state') <- runJSON m state cfg
   writeState state' cfg
   return res
 
@@ -81,10 +81,10 @@ finalize _ = pure ()
 
 -- * Instances
 
-instance MonadConfigReader AppStateM where
+instance MonadConfigReader JSON where
   askConfig = ask
 
-instance MonadStore AppStateM where
+instance MonadStore JSON where
   put             e     = modify $ AppState.put    e
   delete          e     = modify $ AppState.delete e
   query           q     = gets (AppState.query  q)

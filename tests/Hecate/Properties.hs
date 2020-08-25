@@ -18,7 +18,8 @@ import qualified Test.QuickCheck         as QuickCheck
 import qualified Test.QuickCheck.Monadic as Monadic
 import qualified Text.Printf             as Printf
 
-import qualified Hecate.AppM             as AppM
+import           Hecate.Backend.SQLite   (AppContext, HasAppContext (..))
+import qualified Hecate.Backend.SQLite   as SQLite
 import qualified Hecate.Configuration    as Configuration
 import           Hecate.Data
 import qualified Hecate.Evaluator        as Evaluator
@@ -89,8 +90,8 @@ entriesHaveSameContent e1 e2 = do
 prop_roundTripEntriesToDatabase :: AppContext -> Property
 prop_roundTripEntriesToDatabase ctx = Monadic.monadicIO $ do
   tds <- Monadic.pick (QuickCheck.listOf1 arbitrary)
-  es  <- Monadic.run (AppM.runAppM (addEntryToDatabase tds) ctx)
-  res <- Monadic.run (AppM.runAppM selectAll ctx)
+  es  <- Monadic.run (SQLite.runSQLite (addEntryToDatabase tds) ctx)
+  res <- Monadic.run (SQLite.runSQLite selectAll ctx)
   Monadic.assert (null (es \\ res))
 
 prop_roundTripEntriesToCSV :: AppContext -> Property
@@ -98,9 +99,9 @@ prop_roundTripEntriesToCSV ctx = Monadic.monadicIO $ do
   tds  <- Monadic.pick (QuickCheck.listOf1 (QuickCheck.suchThat arbitrary isNotEmpty))
   x    <- Monadic.pick (QuickCheck.suchThat arbitrary (> 0))
   let file = createFilePath ctx x
-  es   <- Monadic.run (AppM.runAppM (mapM createEntryFromTestData tds) ctx)
+  es   <- Monadic.run (SQLite.runSQLite (mapM createEntryFromTestData tds) ctx)
   _    <- Monadic.run (Evaluator.exportCSV file es)
-  ies  <- Monadic.run (AppM.runAppM (Evaluator.importCSV file) ctx)
+  ies  <- Monadic.run (SQLite.runSQLite (Evaluator.importCSV file) ctx)
   bs   <- Monadic.run (Monad.zipWithM entriesHaveSameContent es ies)
   Monadic.assert (and bs)
 
@@ -117,8 +118,8 @@ doProperties = do
   _          <- print ("dir: " ++ dir)
   let preConfig = PreConfig (First (Just dir)) mempty mempty
   _          <- Directory.copyFile "./example/hecate.toml" (dir ++ "/hecate.toml")
-  ctx        <- Configuration.configureWith preConfig >>= AppM.createContext
-  _          <- AppM.runAppM Evaluator.setup ctx
+  ctx        <- Configuration.configureWith preConfig >>= SQLite.createContext
+  _          <- SQLite.runSQLite Evaluator.setup ctx
   results    <- mapM (\ p -> QuickCheck.quickCheckWithResult QuickCheck.stdArgs (p ctx)) tests
   _          <- close (ctx ^. appContextConnection)
   return results

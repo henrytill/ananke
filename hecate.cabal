@@ -65,12 +65,13 @@ executable hecate-unstable
   ghc-options:         -Wall
 
 library
-  exposed-modules:     Hecate.AppM
-                     , Hecate.AppState
-                     , Hecate.AppStateM
+  exposed-modules:     Hecate.Backend.JSON
+                     , Hecate.Backend.JSON.AppState
+                     , Hecate.Backend.SQLite
+                     , Hecate.Backend.SQLite.AppContext
+                     , Hecate.Backend.SQLite.Database
                      , Hecate.Configuration
                      , Hecate.Data
-                     , Hecate.Database
                      , Hecate.Evaluator
                      , Hecate.Error
                      , Hecate.GPG

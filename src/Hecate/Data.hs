@@ -6,8 +6,6 @@ module Hecate.Data
     PreConfig(..)
   , Config(..)
   , HasConfig(..)
-  , AppContext(..)
-  , HasAppContext(..)
   , SchemaVersion(..)
     -- * Import & Display Entries
   , CSVEntry
@@ -155,34 +153,6 @@ instance HasConfig Config where
   {-# INLINE configSchemaFile        #-}
   {-# INLINE configDatabaseFile      #-}
   {-# INLINE configDataFile          #-}
-
--- | 'AppContext' represents the shared environment for computations which occur
--- within our application.  Values of this type are created by 'createContext'.
-data AppContext = AppContext
-  { _appContextConfig     :: Config
-  , _appContextConnection :: SQLite.Connection
-  }
-
-instance HasConfig AppContext where
-  config = lens _appContextConfig (\ a v -> a{_appContextConfig = v})
-  {-# INLINE config #-}
-
-class HasConfig t => HasAppContext t where
-  appContext           :: Lens' t AppContext
-  appContextConfig     :: Lens' t Config
-  appContextConnection :: Lens' t SQLite.Connection
-  appContextConfig     = appContext . appContextConfig
-  appContextConnection = appContext . appContextConnection
-  {-# INLINE appContextConfig     #-}
-  {-# INLINE appContextConnection #-}
-
-instance HasAppContext AppContext where
-  appContext           = id
-  appContextConfig     = config
-  appContextConnection = lens _appContextConnection (\ a v -> a{_appContextConnection = v})
-  {-# INLINE appContext           #-}
-  {-# INLINE appContextConfig     #-}
-  {-# INLINE appContextConnection #-}
 
 -- | A 'SchemaVersion' represents the database's schema version
 newtype SchemaVersion = SchemaVersion { unSchemaVersion :: Int }

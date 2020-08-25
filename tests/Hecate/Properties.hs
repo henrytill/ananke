@@ -117,7 +117,7 @@ doProperties = do
   _          <- print ("dir: " ++ dir)
   let preConfig = PreConfig (First (Just dir)) mempty mempty
   _          <- Directory.copyFile "./example/hecate.toml" (dir ++ "/hecate.toml")
-  ctx        <- Configuration.configureWith preConfig >>= Configuration.createContext
+  ctx        <- Configuration.configureWith preConfig >>= AppM.createContext
   _          <- AppM.runAppM Evaluator.setup ctx
   results    <- mapM (\ p -> QuickCheck.quickCheckWithResult QuickCheck.stdArgs (p ctx)) tests
   _          <- close (ctx ^. appContextConnection)

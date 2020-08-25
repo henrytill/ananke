@@ -9,9 +9,8 @@ import qualified System.IO                    as IO
 import           Text.PrettyPrint.ANSI.Leijen (Doc)
 import qualified Text.PrettyPrint.ANSI.Leijen as Leijen
 
+import           Hecate.AppM                  (AppContext)
 import qualified Hecate.AppM                  as AppM
-import qualified Hecate.Configuration         as Configuration
-import           Hecate.Data                  (AppContext)
 import           Hecate.Error                 (AppError)
 import           Hecate.Evaluator             (Command, Response)
 import qualified Hecate.Evaluator             as Evaluator
@@ -43,4 +42,4 @@ runApp ctx = do
                   (exceptionHandler command)
 
 main :: IO ()
-main = Exception.bracket Configuration.initialize Configuration.finalize runApp >>= Exit.exitWith
+main = Exception.bracket AppM.initialize AppM.finalize runApp >>= Exit.exitWith

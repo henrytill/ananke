@@ -3,20 +3,27 @@
 module Hecate.AppStateM
   ( AppStateM
   , run
+  , initialize
+  , finalize
+  , AppState
+  , Config
   ) where
 
 import           Control.Monad            (when)
 import           Control.Monad.Catch      (MonadThrow (..))
+import qualified Control.Monad.Except     as Except
 import           Control.Monad.IO.Class   (MonadIO (..))
 import           Control.Monad.Reader     (MonadReader, ReaderT, ask, runReaderT)
 import           Control.Monad.State      (MonadState, StateT, gets, modify, runStateT)
+import qualified Data.Aeson               as Aeson
 import qualified Data.Aeson.Encode.Pretty as AesonPretty
 import qualified Data.List                as List
 import           Lens.Family2
 
 import           Hecate.AppState          (AppState, appStateDirty)
 import qualified Hecate.AppState          as AppState
-import           Hecate.Data              (Config, configDataFile, entryKeyOrder)
+import           Hecate.Configuration     (configure)
+import           Hecate.Data              (Config, HasConfig (..), entryKeyOrder)
 import           Hecate.Interfaces
 
 
@@ -53,6 +60,24 @@ run m state cfg = do
   (res, state') <- runAppStateM m state cfg
   writeState state' cfg
   return res
+
+createState :: (MonadAppError m, MonadInteraction m) => Config -> m AppState
+createState cfg = do
+  let dataDir  = cfg ^. configDataDirectory
+      dataFile = cfg ^. configDataFile
+  dataDirExists <- doesDirectoryExist dataDir
+  Except.unless dataDirExists (createDirectory dataDir)
+  dataBS <- readFileAsLazyByteString dataFile
+  maybe (aesonError "could not decode") (pure . AppState.mkAppState) (Aeson.decode dataBS)
+
+initialize :: (MonadAppError m, MonadInteraction m) => m (Config, AppState)
+initialize = do
+  cfg   <- configure
+  state <- createState cfg
+  return (cfg, state)
+
+finalize :: (MonadAppError m, MonadInteraction m) => (Config, AppState) -> m ()
+finalize _ = pure ()
 
 -- * Instances
 

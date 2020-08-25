@@ -3,15 +3,21 @@
 module Hecate.AppM
   ( AppM
   , runAppM
+  , createContext
+  , initialize
+  , finalize
+  , AppContext
   ) where
 
 import           Control.Monad.Catch    (MonadThrow (..))
+import qualified Control.Monad.Except   as Except
 import           Control.Monad.IO.Class (MonadIO (..))
 import           Control.Monad.Reader   (MonadReader, ReaderT, ask, asks, runReaderT)
 import qualified Database.SQLite.Simple as SQLite
-import           Lens.Family2           (view)
+import           Lens.Family2           (view, (^.))
 
-import           Hecate.Data            (AppContext, HasAppContext (..))
+import           Hecate.Configuration   (configure)
+import           Hecate.Data            (AppContext (..), Config, HasAppContext (..), HasConfig (..))
 import qualified Hecate.Database        as DB
 import           Hecate.Interfaces
 
@@ -34,6 +40,22 @@ instance MonadThrow AppM where
 
 runAppM :: AppM a -> AppContext -> IO a
 runAppM m = runReaderT (unAppM m)
+
+createContext :: MonadInteraction m => Config -> m AppContext
+createContext cfg = do
+  let dbDir  = cfg ^. configDatabaseDirectory
+      dbFile = cfg ^. configDatabaseFile
+  dbDirExists <- doesDirectoryExist dbDir
+  Except.unless dbDirExists (createDirectory dbDir)
+  AppContext cfg <$> openSQLiteFile dbFile
+
+initialize :: (MonadAppError m, MonadInteraction m) => m AppContext
+initialize = configure >>= createContext
+
+finalize :: MonadInteraction m => AppContext -> m ()
+finalize ctx = closeSQLiteConnection conn
+  where
+    conn = ctx ^. appContextConnection
 
 -- * Instances
 

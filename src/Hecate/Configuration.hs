@@ -4,36 +4,24 @@
 module Hecate.Configuration
   ( configureWith
   , configure
-  , createContext
-  , initialize
-  , finalize
-  , createState
-  , initializeState
-  , finalizeState
   ) where
 
-import qualified Control.Monad.Except as Except
-import qualified Data.Aeson           as Aeson
-import qualified Data.Maybe           as Maybe
-import           Data.Monoid          (First (..))
-import qualified Data.Text            as T
+import qualified Data.Maybe         as Maybe
+import           Data.Monoid        (First (..))
+import qualified Data.Text          as T
 import           Lens.Family2
-import           Lens.Family2.Stock   (_Just)
-import qualified System.Info          as Info
+import           Lens.Family2.Stock (_Just)
+import qualified System.Info        as Info
 import qualified TOML
 import           TOML.Lens
 
-import           Hecate.AppState      (AppState)
-import qualified Hecate.AppState      as AppState
 import           Hecate.Data
 import           Hecate.Interfaces
-
 
 getDefaultDataDirectory :: MonadInteraction m => m (Maybe FilePath)
 getDefaultDataDirectory = case Info.os of
   "mingw32" -> fmap (++ "/hecate")  <$> getEnv "APPDATA"
   _         -> fmap (++ "/.hecate") <$> getEnv "HOME"
-
 
 getDataDirectoryFromEnv :: MonadInteraction m => m (Maybe FilePath)
 getDataDirectoryFromEnv
@@ -122,37 +110,3 @@ configureWith preConfig = addDefaultConfig preConfig >>= addTOMLConfig >>= preCo
 
 configure :: (MonadAppError m, MonadInteraction m) => m Config
 configure = createPreConfig >>= configureWith
-
-createContext :: MonadInteraction m => Config -> m AppContext
-createContext cfg = do
-  let dbDir  = cfg ^. configDatabaseDirectory
-      dbFile = cfg ^. configDatabaseFile
-  dbDirExists <- doesDirectoryExist dbDir
-  Except.unless dbDirExists (createDirectory dbDir)
-  AppContext cfg <$> openSQLiteFile dbFile
-
-initialize :: (MonadAppError m, MonadInteraction m) => m AppContext
-initialize = configure >>= createContext
-
-finalize :: MonadInteraction m => AppContext -> m ()
-finalize ctx = closeSQLiteConnection conn
-  where
-    conn = ctx ^. appContextConnection
-
-createState :: (MonadAppError m, MonadInteraction m) => Config -> m AppState
-createState cfg = do
-  let dataDir  = cfg ^. configDataDirectory
-      dataFile = cfg ^. configDataFile
-  dataDirExists <- doesDirectoryExist dataDir
-  Except.unless dataDirExists (createDirectory dataDir)
-  dataBS <- readFileAsLazyByteString dataFile
-  maybe (aesonError "could not decode") (pure . AppState.mkAppState) (Aeson.decode dataBS)
-
-initializeState :: (MonadAppError m, MonadInteraction m) => m (Config, AppState)
-initializeState = do
-  cfg   <- configure
-  state <- createState cfg
-  return (cfg, state)
-
-finalizeState :: (MonadAppError m, MonadInteraction m) => (Config, AppState) -> m ()
-finalizeState _ = pure ()

@@ -31,7 +31,7 @@ let
 
         dwergaz          = pkgs.haskell.packages.${compiler}.callCabal2nix "dwergaz"          dweSrc {};
         lens-toml-parser = pkgs.haskell.packages.${compiler}.callCabal2nix "lens-toml-parser" ltpSrc { inherit dwergaz hlint lens-family; };
-        hecateRaw        = pkgs.haskell.packages.${compiler}.callCabal2nix "hecate"           ./.    { inherit hlint lens-family lens-toml-parser; };
+        hecateRaw        = pkgs.haskell.packages.${compiler}.callCabal2nix "hecate"           ./.    { inherit dwergaz hlint lens-family lens-toml-parser; };
 
         extDeps          = [ pkgs.sqlite pkgs.gnupg ];
       in

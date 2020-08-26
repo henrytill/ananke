@@ -183,16 +183,16 @@ csvEntryToEntry
   :: (MonadEncrypt m, MonadInteraction m, MonadConfigReader m)
   => CSVEntry
   -> m Entry
-csvEntryToEntry entry = do
+csvEntryToEntry ent = do
   cfg       <- askConfig
   timestamp <- now
   createEntry encrypt
               (cfg ^. configKeyId)
               timestamp
-              (_csvDescription entry)
-              (_csvIdentity entry)
-              (_csvPlaintext entry)
-              (_csvMeta entry)
+              (_csvDescription ent)
+              (_csvIdentity ent)
+              (_csvPlaintext ent)
+              (_csvMeta ent)
 
 importCSV
   :: (MonadAppError m, MonadEncrypt m, MonadInteraction m, MonadConfigReader m)
@@ -268,16 +268,16 @@ updateCiphertext
   => Plaintext
   -> Entry
   -> m Entry
-updateCiphertext plaintext entry = do
+updateCiphertext plaintext ent = do
   cfg       <- askConfig
   timestamp <- now
   createEntry encrypt
               (cfg ^. configKeyId)
               timestamp
-              (_entryDescription entry)
-              (_entryIdentity entry)
+              (_entryDescription ent)
+              (_entryIdentity ent)
               plaintext
-              (_entryMeta entry)
+              (_entryMeta ent)
 
 updateCiphertextWrapper
   :: (MonadEncrypt m, MonadInteraction m, MonadConfigReader m)

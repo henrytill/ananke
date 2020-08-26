@@ -99,36 +99,36 @@ instance MonadInteraction IO where
   prompt s                    = putStr s >> IO.hFlush IO.stdout >> getLine
 
 instance MonadInteraction m => MonadInteraction (ReaderT r m)  where
-  now                              = lift now
-  doesFileExist                    = lift . doesFileExist
-  doesDirectoryExist               = lift . doesDirectoryExist
-  createDirectory                  = lift . createDirectory
-  openSQLiteFile                   = lift . openSQLiteFile
-  closeSQLiteConnection            = lift . closeSQLiteConnection
-  readFileAsString                 = lift . readFileAsString
-  readFileAsText                   = lift . readFileAsText
-  readFileAsLazyByteString         = lift . readFileAsLazyByteString
-  writeFileFromString fp s         = lift (writeFileFromString fp s)
-  writeFileFromLazyByteString fp s = lift (writeFileFromLazyByteString fp s)
-  getEnv                           = lift . getEnv
-  message                          = lift . message
-  prompt                           = lift . prompt
+  now                            = lift now
+  doesFileExist                  = lift . doesFileExist
+  doesDirectoryExist             = lift . doesDirectoryExist
+  createDirectory                = lift . createDirectory
+  openSQLiteFile                 = lift . openSQLiteFile
+  closeSQLiteConnection          = lift . closeSQLiteConnection
+  readFileAsString               = lift . readFileAsString
+  readFileAsText                 = lift . readFileAsText
+  readFileAsLazyByteString       = lift . readFileAsLazyByteString
+  writeFileFromString fp         = lift . writeFileFromString fp
+  writeFileFromLazyByteString fp = lift . writeFileFromLazyByteString fp
+  getEnv                         = lift . getEnv
+  message                        = lift . message
+  prompt                         = lift . prompt
 
 instance MonadInteraction m => MonadInteraction (StateT s m)  where
-  now                              = lift now
-  doesFileExist                    = lift . doesFileExist
-  doesDirectoryExist               = lift . doesDirectoryExist
-  createDirectory                  = lift . createDirectory
-  openSQLiteFile                   = lift . openSQLiteFile
-  closeSQLiteConnection            = lift . closeSQLiteConnection
-  readFileAsString                 = lift . readFileAsString
-  readFileAsText                   = lift . readFileAsText
-  readFileAsLazyByteString         = lift . readFileAsLazyByteString
-  writeFileFromString fp s         = lift (writeFileFromString fp s)
-  writeFileFromLazyByteString fp s = lift (writeFileFromLazyByteString fp s)
-  getEnv                           = lift . getEnv
-  message                          = lift . message
-  prompt                           = lift . prompt
+  now                            = lift now
+  doesFileExist                  = lift . doesFileExist
+  doesDirectoryExist             = lift . doesDirectoryExist
+  createDirectory                = lift . createDirectory
+  openSQLiteFile                 = lift . openSQLiteFile
+  closeSQLiteConnection          = lift . closeSQLiteConnection
+  readFileAsString               = lift . readFileAsString
+  readFileAsText                 = lift . readFileAsText
+  readFileAsLazyByteString       = lift . readFileAsLazyByteString
+  writeFileFromString fp         = lift . writeFileFromString fp
+  writeFileFromLazyByteString fp = lift . writeFileFromLazyByteString fp
+  getEnv                         = lift . getEnv
+  message                        = lift . message
+  prompt                         = lift . prompt
 
 -- * MonadAppError
 

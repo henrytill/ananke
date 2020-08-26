@@ -31,13 +31,7 @@ module Hecate.Data
   , _entryIdentity
   , _entryCiphertext
   , _entryMeta
-  , entryId
-  , entryKeyId
-  , entryTimestamp
-  , entryDescription
-  , entryIdentity
-  , entryCiphertext
-  , entryMeta
+  , HasEntry(..)
   , entryKeyOrder
   , createEntry
     -- ** Their constituents
@@ -197,10 +191,10 @@ entryToCSVEntry
 entryToCSVEntry decrypt e
   = f e <$> decrypt (_entryCiphertext e)
   where
-    f entry plaintext = CSVEntry (_entryDescription entry)
-                                 (_entryIdentity entry)
-                                 plaintext
-                                 (_entryMeta entry)
+    f ent plaintext = CSVEntry (_entryDescription ent)
+                               (_entryIdentity ent)
+                               plaintext
+                               (_entryMeta ent)
 
 -- | A 'DisplayEntry' is a record that is displayed to the user in response to a
 -- command
@@ -221,12 +215,12 @@ entryToDisplayEntry
 entryToDisplayEntry decrypt e
   = f e <$> decrypt (_entryCiphertext e)
   where
-    f entry plaintext = DisplayEntry (_entryId entry)
-                                     (_entryTimestamp entry)
-                                     (_entryDescription entry)
-                                     (_entryIdentity entry)
-                                     plaintext
-                                     (_entryMeta entry)
+    f ent plaintext = DisplayEntry (_entryId ent)
+                                   (_entryTimestamp ent)
+                                   (_entryDescription ent)
+                                   (_entryIdentity ent)
+                                   plaintext
+                                   (_entryMeta ent)
 
 -- | A 'KeyId' represents a GPG Key Id
 newtype KeyId = KeyId { unKeyId :: T.Text }
@@ -282,7 +276,6 @@ instance ToField Ciphertext where
 instance FromField Ciphertext where
   fromField f = Ciphertext <$> fromField f
 
-
 -- * Entries
 
 -- | An 'Entry' is a record that stores an encrypted value along with associated
@@ -297,27 +290,47 @@ data Entry = Entry
   , _entryMeta        :: Maybe Metadata
   } deriving (Show, Eq, Generic)
 
-entryId          :: Lens' Entry Id
-entryKeyId       :: Lens' Entry KeyId
-entryTimestamp   :: Lens' Entry UTCTime
-entryDescription :: Lens' Entry Description
-entryIdentity    :: Lens' Entry (Maybe Identity)
-entryCiphertext  :: Lens' Entry Ciphertext
-entryMeta        :: Lens' Entry (Maybe Metadata)
-entryId          = lens _entryId          (\ e v -> e{_entryId          = v})
-entryKeyId       = lens _entryKeyId       (\ e v -> e{_entryKeyId       = v})
-entryTimestamp   = lens _entryTimestamp   (\ e v -> e{_entryTimestamp   = v})
-entryDescription = lens _entryDescription (\ e v -> e{_entryDescription = v})
-entryIdentity    = lens _entryIdentity    (\ e v -> e{_entryIdentity    = v})
-entryCiphertext  = lens _entryCiphertext  (\ e v -> e{_entryCiphertext  = v})
-entryMeta        = lens _entryMeta        (\ e v -> e{_entryMeta        = v})
-{-# INLINE entryId          #-}
-{-# INLINE entryKeyId       #-}
-{-# INLINE entryTimestamp   #-}
-{-# INLINE entryDescription #-}
-{-# INLINE entryIdentity    #-}
-{-# INLINE entryCiphertext  #-}
-{-# INLINE entryMeta        #-}
+class HasEntry t where
+  entry            :: Lens' t Entry
+  entryId          :: Lens' t Id
+  entryKeyId       :: Lens' t KeyId
+  entryTimestamp   :: Lens' t UTCTime
+  entryDescription :: Lens' t Description
+  entryIdentity    :: Lens' t (Maybe Identity)
+  entryCiphertext  :: Lens' t Ciphertext
+  entryMeta        :: Lens' t (Maybe Metadata)
+  entryId          = entry . entryId
+  entryKeyId       = entry . entryKeyId
+  entryTimestamp   = entry . entryTimestamp
+  entryDescription = entry . entryDescription
+  entryIdentity    = entry . entryIdentity
+  entryCiphertext  = entry . entryCiphertext
+  entryMeta        = entry . entryMeta
+  {-# INLINE entryId          #-}
+  {-# INLINE entryKeyId       #-}
+  {-# INLINE entryTimestamp   #-}
+  {-# INLINE entryDescription #-}
+  {-# INLINE entryIdentity    #-}
+  {-# INLINE entryCiphertext  #-}
+  {-# INLINE entryMeta        #-}
+
+instance HasEntry Entry where
+  entry            = id
+  entryId          = lens _entryId          (\ e v -> e{_entryId          = v})
+  entryKeyId       = lens _entryKeyId       (\ e v -> e{_entryKeyId       = v})
+  entryTimestamp   = lens _entryTimestamp   (\ e v -> e{_entryTimestamp   = v})
+  entryDescription = lens _entryDescription (\ e v -> e{_entryDescription = v})
+  entryIdentity    = lens _entryIdentity    (\ e v -> e{_entryIdentity    = v})
+  entryCiphertext  = lens _entryCiphertext  (\ e v -> e{_entryCiphertext  = v})
+  entryMeta        = lens _entryMeta        (\ e v -> e{_entryMeta        = v})
+  {-# INLINE entry            #-}
+  {-# INLINE entryId          #-}
+  {-# INLINE entryKeyId       #-}
+  {-# INLINE entryTimestamp   #-}
+  {-# INLINE entryDescription #-}
+  {-# INLINE entryIdentity    #-}
+  {-# INLINE entryCiphertext  #-}
+  {-# INLINE entryMeta        #-}
 
 entryKeyOrder :: [T.Text]
 entryKeyOrder =
@@ -367,14 +380,14 @@ instance SQLite.FromRow Entry where
                   <*> SQLite.field
 
 instance SQLite.ToRow Entry where
-  toRow entry = SQLite.toRow ( _entryId          entry
-                             , _entryKeyId       entry
-                             , _entryTimestamp   entry
-                             , _entryDescription entry
-                             , _entryIdentity    entry
-                             , _entryCiphertext  entry
-                             , _entryMeta        entry
-                             )
+  toRow ent = SQLite.toRow ( _entryId          ent
+                           , _entryKeyId       ent
+                           , _entryTimestamp   ent
+                           , _entryDescription ent
+                           , _entryIdentity    ent
+                           , _entryCiphertext  ent
+                           , _entryMeta        ent
+                           )
 
 showTime :: UTCTime -> T.Text
 showTime = T.pack . Format.formatTime Format.defaultTimeLocale "%s%Q"
@@ -518,15 +531,15 @@ updateKeyId
   -> KeyId
   -> Entry
   -> m Entry
-updateKeyId decrypt encrypt keyId entry = do
-  plaintext <- decrypt (_entryCiphertext entry)
+updateKeyId decrypt encrypt keyId ent = do
+  plaintext <- decrypt (_entryCiphertext ent)
   createEntry encrypt
               keyId
-              (_entryTimestamp entry)
-              (_entryDescription entry)
-              (_entryIdentity entry)
+              (_entryTimestamp ent)
+              (_entryDescription ent)
+              (_entryIdentity ent)
               plaintext
-              (_entryMeta entry)
+              (_entryMeta ent)
 
 updateDescription
   :: Monad m
@@ -534,13 +547,13 @@ updateDescription
   -> Description
   -> Entry
   -> m Entry
-updateDescription now desc entry
-  = updateEntry (_entryKeyId entry)
+updateDescription now desc ent
+  = updateEntry (_entryKeyId ent)
                 now
                 desc
-                (_entryIdentity entry)
-                (_entryCiphertext entry)
-                (_entryMeta entry)
+                (_entryIdentity ent)
+                (_entryCiphertext ent)
+                (_entryMeta ent)
 
 updateIdentity
   :: Monad m
@@ -548,13 +561,13 @@ updateIdentity
   -> Maybe Identity
   -> Entry
   -> m Entry
-updateIdentity now iden entry
-  = updateEntry (_entryKeyId entry)
+updateIdentity now iden ent
+  = updateEntry (_entryKeyId ent)
                 now
-                (_entryDescription entry)
+                (_entryDescription ent)
                 iden
-                (_entryCiphertext entry)
-                (_entryMeta entry)
+                (_entryCiphertext ent)
+                (_entryMeta ent)
 
 updateMetadata
   :: Monad m
@@ -562,12 +575,12 @@ updateMetadata
   -> Maybe Metadata
   -> Entry
   -> m Entry
-updateMetadata now meta entry
-  = updateEntry (_entryKeyId entry)
+updateMetadata now meta ent
+  = updateEntry (_entryKeyId ent)
                 now
-                (_entryDescription entry)
-                (_entryIdentity entry)
-                (_entryCiphertext entry)
+                (_entryDescription ent)
+                (_entryIdentity ent)
+                (_entryCiphertext ent)
                 meta
 
 -- * Queries

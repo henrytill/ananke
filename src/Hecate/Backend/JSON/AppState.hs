@@ -38,11 +38,14 @@ class HasAppState t where
   appStateData  :: Lens' t EntriesMap
   appStateDirty = appState . appStateDirty
   appStateData  = appState . appStateData
+  {-# INLINE appStateDirty #-}
+  {-# INLINE appStateData  #-}
 
 instance HasAppState AppState where
   appState      = id
   appStateDirty = lens _appStateDirty (\ s v -> s{_appStateDirty = v})
   appStateData  = lens _appStateData  (\ s v -> s{_appStateData  = v})
+  {-# INLINE appState      #-}
   {-# INLINE appStateDirty #-}
   {-# INLINE appStateData  #-}
 
@@ -52,7 +55,7 @@ mkAppState entries = AppState
   , _appStateData  = Multimap.fromList (tupler <$> entries)
   }
   where
-    tupler entry = (entry ^. entryDescription, entry)
+    tupler ent = (ent ^. entryDescription, ent)
 
 update :: (EntriesMap -> EntriesMap) -> AppState -> AppState
 update f state = state{_appStateDirty = True, _appStateData = updated}
@@ -61,8 +64,8 @@ update f state = state{_appStateDirty = True, _appStateData = updated}
 
 put    :: Entry -> AppState -> AppState
 delete :: Entry -> AppState -> AppState
-put    entry = update (Multimap.insert (_entryDescription entry) entry)
-delete entry = update (Multimap.delete (_entryDescription entry) entry)
+put    ent = update (Multimap.insert (_entryDescription ent) ent)
+delete ent = update (Multimap.delete (_entryDescription ent) ent)
 
 idenIsInfixOf :: Identity    -> Identity    -> Bool
 descIsInfixOf :: Description -> Description -> Bool

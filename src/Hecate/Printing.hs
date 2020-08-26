@@ -43,23 +43,23 @@ prettyMeta (Just (Metadata m)) = prettyText m
 prettyMeta Nothing             = Leijen.text "<none>"
 
 printPlain :: DisplayEntry -> Doc
-printPlain entry = prettyPlaintext (_displayPlaintext entry)
+printPlain ent = prettyPlaintext (_displayPlaintext ent)
 
 printOne :: DisplayEntry -> Doc
-printOne entry =
-  prettyDescription (_displayDescription entry) <+>
-  prettyIdentity    (_displayIdentity    entry) <+>
-  prettyPlaintext   (_displayPlaintext   entry) <+>
-  prettyMeta        (_displayMeta        entry)
+printOne ent =
+  prettyDescription (_displayDescription ent) <+>
+  prettyIdentity    (_displayIdentity    ent) <+>
+  prettyPlaintext   (_displayPlaintext   ent) <+>
+  prettyMeta        (_displayMeta        ent)
 
 printOneVerbose :: DisplayEntry -> Doc
-printOneVerbose entry =
-  prettyId          (_displayId          entry) <+>
-  prettyTimestamp   (_displayTimestamp   entry) <+>
-  prettyDescription (_displayDescription entry) <+>
-  prettyIdentity    (_displayIdentity    entry) <+>
-  prettyPlaintext   (_displayPlaintext   entry) <+>
-  prettyMeta        (_displayMeta        entry)
+printOneVerbose ent =
+  prettyId          (_displayId          ent) <+>
+  prettyTimestamp   (_displayTimestamp   ent) <+>
+  prettyDescription (_displayDescription ent) <+>
+  prettyIdentity    (_displayIdentity    ent) <+>
+  prettyPlaintext   (_displayPlaintext   ent) <+>
+  prettyMeta        (_displayMeta        ent)
 
 prettyResponse :: Command -> Response -> Doc
 prettyResponse _ (SingleEntry de Normal) =

@@ -158,7 +158,7 @@ instance HasConfig Config where
   configDatabaseDirectory = configDataDirectory     . to (++ "/db")
   configSchemaFile        = configDatabaseDirectory . to (++ "/schema")
   configDatabaseFile      = configDatabaseDirectory . to (++ "/db.sqlite")
-  configDataFile          = configDataDirectory     . to (++ "/hecate.json")
+  configDataFile          = configDatabaseDirectory . to (++ "/data.json")
   {-# INLINE config                  #-}
   {-# INLINE configDataDirectory     #-}
   {-# INLINE configBackend           #-}

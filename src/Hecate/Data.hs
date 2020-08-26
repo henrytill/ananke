@@ -64,12 +64,15 @@ module Hecate.Data
   , unCount
   ) where
 
-import           Data.Aeson                       (FromJSON (..), ToJSON (..))
+import           Data.Aeson                       (FromJSON (..), Options, ToJSON (..))
+import qualified Data.Aeson                       as Aeson
 import qualified Data.ByteString                  as BS
 import qualified Data.ByteString.Lazy             as BSL
 import           Data.ByteString64                (ByteString64 (..))
 import qualified Data.Csv                         as CSV
 import qualified Data.Digest.Pure.SHA             as SHA
+import qualified Data.List                        as List
+import qualified Data.Maybe                       as Maybe
 import           Data.Monoid                      (First)
 import qualified Data.Ord                         as Ord
 import qualified Data.Semigroup                   as Sem
@@ -318,13 +321,13 @@ entryMeta        = lens _entryMeta        (\ e v -> e{_entryMeta        = v})
 
 entryKeyOrder :: [T.Text]
 entryKeyOrder =
-  [ "_entryTimestamp"
-  , "_entryId"
-  , "_entryKeyId"
-  , "_entryDescription"
-  , "_entryIdentity"
-  , "_entryCiphertext"
-  , "_entryMeta"
+  [ "Timestamp"
+  , "Id"
+  , "KeyId"
+  , "Description"
+  , "Identity"
+  , "Ciphertext"
+  , "Meta"
   ]
 
 entryOrdering :: Entry -> Entry -> Ordering
@@ -339,9 +342,20 @@ entryOrdering x y | _entryTimestamp   x /= _entryTimestamp   y = Ord.comparing _
 instance Ord Entry where
   compare = entryOrdering
 
+customOptions :: Options
+customOptions = Aeson.defaultOptions{Aeson.fieldLabelModifier = strip}
+  where
+    strip :: String -> String
+    strip str = Maybe.fromMaybe str (List.stripPrefix prefix str)
+
+    prefix :: String
+    prefix = "_entry"
+
 instance FromJSON Entry where
+  parseJSON = Aeson.genericParseJSON customOptions
 
 instance ToJSON Entry where
+  toJSON = Aeson.genericToJSON customOptions
 
 instance SQLite.FromRow Entry where
   fromRow = Entry <$> SQLite.field

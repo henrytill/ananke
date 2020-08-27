@@ -10,7 +10,6 @@ import           Data.Monoid             (First (..))
 import qualified Data.Text               as T
 import           Data.Text.Arbitrary     ()
 import           Database.SQLite.Simple  hiding (Error)
-import           Lens.Family2
 import qualified System.Directory        as Directory
 import qualified System.IO.Temp          as Temp
 import           Test.QuickCheck         (Arbitrary (..), Property, Result)
@@ -18,7 +17,7 @@ import qualified Test.QuickCheck         as QuickCheck
 import qualified Test.QuickCheck.Monadic as Monadic
 import qualified Text.Printf             as Printf
 
-import           Hecate.Backend.SQLite   (AppContext, HasAppContext (..))
+import           Hecate.Backend.SQLite   (AppContext (..))
 import qualified Hecate.Backend.SQLite   as SQLite
 import qualified Hecate.Configuration    as Configuration
 import           Hecate.Data
@@ -46,7 +45,7 @@ createEntryFromTestData td = do
   cfg       <- askConfig
   timestamp <- now
   createEntry encrypt
-              (cfg ^. configKeyId)
+              (configKeyId cfg)
               timestamp
               (_testDescription td)
               (_testIdentity td)
@@ -69,7 +68,7 @@ addEntryToDatabase tds = do
 
 createFilePath :: AppContext -> Int -> FilePath
 createFilePath ctx x
-  = ctx ^. configDataDirectory ++ "/export-" ++ Printf.printf "%05d" x ++ ".csv"
+  = configDataDirectory (appContextConfig ctx) ++ "/export-" ++ Printf.printf "%05d" x ++ ".csv"
 
 isNotEmpty :: TestData -> Bool
 isNotEmpty testData
@@ -80,12 +79,12 @@ isNotEmpty testData
 
 entriesHaveSameContent :: (MonadAppError m, MonadEncrypt m) => Entry -> Entry -> m Bool
 entriesHaveSameContent e1 e2 = do
-  plaintext1 <- decrypt (_entryCiphertext e1)
-  plaintext2 <- decrypt (_entryCiphertext e2)
-  return ((_entryDescription e1 == _entryDescription e2) &&
-          (_entryIdentity    e1 == _entryIdentity    e2) &&
-          (_entryMeta        e1 == _entryMeta        e2) &&
-          (plaintext1           == plaintext2))
+  plaintext1 <- decrypt (entryCiphertext e1)
+  plaintext2 <- decrypt (entryCiphertext e2)
+  return ((entryDescription e1 == entryDescription e2) &&
+          (entryIdentity    e1 == entryIdentity    e2) &&
+          (entryMeta        e1 == entryMeta        e2) &&
+          (plaintext1          == plaintext2))
 
 prop_roundTripEntriesToDatabase :: AppContext -> Property
 prop_roundTripEntriesToDatabase ctx = Monadic.monadicIO $ do
@@ -121,5 +120,5 @@ doProperties = do
   ctx        <- Configuration.configureWith preConfig >>= SQLite.initialize
   _          <- SQLite.run Evaluator.setup ctx
   results    <- mapM (\ p -> QuickCheck.quickCheckWithResult QuickCheck.stdArgs (p ctx)) tests
-  _          <- close (ctx ^. appContextConnection)
+  _          <- close (appContextConnection ctx)
   return results

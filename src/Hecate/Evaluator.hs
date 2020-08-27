@@ -18,7 +18,6 @@ import qualified Data.Csv                 as CSV
 import qualified Data.List                as List
 import qualified Data.Text                as T
 import qualified Data.Vector              as Vector
-import           Lens.Family2
 
 import           Hecate.Data              hiding (query)
 import qualified Hecate.Data              as Data
@@ -116,8 +115,8 @@ setup
   => m ()
 setup = do
   cfg <- askConfig
-  let schemaFile = cfg ^. configSchemaFile
-      keyId      = cfg ^. configKeyId
+  let schemaFile = configSchemaFile cfg
+      keyId      = configKeyId cfg
   schemaVersion <- getSchemaVersion schemaFile
   initDatabase schemaFile schemaVersion keyId
 
@@ -163,8 +162,8 @@ checkKey
   -> m Response
 checkKey k = do
   cfg <- askConfig
-  let keyId         = cfg ^. configKeyId
-      allowMultKeys = cfg ^. configAllowMultipleKeys
+  let keyId         = configKeyId cfg
+      allowMultKeys = configAllowMultipleKeys cfg
   total <- getCount
   if total == 0
     then k
@@ -187,12 +186,12 @@ csvEntryToEntry ent = do
   cfg       <- askConfig
   timestamp <- now
   createEntry encrypt
-              (cfg ^. configKeyId)
+              (configKeyId cfg)
               timestamp
-              (_csvDescription ent)
-              (_csvIdentity ent)
-              (_csvPlaintext ent)
-              (_csvMeta ent)
+              (csvDescription ent)
+              (csvIdentity ent)
+              (csvPlaintext ent)
+              (csvMeta ent)
 
 importCSV
   :: (MonadAppError m, MonadEncrypt m, MonadInteraction m, MonadConfigReader m)
@@ -231,7 +230,7 @@ createEntryWrapper d i m t = do
   cfg       <- askConfig
   timestamp <- now
   createEntry encrypt
-              (cfg ^. configKeyId)
+              (configKeyId cfg)
               timestamp
               (Description . T.pack  $  d)
               (Identity    . T.pack <$> i)
@@ -272,12 +271,12 @@ updateCiphertext plaintext ent = do
   cfg       <- askConfig
   timestamp <- now
   createEntry encrypt
-              (cfg ^. configKeyId)
+              (configKeyId cfg)
               timestamp
-              (_entryDescription ent)
-              (_entryIdentity ent)
+              (entryDescription ent)
+              (entryIdentity ent)
               plaintext
-              (_entryMeta ent)
+              (entryMeta ent)
 
 updateCiphertextWrapper
   :: (MonadEncrypt m, MonadInteraction m, MonadConfigReader m)
@@ -424,7 +423,7 @@ check
 check = do
   cfg <- askConfig
   t   <- getCount
-  let keyId = cfg ^. configKeyId
+  let keyId = configKeyId cfg
   r <- getCountOfKeyId keyId
   if t == r
     then return CheckedForMultipleKeys

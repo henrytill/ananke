@@ -17,11 +17,10 @@ import           Control.Monad.State          (MonadState, StateT, gets, modify,
 import qualified Data.Aeson                   as Aeson
 import qualified Data.Aeson.Encode.Pretty     as AesonPretty
 import qualified Data.List                    as List
-import           Lens.Family2
 
 import           Hecate.Backend.JSON.AppState (AppState, appStateDirty)
 import qualified Hecate.Backend.JSON.AppState as AppState
-import           Hecate.Data                  (Config, HasConfig (..), entryKeyOrder)
+import           Hecate.Data                  (Config, configDataDirectory, configDataFile, entryKeyOrder)
 import           Hecate.Interfaces
 
 
@@ -46,8 +45,8 @@ runJSON :: JSON a -> AppState -> Config -> IO (a, AppState)
 runJSON m state cfg = runStateT (runReaderT (unJSON m) cfg) state
 
 writeState :: (MonadAppError m, MonadInteraction m) => AppState -> Config -> m ()
-writeState state cfg = when (state ^. appStateDirty) $ do
-  let dataFile = cfg ^. configDataFile
+writeState state cfg = when (appStateDirty state) $ do
+  let dataFile = configDataFile cfg
       entries  = AppState.selectAll state
       aesonCfg = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
       dataBS   = AesonPretty.encodePretty' aesonCfg (List.sort entries)
@@ -61,8 +60,8 @@ run m state cfg = do
 
 createState :: (MonadAppError m, MonadInteraction m) => Config -> m AppState
 createState cfg = do
-  let dataDir  = cfg ^. configDataDirectory
-      dataFile = cfg ^. configDataFile
+  let dataDir  = configDataDirectory cfg
+      dataFile = configDataFile cfg
   dataDirExists <- doesDirectoryExist dataDir
   Except.unless dataDirExists (createDirectory dataDir)
   dataBS <- readFileAsLazyByteString dataFile

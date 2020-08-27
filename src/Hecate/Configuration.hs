@@ -82,10 +82,10 @@ createPreConfig = do
   backend <- First <$> getBackendFromEnv
   keyId   <- First <$> getKeyIdFromEnv
   mult    <- First <$> getAllowMultipleKeysFromEnv
-  return PreConfig { _preConfigDataDirectory     = dir
-                   , _preConfigBackend           = backend
-                   , _preConfigKeyId             = keyId
-                   , _preConfigAllowMultipleKeys = mult
+  return PreConfig { preConfigDataDirectory     = dir
+                   , preConfigBackend           = backend
+                   , preConfigKeyId             = keyId
+                   , preConfigAllowMultipleKeys = mult
                    }
 
 addDefaultConfig :: MonadInteraction m => PreConfig -> m PreConfig
@@ -93,34 +93,34 @@ addDefaultConfig preConfig = mappend preConfig <$> defaultConfig
   where
     defaultConfig = do
       dir <- First <$> getDefaultDataDirectory
-      return PreConfig { _preConfigDataDirectory     = dir
-                       , _preConfigBackend           = mempty
-                       , _preConfigKeyId             = mempty
-                       , _preConfigAllowMultipleKeys = First (Just False)
+      return PreConfig { preConfigDataDirectory     = dir
+                       , preConfigBackend           = mempty
+                       , preConfigKeyId             = mempty
+                       , preConfigAllowMultipleKeys = First (Just False)
                        }
 
 addTOMLConfig :: (MonadAppError m, MonadInteraction m) => PreConfig -> m PreConfig
 addTOMLConfig preConfig = mappend preConfig <$> tomlConfig
   where
     tomlConfig = do
-      let dataDir = Maybe.fromJust (getFirst (_preConfigDataDirectory preConfig))
+      let dataDir = Maybe.fromJust (getFirst (preConfigDataDirectory preConfig))
       txt <- readFileAsText (dataDir ++ "/hecate.toml")
       tbl <- either tomlError pure (TOML.parseTOML txt)
       let backend = First (getBackend tbl)
           keyId   = First (getKeyId tbl)
           mult    = First (getAllowMultipleKeys tbl)
-      return PreConfig { _preConfigDataDirectory     = mempty
-                       , _preConfigBackend           = backend
-                       , _preConfigKeyId             = keyId
-                       , _preConfigAllowMultipleKeys = mult
+      return PreConfig { preConfigDataDirectory     = mempty
+                       , preConfigBackend           = backend
+                       , preConfigKeyId             = keyId
+                       , preConfigAllowMultipleKeys = mult
                        }
 
 preConfigToConfig :: MonadAppError m => PreConfig -> m Config
 preConfigToConfig preConfig =
-  Config <$> firstOrError dirMsg (_preConfigDataDirectory     preConfig)
-         <*> firstOrError bakMsg (_preConfigBackend           preConfig)
-         <*> firstOrError keyMsg (_preConfigKeyId             preConfig)
-         <*> firstOrError mulMsg (_preConfigAllowMultipleKeys preConfig)
+  Config <$> firstOrError dirMsg (preConfigDataDirectory     preConfig)
+         <*> firstOrError bakMsg (preConfigBackend           preConfig)
+         <*> firstOrError keyMsg (preConfigKeyId             preConfig)
+         <*> firstOrError mulMsg (preConfigAllowMultipleKeys preConfig)
   where
     firstOrError msg = maybe (configurationError msg) pure . getFirst
     dirMsg = "Please set HECATE_DATA_DIR"

@@ -72,7 +72,7 @@ put conn e = liftIO (SQLite.execute conn s e)
         \  VALUES (?, ?, ?, ?, ?, ?, ?)"
 
 delete :: MonadIO m => SQLite.Connection -> Entry -> m ()
-delete conn e = liftIO (SQLite.executeNamed conn s [":id" := _entryId e])
+delete conn e = liftIO (SQLite.executeNamed conn s [":id" := entryId e])
   where
     s = "DELETE FROM entries WHERE id = :id"
 
@@ -121,10 +121,10 @@ queryFolder (accQs, accNp) Nothing         = (accQs, accNp)
 
 queryParts :: Query -> [Maybe (SQLite.Query, [SQLite.NamedParam])]
 queryParts q =
-  [ idMatcher          <$> _queryId q
-  , descriptionMatcher <$> _queryDescription q
-  , identityMatcher    <$> _queryIdentity q
-  , metadataMatcher    <$> _queryMeta q
+  [ idMatcher          <$> queryId q
+  , descriptionMatcher <$> queryDescription q
+  , identityMatcher    <$> queryIdentity q
+  , metadataMatcher    <$> queryMeta q
   ]
 
 generateQuery :: Query -> (SQLite.Query, [SQLite.NamedParam])

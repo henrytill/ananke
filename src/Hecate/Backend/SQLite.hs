@@ -5,8 +5,7 @@ module Hecate.Backend.SQLite
   , run
   , initialize
   , finalize
-  , AppContext
-  , HasAppContext (..)
+  , AppContext (..)
   ) where
 
 import           Control.Monad.Catch              (MonadThrow (..))
@@ -14,11 +13,10 @@ import qualified Control.Monad.Except             as Except
 import           Control.Monad.IO.Class           (MonadIO (..))
 import           Control.Monad.Reader             (MonadReader, ReaderT, ask, asks, runReaderT)
 import qualified Database.SQLite.Simple           as SQLite
-import           Lens.Family2                     (view, (^.))
 
-import           Hecate.Backend.SQLite.AppContext (AppContext (..), HasAppContext (..))
+import           Hecate.Backend.SQLite.AppContext (AppContext (..))
 import qualified Hecate.Backend.SQLite.Database   as Database
-import           Hecate.Data                      (Config, HasConfig (..))
+import           Hecate.Data                      (Config, configDatabaseDirectory, configDatabaseFile)
 import           Hecate.Interfaces
 
 
@@ -46,8 +44,8 @@ run = runSQLite
 
 initialize :: MonadInteraction m => Config -> m AppContext
 initialize cfg = do
-  let dbDir  = cfg ^. configDatabaseDirectory
-      dbFile = cfg ^. configDatabaseFile
+  let dbDir  = configDatabaseDirectory cfg
+      dbFile = configDatabaseFile cfg
   dbDirExists <- doesDirectoryExist dbDir
   Except.unless dbDirExists (createDirectory dbDir)
   AppContext cfg <$> openSQLiteFile dbFile
@@ -55,15 +53,15 @@ initialize cfg = do
 finalize :: MonadInteraction m => AppContext -> m ()
 finalize ctx = closeSQLiteConnection conn
   where
-    conn = ctx ^. appContextConnection
+    conn = appContextConnection ctx
 
 -- * Instances
 
 instance MonadConfigReader SQLite where
-  askConfig = asks (view appContextConfig)
+  askConfig = asks appContextConfig
 
 withConnection :: (SQLite.Connection -> SQLite a) -> SQLite a
-withConnection f = ask >>= f . view appContextConnection
+withConnection f = ask >>= f . appContextConnection
 
 instance MonadStore SQLite where
   put             e       = withConnection (\ conn -> Database.put             conn e)

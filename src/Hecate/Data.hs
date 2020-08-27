@@ -6,14 +6,17 @@ module Hecate.Data
     Backend(..)
   , PreConfig(..)
   , Config(..)
-  , HasConfig(..)
+  , configDatabaseDirectory
+  , configSchemaFile
+  , configDatabaseFile
+  , configDataFile
   , SchemaVersion(..)
     -- * Import & Display Entries
   , CSVEntry
-  , _csvDescription
-  , _csvIdentity
-  , _csvPlaintext
-  , _csvMeta
+  , csvDescription
+  , csvIdentity
+  , csvPlaintext
+  , csvMeta
   , entryToCSVEntry
   , DisplayEntry(..)
   , entryToDisplayEntry
@@ -25,13 +28,12 @@ module Hecate.Data
   , unCiphertext
     -- * Entries
   , Entry
-  , _entryId
-  , _entryKeyId
-  , _entryDescription
-  , _entryIdentity
-  , _entryCiphertext
-  , _entryMeta
-  , HasEntry(..)
+  , entryId
+  , entryKeyId
+  , entryDescription
+  , entryIdentity
+  , entryCiphertext
+  , entryMeta
   , entryKeyOrder
   , createEntry
     -- ** Their constituents
@@ -47,10 +49,10 @@ module Hecate.Data
   , updateMetadata
     -- * Queries
   , Query
-  , _queryId
-  , _queryIdentity
-  , _queryDescription
-  , _queryMeta
+  , queryId
+  , queryIdentity
+  , queryDescription
+  , queryMeta
   , query
   , queryIsEmpty
   -- * Count
@@ -78,8 +80,6 @@ import qualified Database.SQLite.Simple           as SQLite
 import           Database.SQLite.Simple.FromField (FromField (..))
 import           Database.SQLite.Simple.ToField   (ToField (..))
 import           GHC.Generics                     (Generic)
-import           Lens.Family2                     (Getter', Lens', to)
-import           Lens.Family2.Unchecked           (lens)
 
 
 -- * Configuration
@@ -89,10 +89,10 @@ data Backend = SQLite | JSON
 
 -- | A 'PreConfig' is used in the creation of a 'Config'
 data PreConfig = PreConfig
-  { _preConfigDataDirectory     :: First FilePath
-  , _preConfigBackend           :: First Backend
-  , _preConfigKeyId             :: First KeyId
-  , _preConfigAllowMultipleKeys :: First Bool
+  { preConfigDataDirectory     :: First FilePath
+  , preConfigBackend           :: First Backend
+  , preConfigKeyId             :: First KeyId
+  , preConfigAllowMultipleKeys :: First Bool
   } deriving (Show, Eq)
 
 instance Sem.Semigroup PreConfig where
@@ -110,58 +110,20 @@ instance Monoid PreConfig where
 
 -- | A 'Config' represents our application's configuration
 data Config = Config
-  { _configDataDirectory     :: FilePath
-  , _configBackend           :: Backend
-  , _configKeyId             :: KeyId
-  , _configAllowMultipleKeys :: Bool
+  { configDataDirectory     :: FilePath
+  , configBackend           :: Backend
+  , configKeyId             :: KeyId
+  , configAllowMultipleKeys :: Bool
   } deriving (Show, Eq)
 
-class HasConfig t where
-  config                  :: Lens' t Config
-  configDataDirectory     :: Lens' t FilePath
-  configBackend           :: Lens' t Backend
-  configKeyId             :: Lens' t KeyId
-  configAllowMultipleKeys :: Lens' t Bool
-  configDatabaseDirectory :: Getter' t FilePath
-  configSchemaFile        :: Getter' t FilePath
-  configDatabaseFile      :: Getter' t FilePath
-  configDataFile          :: Getter' t FilePath
-  configDataDirectory     = config . configDataDirectory
-  configBackend           = config . configBackend
-  configKeyId             = config . configKeyId
-  configAllowMultipleKeys = config . configAllowMultipleKeys
-  configDatabaseDirectory = config . configDatabaseDirectory
-  configSchemaFile        = config . configSchemaFile
-  configDatabaseFile      = config . configDatabaseFile
-  configDataFile          = config . configDataFile
-  {-# INLINE configDataDirectory     #-}
-  {-# INLINE configBackend           #-}
-  {-# INLINE configKeyId             #-}
-  {-# INLINE configAllowMultipleKeys #-}
-  {-# INLINE configDatabaseDirectory #-}
-  {-# INLINE configSchemaFile        #-}
-  {-# INLINE configDatabaseFile      #-}
-  {-# INLINE configDataFile          #-}
-
-instance HasConfig Config where
-  config                  = id
-  configDataDirectory     = lens _configDataDirectory     (\ c v -> c{_configDataDirectory     = v})
-  configBackend           = lens _configBackend           (\ c v -> c{_configBackend           = v})
-  configKeyId             = lens _configKeyId             (\ c v -> c{_configKeyId             = v})
-  configAllowMultipleKeys = lens _configAllowMultipleKeys (\ c v -> c{_configAllowMultipleKeys = v})
-  configDatabaseDirectory = configDataDirectory     . to (++ "/db")
-  configSchemaFile        = configDatabaseDirectory . to (++ "/schema")
-  configDatabaseFile      = configDatabaseDirectory . to (++ "/db.sqlite")
-  configDataFile          = configDatabaseDirectory . to (++ "/data.json")
-  {-# INLINE config                  #-}
-  {-# INLINE configDataDirectory     #-}
-  {-# INLINE configBackend           #-}
-  {-# INLINE configKeyId             #-}
-  {-# INLINE configAllowMultipleKeys #-}
-  {-# INLINE configDatabaseDirectory #-}
-  {-# INLINE configSchemaFile        #-}
-  {-# INLINE configDatabaseFile      #-}
-  {-# INLINE configDataFile          #-}
+configDatabaseDirectory :: Config -> FilePath
+configSchemaFile        :: Config -> FilePath
+configDatabaseFile      :: Config -> FilePath
+configDataFile          :: Config -> FilePath
+configDatabaseDirectory cfg = configDataDirectory     cfg ++ "/db"
+configSchemaFile        cfg = configDatabaseDirectory cfg ++ "/schema"
+configDatabaseFile      cfg = configDatabaseDirectory cfg ++ "/db.sqlite"
+configDataFile          cfg = configDatabaseDirectory cfg ++ "/data.json"
 
 -- | A 'SchemaVersion' represents the database's schema version
 newtype SchemaVersion = SchemaVersion { unSchemaVersion :: Int }
@@ -174,10 +136,10 @@ instance Show SchemaVersion where
 
 -- | An 'CSVEntry' is a record that is imported or exported from a CSV file
 data CSVEntry = CSVEntry
-  { _csvDescription :: Description
-  , _csvIdentity    :: Maybe Identity
-  , _csvPlaintext   :: Plaintext
-  , _csvMeta        :: Maybe Metadata
+  { csvDescription :: Description
+  , csvIdentity    :: Maybe Identity
+  , csvPlaintext   :: Plaintext
+  , csvMeta        :: Maybe Metadata
   } deriving (Generic, Show, Eq)
 
 instance CSV.FromRecord CSVEntry
@@ -189,22 +151,22 @@ entryToCSVEntry
   -> Entry
   -> m CSVEntry
 entryToCSVEntry decrypt e
-  = f e <$> decrypt (_entryCiphertext e)
+  = f e <$> decrypt (entryCiphertext e)
   where
-    f ent plaintext = CSVEntry (_entryDescription ent)
-                               (_entryIdentity ent)
+    f ent plaintext = CSVEntry (entryDescription ent)
+                               (entryIdentity ent)
                                plaintext
-                               (_entryMeta ent)
+                               (entryMeta ent)
 
 -- | A 'DisplayEntry' is a record that is displayed to the user in response to a
 -- command
 data DisplayEntry = DisplayEntry
-  { _displayId          :: Id
-  , _displayTimestamp   :: UTCTime
-  , _displayDescription :: Description
-  , _displayIdentity    :: Maybe Identity
-  , _displayPlaintext   :: Plaintext
-  , _displayMeta        :: Maybe Metadata
+  { displayId          :: Id
+  , displayTimestamp   :: UTCTime
+  , displayDescription :: Description
+  , displayIdentity    :: Maybe Identity
+  , displayPlaintext   :: Plaintext
+  , displayMeta        :: Maybe Metadata
   } deriving (Show, Eq)
 
 entryToDisplayEntry
@@ -213,14 +175,14 @@ entryToDisplayEntry
   -> Entry
   -> m DisplayEntry
 entryToDisplayEntry decrypt e
-  = f e <$> decrypt (_entryCiphertext e)
+  = f e <$> decrypt (entryCiphertext e)
   where
-    f ent plaintext = DisplayEntry (_entryId ent)
-                                   (_entryTimestamp ent)
-                                   (_entryDescription ent)
-                                   (_entryIdentity ent)
+    f ent plaintext = DisplayEntry (entryId ent)
+                                   (entryTimestamp ent)
+                                   (entryDescription ent)
+                                   (entryIdentity ent)
                                    plaintext
-                                   (_entryMeta ent)
+                                   (entryMeta ent)
 
 -- | A 'KeyId' represents a GPG Key Id
 newtype KeyId = KeyId { unKeyId :: T.Text }
@@ -281,56 +243,14 @@ instance FromField Ciphertext where
 -- | An 'Entry' is a record that stores an encrypted value along with associated
 -- information
 data Entry = Entry
-  { _entryId          :: Id
-  , _entryKeyId       :: KeyId
-  , _entryTimestamp   :: UTCTime
-  , _entryDescription :: Description
-  , _entryIdentity    :: Maybe Identity
-  , _entryCiphertext  :: Ciphertext
-  , _entryMeta        :: Maybe Metadata
+  { entryId          :: Id
+  , entryKeyId       :: KeyId
+  , entryTimestamp   :: UTCTime
+  , entryDescription :: Description
+  , entryIdentity    :: Maybe Identity
+  , entryCiphertext  :: Ciphertext
+  , entryMeta        :: Maybe Metadata
   } deriving (Show, Eq, Generic)
-
-class HasEntry t where
-  entry            :: Lens' t Entry
-  entryId          :: Lens' t Id
-  entryKeyId       :: Lens' t KeyId
-  entryTimestamp   :: Lens' t UTCTime
-  entryDescription :: Lens' t Description
-  entryIdentity    :: Lens' t (Maybe Identity)
-  entryCiphertext  :: Lens' t Ciphertext
-  entryMeta        :: Lens' t (Maybe Metadata)
-  entryId          = entry . entryId
-  entryKeyId       = entry . entryKeyId
-  entryTimestamp   = entry . entryTimestamp
-  entryDescription = entry . entryDescription
-  entryIdentity    = entry . entryIdentity
-  entryCiphertext  = entry . entryCiphertext
-  entryMeta        = entry . entryMeta
-  {-# INLINE entryId          #-}
-  {-# INLINE entryKeyId       #-}
-  {-# INLINE entryTimestamp   #-}
-  {-# INLINE entryDescription #-}
-  {-# INLINE entryIdentity    #-}
-  {-# INLINE entryCiphertext  #-}
-  {-# INLINE entryMeta        #-}
-
-instance HasEntry Entry where
-  entry            = id
-  entryId          = lens _entryId          (\ e v -> e{_entryId          = v})
-  entryKeyId       = lens _entryKeyId       (\ e v -> e{_entryKeyId       = v})
-  entryTimestamp   = lens _entryTimestamp   (\ e v -> e{_entryTimestamp   = v})
-  entryDescription = lens _entryDescription (\ e v -> e{_entryDescription = v})
-  entryIdentity    = lens _entryIdentity    (\ e v -> e{_entryIdentity    = v})
-  entryCiphertext  = lens _entryCiphertext  (\ e v -> e{_entryCiphertext  = v})
-  entryMeta        = lens _entryMeta        (\ e v -> e{_entryMeta        = v})
-  {-# INLINE entry            #-}
-  {-# INLINE entryId          #-}
-  {-# INLINE entryKeyId       #-}
-  {-# INLINE entryTimestamp   #-}
-  {-# INLINE entryDescription #-}
-  {-# INLINE entryIdentity    #-}
-  {-# INLINE entryCiphertext  #-}
-  {-# INLINE entryMeta        #-}
 
 entryKeyOrder :: [T.Text]
 entryKeyOrder =
@@ -344,13 +264,13 @@ entryKeyOrder =
   ]
 
 entryOrdering :: Entry -> Entry -> Ordering
-entryOrdering x y | _entryTimestamp   x /= _entryTimestamp   y = Ord.comparing _entryTimestamp   x y
-                  | _entryId          x /= _entryId          y = Ord.comparing _entryId          x y
-                  | _entryKeyId       x /= _entryKeyId       y = Ord.comparing _entryKeyId       x y
-                  | _entryDescription x /= _entryDescription y = Ord.comparing _entryDescription x y
-                  | _entryIdentity    x /= _entryIdentity    y = Ord.comparing _entryIdentity    x y
-                  | _entryCiphertext  x /= _entryCiphertext  y = Ord.comparing _entryCiphertext  x y
-                  | otherwise                                  = Ord.comparing _entryMeta        x y
+entryOrdering x y | entryTimestamp   x /= entryTimestamp   y = Ord.comparing entryTimestamp   x y
+                  | entryId          x /= entryId          y = Ord.comparing entryId          x y
+                  | entryKeyId       x /= entryKeyId       y = Ord.comparing entryKeyId       x y
+                  | entryDescription x /= entryDescription y = Ord.comparing entryDescription x y
+                  | entryIdentity    x /= entryIdentity    y = Ord.comparing entryIdentity    x y
+                  | entryCiphertext  x /= entryCiphertext  y = Ord.comparing entryCiphertext  x y
+                  | otherwise                                = Ord.comparing entryMeta        x y
 
 instance Ord Entry where
   compare = entryOrdering
@@ -362,7 +282,7 @@ customOptions = Aeson.defaultOptions{Aeson.fieldLabelModifier = strip}
     strip str = Maybe.fromMaybe str (List.stripPrefix prefix str)
 
     prefix :: String
-    prefix = "_entry"
+    prefix = "entry"
 
 instance FromJSON Entry where
   parseJSON = Aeson.genericParseJSON customOptions
@@ -380,13 +300,13 @@ instance SQLite.FromRow Entry where
                   <*> SQLite.field
 
 instance SQLite.ToRow Entry where
-  toRow ent = SQLite.toRow ( _entryId          ent
-                           , _entryKeyId       ent
-                           , _entryTimestamp   ent
-                           , _entryDescription ent
-                           , _entryIdentity    ent
-                           , _entryCiphertext  ent
-                           , _entryMeta        ent
+  toRow ent = SQLite.toRow ( entryId          ent
+                           , entryKeyId       ent
+                           , entryTimestamp   ent
+                           , entryDescription ent
+                           , entryIdentity    ent
+                           , entryCiphertext  ent
+                           , entryMeta        ent
                            )
 
 showTime :: UTCTime -> T.Text
@@ -532,14 +452,14 @@ updateKeyId
   -> Entry
   -> m Entry
 updateKeyId decrypt encrypt keyId ent = do
-  plaintext <- decrypt (_entryCiphertext ent)
+  plaintext <- decrypt (entryCiphertext ent)
   createEntry encrypt
               keyId
-              (_entryTimestamp ent)
-              (_entryDescription ent)
-              (_entryIdentity ent)
+              (entryTimestamp ent)
+              (entryDescription ent)
+              (entryIdentity ent)
               plaintext
-              (_entryMeta ent)
+              (entryMeta ent)
 
 updateDescription
   :: Monad m
@@ -548,12 +468,12 @@ updateDescription
   -> Entry
   -> m Entry
 updateDescription now desc ent
-  = updateEntry (_entryKeyId ent)
+  = updateEntry (entryKeyId ent)
                 now
                 desc
-                (_entryIdentity ent)
-                (_entryCiphertext ent)
-                (_entryMeta ent)
+                (entryIdentity ent)
+                (entryCiphertext ent)
+                (entryMeta ent)
 
 updateIdentity
   :: Monad m
@@ -562,12 +482,12 @@ updateIdentity
   -> Entry
   -> m Entry
 updateIdentity now iden ent
-  = updateEntry (_entryKeyId ent)
+  = updateEntry (entryKeyId ent)
                 now
-                (_entryDescription ent)
+                (entryDescription ent)
                 iden
-                (_entryCiphertext ent)
-                (_entryMeta ent)
+                (entryCiphertext ent)
+                (entryMeta ent)
 
 updateMetadata
   :: Monad m
@@ -576,29 +496,29 @@ updateMetadata
   -> Entry
   -> m Entry
 updateMetadata now meta ent
-  = updateEntry (_entryKeyId ent)
+  = updateEntry (entryKeyId ent)
                 now
-                (_entryDescription ent)
-                (_entryIdentity ent)
-                (_entryCiphertext ent)
+                (entryDescription ent)
+                (entryIdentity ent)
+                (entryCiphertext ent)
                 meta
 
 -- * Queries
 
 -- | A 'Query' represents a database query
 data Query = Query
-  { _queryId          :: Maybe Id
-  , _queryDescription :: Maybe Description
-  , _queryIdentity    :: Maybe Identity
-  , _queryMeta        :: Maybe Metadata
+  { queryId          :: Maybe Id
+  , queryDescription :: Maybe Description
+  , queryIdentity    :: Maybe Identity
+  , queryMeta        :: Maybe Metadata
   } deriving (Show, Eq)
 
 query :: Maybe String -> Maybe String -> Maybe String -> Maybe String -> Query
 query i d iden m =
-  Query { _queryId          = Id          . T.pack <$> i
-        , _queryDescription = Description . T.pack <$> d
-        , _queryIdentity    = Identity    . T.pack <$> iden
-        , _queryMeta        = Metadata    . T.pack <$> m
+  Query { queryId          = Id          . T.pack <$> i
+        , queryDescription = Description . T.pack <$> d
+        , queryIdentity    = Identity    . T.pack <$> iden
+        , queryMeta        = Metadata    . T.pack <$> m
         }
 
 queryIsEmpty :: Query -> Bool

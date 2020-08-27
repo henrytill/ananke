@@ -24,3 +24,7 @@ graphmod:
 .PHONY: nix
 nix:
 	nix-build release.nix -A hecate
+
+.PHONY: clean
+clean:
+	cabal new-clean

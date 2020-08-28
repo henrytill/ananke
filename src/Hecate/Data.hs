@@ -48,11 +48,7 @@ module Hecate.Data
   , updateIdentity
   , updateMetadata
     -- * Queries
-  , Query
-  , queryId
-  , queryIdentity
-  , queryDescription
-  , queryMeta
+  , Query(..)
   , query
   , queryIsEmpty
   -- * Count

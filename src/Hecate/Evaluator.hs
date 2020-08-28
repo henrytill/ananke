@@ -306,6 +306,8 @@ modifyOnlySingletons [e] maction miden mmeta = do
   _   <- put ue2
   _   <- delete e
   return Modified
+modifyOnlySingletons [] _ _ _ =
+  ambiguousInputError "There are no entries matching your input criteria."
 modifyOnlySingletons _ _ _ _ =
   ambiguousInputError "There are multiple entries matching your input criteria."
 

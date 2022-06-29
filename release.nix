@@ -1,37 +1,30 @@
 let
-  pkgs = import <nixpkgs> {};
+  pkgs = import <nixpkgs> { config.allowBroken = true; };
 
   jobs = {
 
     hecate =
-      { compiler ? "ghc883"
+      { compiler ? "ghc8107"
       , doCheck ? ! pkgs.stdenv.isDarwin
       }:
 
       let
-        hlint-version       = "2.2.11";
-        lens-family-version = "1.2.3";
-
-        hlint            = pkgs.haskell.packages.${compiler}.callHackage "hlint"            hlint-version       {};
-        lens-family-core = pkgs.haskell.packages.${compiler}.callHackage "lens-family-core" lens-family-version {};
-        lens-family      = pkgs.haskell.packages.${compiler}.callHackage "lens-family"      lens-family-version { inherit lens-family-core; };
-
-        dweSrc = pkgs.fetchFromGitHub {
-          owner  = "xngns";
-          repo   = "dwergaz";
-          rev    = "v0.2.0.4";
-          sha256 = "1cfm1k2683p0aylavgghirajk1zwzvh6wkqq7lf2ssyk26mav2pi";
+        tpSrc  = pkgs.fetchFromGitHub {
+          owner  = "henrytill";
+          repo   = "toml-parser";
+          rev    = "2f9000030f98e8bb79ddba1826e8def583754d3c";
+          sha256 = "sha256-pvJK2eSq/Bke4PzhjToZarxMP8XGOgKMHa+JxVMjVUg=";
         };
         ltpSrc = pkgs.fetchFromGitHub {
-          owner  = "xngns";
+          owner  = "henrytill";
           repo   = "lens-toml-parser";
-          rev    = "v0.1.0.4";
-          sha256 = "11xi8gn3zknza87l1plnrgk48z7v7ya18wr45jsr3x5w56ini585";
+          rev    = "cf6ad080a2da24d1b9a3548d949c21a138e4df62";
+          sha256 = "sha256-seywzGUn27+IYkg6l4QTMKdBFzN0tP1JAXGBGdxN+70=";
         };
 
-        dwergaz          = pkgs.haskell.packages.${compiler}.callCabal2nix "dwergaz"          dweSrc {};
-        lens-toml-parser = pkgs.haskell.packages.${compiler}.callCabal2nix "lens-toml-parser" ltpSrc { inherit dwergaz hlint lens-family; };
-        hecateRaw        = pkgs.haskell.packages.${compiler}.callCabal2nix "hecate"           ./.    { inherit dwergaz hlint lens-family lens-toml-parser; };
+        toml-parser      = pkgs.haskell.packages.${compiler}.callCabal2nix "toml-parser"      tpSrc  {};
+        lens-toml-parser = pkgs.haskell.packages.${compiler}.callCabal2nix "lens-toml-parser" ltpSrc { inherit toml-parser; };
+        hecateRaw        = pkgs.haskell.packages.${compiler}.callCabal2nix "hecate"           ./.    { inherit lens-toml-parser toml-parser; };
 
         extDeps          = [ pkgs.sqlite pkgs.gnupg ];
       in

@@ -12,7 +12,7 @@ import qualified Data.Maybe         as Maybe
 import           Data.Monoid        (First (..))
 import qualified Data.Text          as T
 import           Lens.Family2
-import           Lens.Family2.Stock (_Just)
+import           Lens.Family2.Stock (just_)
 import qualified System.Info        as Info
 import qualified TOML
 import           TOML.Lens
@@ -62,19 +62,19 @@ tableAt
   -> ([(T.Text, TOML.Value)] -> f [(T.Text, TOML.Value)])
   -> [(T.Text, TOML.Value)]
   -> f [(T.Text, TOML.Value)]
-tableAt k = lup k . _Just . _Table
+tableAt k = lup k . just_ . _Table
 
 getBackend :: [(T.Text, TOML.Value)] -> Maybe Backend
 getBackend tbl
-  = tbl ^? tableAt "core" . lup "backend" . _Just . _String . to mkBackend
+  = tbl ^? tableAt "core" . lup "backend" . just_ . _String . to mkBackend
 
 getKeyId :: [(T.Text, TOML.Value)] -> Maybe KeyId
 getKeyId tbl
-  = tbl ^? tableAt "gnupg" . lup "keyid" . _Just . _String . to KeyId
+  = tbl ^? tableAt "gnupg" . lup "keyid" . just_ . _String . to KeyId
 
 getAllowMultipleKeys :: [(T.Text, TOML.Value)] -> Maybe Bool
 getAllowMultipleKeys tbl
-  = tbl ^? tableAt "entries" . lup "allow_multiple_keys" . _Just . _Bool
+  = tbl ^? tableAt "entries" . lup "allow_multiple_keys" . just_ . _Bool
 
 createPreConfig :: MonadInteraction m => m PreConfig
 createPreConfig = do

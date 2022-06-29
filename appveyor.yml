@@ -3,8 +3,7 @@ environment:
     CABAL_OPTIONS: "--store-dir=C:\\CABAL_STORE --http-transport=plain-http"
     GNUPGHOME: 'example/gnupg'  # This shouldn't work
   matrix:
-    - GHC_VERSION: "8.8.4"
-    - GHC_VERSION: "8.6.5"
+    - GHC_VERSION: "8.10.7"
 
 cache:
   - "C:\\CABAL_STORE"
@@ -18,10 +17,7 @@ install:
   - appveyor-retry choco install -y ghc --version %GHC_VERSION%
   - appveyor-retry choco install -y gnupg
   - refreshenv
-  - gpg --version
-  - ghc --version
-  - cabal --version
-  - cabal %CABAL_OPTIONS% new-update -v
+  - cabal %CABAL_OPTIONS% v2-update -v
 
 build_script:
-  - cabal %CABAL_OPTIONS% new-build all test:tests
+  - cabal %CABAL_OPTIONS% v2-build all test:tests

@@ -1,5 +1,6 @@
 # hecate
 
+[![Haskell CI](https://github.com/henrytill/hecate/actions/workflows/haskell.yml/badge.svg)](https://github.com/henrytill/hecate/actions/workflows/haskell.yml)
 [![Build status](https://ci.appveyor.com/api/projects/status/9uwnad06vf03j3gd/branch/master?svg=true)](https://ci.appveyor.com/project/henrytill/hecate/branch/master)
 
 `hecate` is a minimal password manager with a command-line interface.  Like [`pass`](https://www.passwordstore.org/) and its derivatives, it uses [GnuPG](https://gnupg.org/) for asymmetric encryption of passwords.  Unlike `pass`, it stores all information in an [SQLite](https://sqlite.org) database.  It is also written in Haskell, rather than Bash.

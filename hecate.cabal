@@ -19,7 +19,6 @@ extra-source-files:
   .gitignore
   .hlint.yaml
   .stylish-haskell.yaml
-  .travis.yml
   README.md
   example/hecate.toml
   example/gnupg/pubring.gpg

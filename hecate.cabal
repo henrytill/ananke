@@ -125,4 +125,4 @@ test-suite hlint
     buildable:         False
   else
     build-depends:     base
-                     , hlint >= 1.9 && <3
+                     , hlint >=3.0 && <4

@@ -1,9 +1,9 @@
 module Main (main) where
 
-import qualified Control.Monad           as Monad
-import qualified Language.Haskell.HLint3 as HLint
-import qualified System.Environment      as Env
-import qualified System.Exit             as Exit
+import qualified Control.Monad          as Monad
+import qualified Language.Haskell.HLint as HLint
+import qualified System.Environment     as Env
+import qualified System.Exit            as Exit
 
 
 main :: IO ()

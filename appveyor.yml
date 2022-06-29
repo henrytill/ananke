@@ -1,10 +1,9 @@
 environment:
   global:
     CABAL_OPTIONS: "--store-dir=C:\\CABAL_STORE --http-transport=plain-http"
-    CABAL_VERSION: "3.2.0.0"
     GNUPGHOME: 'example/gnupg'  # This shouldn't work
   matrix:
-    - GHC_VERSION: "8.8.3"
+    - GHC_VERSION: "8.8.4"
     - GHC_VERSION: "8.6.5"
 
 cache:
@@ -17,7 +16,6 @@ install:
           $newPath = ($path.Split(';') | Where-Object { $_ -eq 'C:\ProgramData\chocolatey\bin' }) -join ';'
           [Environment]::SetEnvironmentVariable("path", $newPath, "machine")
   - appveyor-retry choco install -y ghc --version %GHC_VERSION%
-  - appveyor-retry choco install -y cabal --version %CABAL_VERSION%
   - appveyor-retry choco install -y gnupg
   - refreshenv
   - gpg --version

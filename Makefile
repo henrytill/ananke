@@ -4,6 +4,11 @@ PROJECT_DIR = $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 all:
 	cabal v2-build $@
 
+.PHONY: deps
+deps:
+	cabal v2-update
+	cabal v2-build --only-dependencies --enable-tests
+
 .PHONY: install
 install:
 	cabal v2-install --overwrite-policy=always

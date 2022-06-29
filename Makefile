@@ -2,20 +2,20 @@ PROJECT_DIR = $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 .PHONY: all
 all:
-	cabal new-build $@
+	cabal v2-build $@
 
 .PHONY: install
 install:
-	cabal new-install --overwrite-policy=always
+	cabal v2-install --overwrite-policy=always
 
 .PHONY: check
 check: export GNUPGHOME= $(PROJECT_DIR)/example/gnupg
 check:
-	cabal new-test
+	cabal v2-test
 
 .PHONY: lint
 lint:
-	cabal new-test test:hlint
+	cabal v2-test test:hlint
 
 .PHONY: graphmod
 graphmod:
@@ -27,4 +27,4 @@ nix:
 
 .PHONY: clean
 clean:
-	cabal new-clean
+	cabal v2-clean

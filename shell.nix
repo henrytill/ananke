@@ -1,4 +1,4 @@
-{ compiler ? "ghc862"
+{ compiler ? "ghc8107"
 , doCheck ? true
 }:
 

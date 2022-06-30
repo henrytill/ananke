@@ -20,7 +20,7 @@ check:
 
 .PHONY: lint
 lint:
-	cabal v2-test test:hlint
+	hlint executables src tests
 
 .PHONY: graphmod
 graphmod:

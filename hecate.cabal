@@ -28,10 +28,6 @@ source-repository head
   type:     git
   location: https://github.com/henrytill/hecate
 
-flag test-hlint
-  default: True
-  manual:  True
-
 executable hecate
   main-is:             Main.hs
   -- other-modules:
@@ -112,16 +108,3 @@ test-suite tests
   hs-source-dirs:      tests
   default-language:    Haskell2010
   ghc-options:         -Wall
-
-test-suite hlint
-  type:                exitcode-stdio-1.0
-  main-is:             HLint.hs
-  hs-source-dirs:      tests
-  default-language:    Haskell2010
-  ghc-options:         -Wall
-
-  if !flag(test-hlint)
-    buildable:         False
-  else
-    build-depends:     base
-                     , hlint >=3.0 && <4

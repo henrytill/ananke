@@ -13,18 +13,20 @@ deps:
 install:
 	cabal v2-install --overwrite-policy=always
 
-.PHONY: check
-check: export GNUPGHOME= $(PROJECT_DIR)/example/gnupg
-check:
+.PHONY: check test
+check test: export GNUPGHOME= $(PROJECT_DIR)/example/gnupg
+check test:
 	cabal v2-test
 
 .PHONY: lint
 lint:
 	hlint executables src tests
 
-.PHONY: graphmod
-graphmod:
-	find executables src -name '*.hs' | xargs graphmod -q | xdot -
+modules.png: hecate.cabal
+	find executables src -name '*.hs' | xargs graphmod -q | dot -Tpng -o $@
+
+depends.png: hecate.cabal
+	cabal-plan dot --tred | dot -Tpng -o $@
 
 .PHONY: nix
 nix:
@@ -33,3 +35,4 @@ nix:
 .PHONY: clean
 clean:
 	cabal v2-clean
+	rm -f modules.png depends.png

@@ -29,13 +29,13 @@ You should have a basic understanding of how to use GnuPG and have a keypair to 
 
 ## Installation
 
-Currently, the recommended way of getting `hecate` is to build and install it from the [latest release](https://github.com/henrytill/hecate/releases/latest).
+Currently, the recommended way of getting `hecate` is to build and install it from the [latest release](https://git.sr.ht/~henrytill/hecate/refs).
 
 ### with `cabal`
 
 (instructions are for version 2.2.0.0 or greater)
 
-After downloading and decompressing the [latest release](https://github.com/henrytill/hecate/releases/latest),
+After downloading and decompressing the [latest release](https://git.sr.ht/~henrytill/hecate/refs),
 
 ```sh
 $ cd hecate-<version>
@@ -47,7 +47,7 @@ This will install the `hecate` executable in `$HOME/.cabal/bin`.
 ### with `nix-env`
 
 ```sh
-$ nix-env -f https://github.com/henrytill/hecate/archive/<version>.tar.gz -i hecate
+$ nix-env -f https://git.sr.ht/~henrytill/hecate/archive/<version>.tar.gz -i hecate
 ```
 
 ## Setup

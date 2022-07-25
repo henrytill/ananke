@@ -1,0 +1,20 @@
+image: debian/stable
+packages:
+  - build-essential
+  - ghc
+  - cabal-install
+sources:
+  - https://git.sr.ht/~henrytill/hecate
+tasks:
+  - deps: |
+      cd hecate
+      make deps
+  - setup: |
+      cd hecate
+      ./configure
+  - build: |
+      cd hecate
+      make
+  - test: |
+      cd hecate
+      make test

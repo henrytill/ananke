@@ -67,7 +67,7 @@ prettyResponse _ (SingleEntry de Normal) =
 prettyResponse _ (SingleEntry de Verbose) =
   printOneVerbose de <> Leijen.linebreak
 prettyResponse _ (MultipleEntries [] _) =
-  Leijen.text "Not found" <> Leijen.linebreak
+  Leijen.empty
 prettyResponse _ (MultipleEntries ds Normal) =
   foldl (\ acc b -> printOne b <$> acc) Leijen.empty ds
 prettyResponse _ (MultipleEntries ds Verbose) =
@@ -91,7 +91,7 @@ ansiPrettyResponse _ (SingleEntry de Normal) =
 ansiPrettyResponse _ (SingleEntry de Verbose) =
   printOneVerbose de <> Leijen.linebreak
 ansiPrettyResponse _ (MultipleEntries [] _) =
-  Leijen.red (Leijen.text "Not found") <> Leijen.linebreak
+  Leijen.red Leijen.empty
 ansiPrettyResponse _ (MultipleEntries ds Normal) =
   foldl (\ acc b -> printOne b <$> acc) Leijen.empty ds
 ansiPrettyResponse _ (MultipleEntries ds Verbose) =

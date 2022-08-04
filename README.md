@@ -73,7 +73,6 @@ where `<user>` is usually the email address associated with the keypair.
 # an optional accompanying identity, and an optional piece of metadata
 $ hecate add http://notarealwebsite.com -i alice@notarealserver.com -m "This is some metadata"
 Enter text to encrypt: notarealpassword
-Added
 
 # Retrieve an entry from the database and display its ciphertext as plaintext (see NOTE below)
 $ hecate lookup http://notarealwebsite.com
@@ -82,15 +81,12 @@ http://notarealwebsite.com alice@notarealserver.com notarealpassword This is som
 # Modify the ciphertext of a given entry
 $ hecate modify -d http://notarealwebsite.com -c
 Enter text to encrypt: anotherfakepassword
-Modified
 
 # Modify the identity of a given entry
 $ hecate modify -d http://notarealwebsite.com -i alice_alt@notarealserver.com
-Modified
 
 # Modify the metadata of a given entry
 $ hecate modify -d http://notarealwebsite.com -m "My alternate account"
-Modified
 
 # Retrieve the modified entry
 $ hecate lookup http://notarealwebsite.com
@@ -98,11 +94,9 @@ http://notarealwebsite.com alice_alt@notarealserver.com anotherfakepassword My a
 
 # Change the description of an entry
 $ hecate redescribe -d http://notarealwebsite.com http://notarealwebsite.net
-Redescribed
 
 # Check if the old entry still exists
 $ hecate lookup http://notarealwebsite.com
-Not found
 
 # Retrieve the newly-redescribed entry
 $ hecate lookup http://notarealwebsite.net
@@ -115,7 +109,6 @@ http://notarealwebsite.net alice_alt@notarealserver.com anotherfakepassword My a
 
 # Remove an entry from the database
 $ hecate remove -d http://notarealwebsite.net
-Removed
 ```
 
 **NOTE**: The `hecate lookup` command will either cause `pinentry` to appear, after which it will only output the requested entry when you enter the correct passphrase, or it will simply output the requested entry if you have entered the correct passphrase recently.  This behavior depends on `gpg-agent`'s settings.  See the [`gpg-agent` manual](https://www.gnupg.org/documentation/manuals/gnupg/Invoking-GPG_002dAGENT.html) for more information.

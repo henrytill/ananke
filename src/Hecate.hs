@@ -17,14 +17,14 @@ import           Hecate.Backend.SQLite        (AppContext)
 import qualified Hecate.Backend.SQLite        as SQLite
 import           Hecate.Configuration         (Backend (..), Config (..), configure)
 import           Hecate.Error                 (AppError)
-import           Hecate.Evaluator             (Command, Response)
+import           Hecate.Evaluator             (Command, Response (..))
 import qualified Hecate.Evaluator             as Evaluator
 import qualified Hecate.Parser                as Parser
 import qualified Hecate.Printing              as Printing
 
 
-hPutDocWrapper :: Handle -> Doc -> Doc -> IO ()
-hPutDocWrapper h f g = do
+pd :: Handle -> Doc -> Doc -> IO ()
+pd h f g = do
   supportsANSI <- ANSI.hSupportsANSI h
   if supportsANSI
     then Leijen.hPutDoc h f
@@ -36,9 +36,14 @@ exceptionHandler command err = do
   return (ExitFailure 1)
 
 resultHandler :: Command -> Response -> IO ExitCode
-resultHandler command res = do
-  hPutDocWrapper IO.stdout (Printing.ansiPrettyResponse command res) (Printing.prettyResponse command res)
-  return ExitSuccess
+resultHandler command res =
+  let
+    pr r = pd IO.stdout (Printing.ansiPrettyResponse command r) (Printing.prettyResponse command r)
+  in case res of
+    (SingleEntry     _  _) -> pr res >> return ExitSuccess
+    (MultipleEntries [] _) -> pr res >> return (ExitFailure 1)
+    (MultipleEntries _  _) -> pr res >> return ExitSuccess
+    _                      -> return ExitSuccess
 
 runJSONApp :: (Config, AppState) -> IO ExitCode
 runJSONApp (cfg, state) = do

@@ -3,32 +3,22 @@ module Hecate
   , run
   ) where
 
-import qualified Control.Exception            as Exception
-import qualified System.Console.ANSI          as ANSI
-import           System.Exit                  (ExitCode (..))
-import           System.IO                    (Handle)
-import qualified System.IO                    as IO
-import           Text.PrettyPrint.ANSI.Leijen (Doc)
-import qualified Text.PrettyPrint.ANSI.Leijen as Leijen
+import qualified Control.Exception          as Exception
+import           System.Exit                (ExitCode (..))
+import qualified System.IO                  as IO
+import qualified Text.PrettyPrint.Leijen as Leijen
 
-import           Hecate.Backend.JSON          (AppState)
-import qualified Hecate.Backend.JSON          as JSON
-import           Hecate.Backend.SQLite        (AppContext)
-import qualified Hecate.Backend.SQLite        as SQLite
-import           Hecate.Configuration         (Backend (..), Config (..), configure)
-import           Hecate.Error                 (AppError)
-import           Hecate.Evaluator             (Command, Response (..))
-import qualified Hecate.Evaluator             as Evaluator
-import qualified Hecate.Parser                as Parser
-import qualified Hecate.Printing              as Printing
+import           Hecate.Backend.JSON        (AppState)
+import qualified Hecate.Backend.JSON        as JSON
+import           Hecate.Backend.SQLite      (AppContext)
+import qualified Hecate.Backend.SQLite      as SQLite
+import           Hecate.Configuration       (Backend (..), Config (..), configure)
+import           Hecate.Error               (AppError)
+import           Hecate.Evaluator           (Command, Response (..))
+import qualified Hecate.Evaluator           as Evaluator
+import qualified Hecate.Parser              as Parser
+import qualified Hecate.Printing            as Printing
 
-
-pd :: Handle -> Doc -> Doc -> IO ()
-pd h f g = do
-  supportsANSI <- ANSI.hSupportsANSI h
-  if supportsANSI
-    then Leijen.hPutDoc h f
-    else Leijen.hPutDoc h g
 
 exceptionHandler :: Command -> AppError -> IO ExitCode
 exceptionHandler command err = do
@@ -38,7 +28,7 @@ exceptionHandler command err = do
 resultHandler :: Command -> Response -> IO ExitCode
 resultHandler command res =
   let
-    pr r = pd IO.stdout (Printing.ansiPrettyResponse command r) (Printing.prettyResponse command r)
+    pr r = Leijen.hPutDoc IO.stdout (Printing.prettyResponse command r)
   in case res of
     (SingleEntry     _  _) -> pr res >> return ExitSuccess
     (MultipleEntries [] _) -> pr res >> return (ExitFailure 1)

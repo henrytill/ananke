@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Hecate.GPG
   ( encrypt
   , decrypt
@@ -35,29 +37,21 @@ lifter
   -> m BS.ByteString
 lifter x = liftIO x >>= convertResult
 
-encryptWrapper
-  :: (MonadThrow m, MonadIO m)
-  => (BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString))
-  -> T.Text
-  -> m Ciphertext
-encryptWrapper f = (mkCiphertext <$>) . lifter . f . Encoding.encodeUtf8
-
-decryptWrapper
-  :: (MonadThrow m, MonadIO m)
-  => (BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString))
-  -> Ciphertext
-  -> m Plaintext
-decryptWrapper f = (Plaintext . Encoding.decodeUtf8 <$>) . lifter . f . unCiphertext
-
 encrypt
-  :: (MonadThrow m, MonadIO m)
+  :: forall m. (MonadThrow m, MonadIO m)
   => KeyId
   -> Plaintext
   -> m Ciphertext
-encrypt (KeyId keyid) (Plaintext pt) = encryptWrapper (gpgEncrypt (T.unpack keyid)) pt
+encrypt (KeyId keyid) (Plaintext pt) = w (gpgEncrypt (T.unpack keyid)) pt
+  where
+    w :: (BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)) -> T.Text -> m Ciphertext
+    w f = (mkCiphertext <$>) . lifter . f . Encoding.encodeUtf8
 
 decrypt
-  :: (MonadThrow m, MonadIO m)
+  :: forall m. (MonadThrow m, MonadIO m)
   => Ciphertext
   -> m Plaintext
-decrypt = decryptWrapper gpgDecrypt
+decrypt = w gpgDecrypt
+  where
+    w ::  (BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)) -> Ciphertext -> m Plaintext
+    w f = (Plaintext . Encoding.decodeUtf8 <$>) . lifter . f . unCiphertext

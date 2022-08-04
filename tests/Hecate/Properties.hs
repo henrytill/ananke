@@ -27,10 +27,10 @@ import           Hecate.Orphans          ()
 
 
 data TestData = TestData
-  { _testDescription :: Description
-  , _testIdentity    :: Maybe Identity
-  , _testPlaintext   :: Plaintext
-  , _testMetadata    :: Maybe Metadata
+  { testDescription :: Description
+  , testIdentity    :: Maybe Identity
+  , testPlaintext   :: Plaintext
+  , testMetadata    :: Maybe Metadata
   } deriving (Eq, Show)
 
 instance Arbitrary TestData where
@@ -47,10 +47,10 @@ createEntryFromTestData td = do
   createEntry encrypt
               (configKeyId cfg)
               timestamp
-              (_testDescription td)
-              (_testIdentity td)
-              (_testPlaintext td)
-              (_testMetadata td)
+              (testDescription td)
+              (testIdentity td)
+              (testPlaintext td)
+              (testMetadata td)
 
 addEntryToDatabase
   :: ( MonadAppError m

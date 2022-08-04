@@ -37,24 +37,24 @@ data Target
 
 -- | 'Command' represents CLI commands
 data Command
-  = Add { _addDescription :: String
-        , _addIdentity    :: Maybe String
-        , _addMeta        :: Maybe String
+  = Add { addDescription :: String
+        , addIdentity    :: Maybe String
+        , addMeta        :: Maybe String
         }
-  | Lookup { _lookupDescription :: String
-           , _lookupIdentity    :: Maybe String
-           , _lookupVerbosity   :: Verbosity
+  | Lookup { lookupDescription :: String
+           , lookupIdentity    :: Maybe String
+           , lookupVerbosity   :: Verbosity
            }
-  | Import { _importFile :: FilePath }
-  | Export { _exportFile :: FilePath }
-  | ExportJSON { _exportFile :: FilePath }
-  | Modify { _modifyTarget     :: Target
-           , _modifyCiphertext :: ModifyAction
-           , _modifyIdentity   :: Maybe String
-           , _modifyMeta       :: Maybe String
+  | Import { importFile :: FilePath }
+  | Export { exportFile :: FilePath }
+  | ExportJSON { exportFile :: FilePath }
+  | Modify { modifyTarget     :: Target
+           , modifyCiphertext :: ModifyAction
+           , modifyIdentity   :: Maybe String
+           , modifyMeta       :: Maybe String
            }
-  | Redescribe { _redescribeTarget      :: Target
-               , _redescribeDescription :: String
+  | Redescribe { redescribeTarget      :: Target
+               , redescribeDescription :: String
                }
   | Remove Target
   | CheckForMultipleKeys
@@ -219,14 +219,14 @@ exportJSON jsonFile entries = writeFileFromLazyByteString jsonFile json
     cfg  = Aeson.defConfig{Aeson.confCompare = Aeson.keyOrder entryKeyOrder}
     json = Aeson.encodePretty' cfg (List.sort entries)
 
-createEntryWrapper
+create
   :: (MonadEncrypt m, MonadInteraction m, MonadConfigReader m)
   => String
   -> Maybe String
   -> Maybe String
-  -> String
   -> m Entry
-createEntryWrapper d i m t = do
+create d i m = do
+  t         <- prompt "Enter text to encrypt: "
   cfg       <- askConfig
   timestamp <- now
   createEntry encrypt
@@ -237,37 +237,38 @@ createEntryWrapper d i m t = do
               (Plaintext   . T.pack  $  t)
               (Metadata    . T.pack <$> m)
 
-updateWrapper
+update
   :: MonadInteraction m
   => Maybe String
   -> Maybe String
   -> Entry
   -> m Entry
-updateWrapper Nothing Nothing e =
+update Nothing Nothing e =
   return e
-updateWrapper (Just "") Nothing e =
+update (Just "") Nothing e =
   now >>= \ ts -> updateIdentity ts Nothing e
-updateWrapper miden Nothing e =
+update miden Nothing e =
   now >>= \ ts -> updateIdentity ts (Identity . T.pack <$> miden) e
-updateWrapper Nothing (Just "") e =
+update Nothing (Just "") e =
   now >>= \ ts -> updateMetadata ts Nothing e
-updateWrapper Nothing mmeta e =
+update Nothing mmeta e =
   now >>= \ ts -> updateMetadata ts (Metadata . T.pack <$> mmeta) e
-updateWrapper (Just "") (Just "") e =
+update (Just "") (Just "") e =
   now                         >>= \ ts ->
   updateIdentity ts Nothing e >>=
   updateMetadata ts Nothing
-updateWrapper miden mmeta e =
+update miden mmeta e =
   now                                               >>= \ ts ->
   updateIdentity ts (Identity . T.pack <$> miden) e >>=
   updateMetadata ts (Metadata . T.pack <$> mmeta)
 
 updateCiphertext
   :: (MonadEncrypt m, MonadInteraction m, MonadConfigReader m)
-  => Plaintext
+  => ModifyAction
   -> Entry
   -> m Entry
-updateCiphertext plaintext ent = do
+updateCiphertext Change ent = do
+  t         <- prompt "Enter text to encrypt: "
   cfg       <- askConfig
   timestamp <- now
   createEntry encrypt
@@ -275,18 +276,10 @@ updateCiphertext plaintext ent = do
               timestamp
               (entryDescription ent)
               (entryIdentity ent)
-              plaintext
+              (Plaintext . T.pack $ t)
               (entryMeta ent)
-
-updateCiphertextWrapper
-  :: (MonadEncrypt m, MonadInteraction m, MonadConfigReader m)
-  => ModifyAction
-  -> Entry
-  -> m Entry
-updateCiphertextWrapper Change e =
-  prompt "Enter text to encrypt: " >>= \ t -> updateCiphertext (Plaintext . T.pack $ t) e
-updateCiphertextWrapper Keep e =
-  return e
+updateCiphertext Keep ent =
+  return ent
 
 modifyOnlySingletons
   :: ( MonadAppError m
@@ -301,8 +294,8 @@ modifyOnlySingletons
   -> Maybe String
   -> m Response
 modifyOnlySingletons [e] maction miden mmeta = do
-  ue1 <- updateWrapper miden mmeta e
-  ue2 <- updateCiphertextWrapper maction ue1
+  ue1 <- update miden mmeta e
+  ue2 <- updateCiphertext maction ue1
   _   <- put ue2
   _   <- delete e
   return Modified
@@ -440,29 +433,24 @@ eval
      )
   => Command
   -> m Response
-eval Add{_addDescription, _addIdentity, _addMeta} =
-  checkKey k
-  where
-    k = prompt "Enter text to encrypt: "                         >>=
-        createEntryWrapper _addDescription _addIdentity _addMeta >>=
-        put                                                      >>
-        return Added
-eval Lookup{_lookupDescription, _lookupIdentity, _lookupVerbosity} = do
-  let q = Data.query Nothing (Just _lookupDescription) _lookupIdentity Nothing
+eval Add{addDescription, addIdentity, addMeta} =
+  checkKey $ create addDescription addIdentity addMeta >>= put >> return Added
+eval Lookup{lookupDescription, lookupIdentity, lookupVerbosity} = do
+  let q = Data.query Nothing (Just lookupDescription) lookupIdentity Nothing
   res <- query q
   case res of
-    []  -> pure (MultipleEntries [] _lookupVerbosity)
-    [e] -> SingleEntry     <$> entryToDisplayEntry decrypt e         <*> pure _lookupVerbosity
-    es  -> MultipleEntries <$> mapM (entryToDisplayEntry decrypt) es <*> pure _lookupVerbosity
-eval Import{_importFile} =
-  checkKey (importCSV _importFile >>= mapM_ put >> return Added)
-eval Export{_exportFile}  = do
+    []  -> pure (MultipleEntries [] lookupVerbosity)
+    [e] -> SingleEntry     <$> entryToDisplayEntry decrypt e         <*> pure lookupVerbosity
+    es  -> MultipleEntries <$> mapM (entryToDisplayEntry decrypt) es <*> pure lookupVerbosity
+eval Import{importFile} =
+  checkKey (importCSV importFile >>= mapM_ put >> return Added)
+eval Export{exportFile}  = do
   es  <- selectAll
-  _   <- exportCSV _exportFile es
+  _   <- exportCSV exportFile es
   return Exported
-eval ExportJSON{_exportFile} = do
+eval ExportJSON{exportFile} = do
   es  <- selectAll
-  _   <- exportJSON _exportFile es
+  _   <- exportJSON exportFile es
   return Exported
 eval (Modify t c i m)     = modify t c i m
 eval (Redescribe t s)     = redescribe t s

@@ -6,7 +6,6 @@ module Hecate.Properties
 
 import           Data.List               ((\\))
 import           Data.Monoid             (First (..))
-import           Data.Text.Arbitrary     ()
 import           Database.SQLite.Simple  hiding (Error)
 import qualified System.Directory        as Directory
 import qualified System.IO.Temp          as Temp

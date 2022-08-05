@@ -2,11 +2,15 @@
 
 module Hecate.Orphans () where
 
-import           Data.Text.Arbitrary ()
-import           Test.QuickCheck     (Arbitrary (..))
+import qualified Data.Text       as T
+import           Test.QuickCheck (Arbitrary (..))
 
-import           Hecate.Data         (Description (..), Identity (..), Metadata (..), Plaintext (..))
+import           Hecate.Data     (Description (..), Identity (..), Metadata (..), Plaintext (..))
 
+
+instance Arbitrary T.Text where
+    arbitrary = T.pack <$> arbitrary
+    shrink xs = T.pack <$> shrink (T.unpack xs)
 
 instance Arbitrary Description where
   arbitrary               = Description <$> arbitrary

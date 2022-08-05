@@ -4,10 +4,8 @@ module Hecate.Properties
   ( doProperties
   ) where
 
-import qualified Control.Monad           as Monad
 import           Data.List               ((\\))
 import           Data.Monoid             (First (..))
-import qualified Data.Text               as T
 import           Data.Text.Arbitrary     ()
 import           Database.SQLite.Simple  hiding (Error)
 import qualified System.Directory        as Directory
@@ -15,7 +13,6 @@ import qualified System.IO.Temp          as Temp
 import           Test.QuickCheck         (Arbitrary (..), Property, Result)
 import qualified Test.QuickCheck         as QuickCheck
 import qualified Test.QuickCheck.Monadic as Monadic
-import qualified Text.Printf             as Printf
 
 import           Hecate.Backend.SQLite   (AppContext (..))
 import qualified Hecate.Backend.SQLite   as SQLite
@@ -66,26 +63,6 @@ addEntryToDatabase tds = do
   mapM_ put es
   return es
 
-createFilePath :: AppContext -> Int -> FilePath
-createFilePath ctx x
-  = configDataDirectory (appContextConfig ctx) ++ "/export-" ++ Printf.printf "%05d" x ++ ".csv"
-
-isNotEmpty :: TestData -> Bool
-isNotEmpty testData
-  = _testDescription testData /= Description    T.empty  &&
-    _testIdentity    testData /= Just (Identity T.empty) &&
-    _testPlaintext   testData /= Plaintext      T.empty  &&
-    _testMetadata    testData /= Just (Metadata T.empty)
-
-entriesHaveSameContent :: (MonadAppError m, MonadEncrypt m) => Entry -> Entry -> m Bool
-entriesHaveSameContent e1 e2 = do
-  plaintext1 <- decrypt (entryCiphertext e1)
-  plaintext2 <- decrypt (entryCiphertext e2)
-  return ((entryDescription e1 == entryDescription e2) &&
-          (entryIdentity    e1 == entryIdentity    e2) &&
-          (entryMeta        e1 == entryMeta        e2) &&
-          (plaintext1          == plaintext2))
-
 prop_roundTripEntriesToDatabase :: AppContext -> Property
 prop_roundTripEntriesToDatabase ctx = Monadic.monadicIO $ do
   tds <- Monadic.pick (QuickCheck.listOf1 arbitrary)
@@ -93,21 +70,9 @@ prop_roundTripEntriesToDatabase ctx = Monadic.monadicIO $ do
   res <- Monadic.run (SQLite.run selectAll ctx)
   Monadic.assert (null (es \\ res))
 
-prop_roundTripEntriesToCSV :: AppContext -> Property
-prop_roundTripEntriesToCSV ctx = Monadic.monadicIO $ do
-  tds  <- Monadic.pick (QuickCheck.listOf1 (QuickCheck.suchThat arbitrary isNotEmpty))
-  x    <- Monadic.pick (QuickCheck.suchThat arbitrary (> 0))
-  let file = createFilePath ctx x
-  es   <- Monadic.run (SQLite.run (mapM createEntryFromTestData tds) ctx)
-  _    <- Monadic.run (Evaluator.exportCSV file es)
-  ies  <- Monadic.run (SQLite.run (Evaluator.importCSV file) ctx)
-  bs   <- Monadic.run (Monad.zipWithM entriesHaveSameContent es ies)
-  Monadic.assert (and bs)
-
 tests :: [AppContext -> Property]
 tests =
   [ prop_roundTripEntriesToDatabase
-  , prop_roundTripEntriesToCSV
   ]
 
 doProperties :: IO [Result]

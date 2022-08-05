@@ -6,18 +6,14 @@ module Hecate.Evaluator
   , Target(..)
   , Command(..)
   , Response(..)
-  , importCSV
-  , exportCSV
   , eval
   , setup
   ) where
 
 import qualified Data.Aeson.Encode.Pretty as Aeson
 import qualified Data.Char                as Char
-import qualified Data.Csv                 as CSV
 import qualified Data.List                as List
 import qualified Data.Text                as T
-import qualified Data.Vector              as Vector
 
 import           Hecate.Data              hiding (query)
 import qualified Hecate.Data              as Data
@@ -45,8 +41,6 @@ data Command
            , lookupIdentity    :: Maybe String
            , lookupVerbosity   :: Verbosity
            }
-  | Import { importFile :: FilePath }
-  | Export { exportFile :: FilePath }
   | ExportJSON { exportFile :: FilePath }
   | Modify { modifyTarget     :: Target
            , modifyCiphertext :: ModifyAction
@@ -120,13 +114,6 @@ setup = do
   schemaVersion <- getSchemaVersion schemaFile
   initDatabase schemaFile schemaVersion keyId
 
-ensureFile :: (MonadAppError m, MonadInteraction m) => FilePath -> m FilePath
-ensureFile file = do
-  exists <- doesFileExist file
-  if exists
-    then return file
-    else fileSystemError "File does not exist"
-
 reencryptAll
   :: (MonadEncrypt m, MonadStore m)
   => KeyId
@@ -177,41 +164,6 @@ checkKey k = do
       (x, _    ) | x == total -> k
       (_, True )              -> binaryChoice q (reenc >> k) k
       (_, False)              -> defaultError "All entries do not have the same keyid"
-
-csvEntryToEntry
-  :: (MonadEncrypt m, MonadInteraction m, MonadConfigReader m)
-  => CSVEntry
-  -> m Entry
-csvEntryToEntry ent = do
-  cfg       <- askConfig
-  timestamp <- now
-  createEntry encrypt
-              (configKeyId cfg)
-              timestamp
-              (csvDescription ent)
-              (csvIdentity ent)
-              (csvPlaintext ent)
-              (csvMeta ent)
-
-importCSV
-  :: (MonadAppError m, MonadEncrypt m, MonadInteraction m, MonadConfigReader m)
-  => FilePath
-  -> m [Entry]
-importCSV csvFile = do
-  file <- ensureFile csvFile
-  bs   <- readFileAsLazyByteString file
-  ies  <- either csvDecodingError (pure . Vector.toList) (CSV.decode CSV.NoHeader bs)
-  mapM csvEntryToEntry ies
-
-exportCSV
-  :: (MonadInteraction m, MonadEncrypt m)
-  => FilePath
-  -> [Entry]
-  -> m ()
-exportCSV csvFile entries = do
-  csvEntries <- mapM (entryToCSVEntry decrypt) entries
-  let csv = CSV.encode csvEntries
-  writeFileFromLazyByteString csvFile csv
 
 exportJSON :: (MonadInteraction m) => FilePath -> [Entry] -> m ()
 exportJSON jsonFile entries = writeFileFromLazyByteString jsonFile json
@@ -442,12 +394,6 @@ eval Lookup{lookupDescription, lookupIdentity, lookupVerbosity} = do
     []  -> pure (MultipleEntries [] lookupVerbosity)
     [e] -> SingleEntry     <$> entryToDisplayEntry decrypt e         <*> pure lookupVerbosity
     es  -> MultipleEntries <$> mapM (entryToDisplayEntry decrypt) es <*> pure lookupVerbosity
-eval Import{importFile} =
-  checkKey (importCSV importFile >>= mapM_ put >> return Added)
-eval Export{exportFile}  = do
-  es  <- selectAll
-  _   <- exportCSV exportFile es
-  return Exported
 eval ExportJSON{exportFile} = do
   es  <- selectAll
   _   <- exportJSON exportFile es

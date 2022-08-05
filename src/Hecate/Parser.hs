@@ -60,12 +60,6 @@ lookupP = Lookup <$> descArgP
                  <*> optional idenOptP
                  <*> verbosityFlagP
 
-importP :: Parser Command
-importP = Import <$> pathArgP
-
-exportP :: Parser Command
-exportP = Export <$> pathArgP
-
 exportJSONP :: Parser Command
 exportJSONP = ExportJSON <$> pathArgP
 
@@ -86,8 +80,6 @@ checkP = pure CheckForMultipleKeys
 
 cmdAdd        :: Mod CommandFields Command
 cmdLookup     :: Mod CommandFields Command
-cmdImport     :: Mod CommandFields Command
-cmdExport     :: Mod CommandFields Command
 cmdExportJSON :: Mod CommandFields Command
 cmdModify     :: Mod CommandFields Command
 cmdRedescribe :: Mod CommandFields Command
@@ -95,8 +87,6 @@ cmdRemove     :: Mod CommandFields Command
 cmdCheck      :: Mod CommandFields Command
 cmdAdd        = command "add"         $ info addP        (progDesc "Encrypt a piece of text and add it to the store")
 cmdLookup     = command "lookup"      $ info lookupP     (progDesc "Lookup a piece of ciphertext in the store")
-cmdImport     = command "import"      $ info importP     (progDesc "Import a CSV file")
-cmdExport     = command "export"      $ info exportP     (progDesc "Export a CSV file")
 cmdExportJSON = command "export-json" $ info exportJSONP (progDesc "Export a JSON file")
 cmdModify     = command "modify"      $ info modifyP     (progDesc "Modify a piece of ciphertext in the store")
 cmdRedescribe = command "redescribe"  $ info redescribeP (progDesc "Modify the description of a piece of ciphertext in the store")
@@ -104,7 +94,7 @@ cmdRemove     = command "remove"      $ info removeP     (progDesc "Remove a pie
 cmdCheck      = command "check"       $ info checkP      (progDesc "Check if all entries have the same keyid")
 
 master :: Parser Command
-master = hsubparser (cmdAdd <> cmdLookup <> cmdImport <> cmdExport <> cmdExportJSON <> cmdModify <> cmdRedescribe <> cmdRemove <> cmdCheck)
+master = hsubparser (cmdAdd <> cmdLookup <> cmdExportJSON <> cmdModify <> cmdRedescribe <> cmdRemove <> cmdCheck)
 
 opts :: ParserInfo Command
 opts = info (master <**> helper) (fullDesc <> progDesc "A minimal password manager")

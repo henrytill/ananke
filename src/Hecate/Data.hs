@@ -12,12 +12,6 @@ module Hecate.Data
   , configDataFile
   , SchemaVersion(..)
     -- * Import & Display Entries
-  , CSVEntry
-  , csvDescription
-  , csvIdentity
-  , csvPlaintext
-  , csvMeta
-  , entryToCSVEntry
   , DisplayEntry(..)
   , entryToDisplayEntry
   , KeyId(..)
@@ -61,7 +55,6 @@ import qualified Data.Aeson                       as Aeson
 import qualified Data.ByteString                  as BS
 import qualified Data.ByteString.Lazy             as BSL
 import           Data.ByteString64                (ByteString64 (..))
-import qualified Data.Csv                         as CSV
 import qualified Data.Digest.Pure.SHA             as SHA
 import qualified Data.List                        as List
 import qualified Data.Maybe                       as Maybe
@@ -128,31 +121,7 @@ newtype SchemaVersion = SchemaVersion { unSchemaVersion :: Int }
 instance Show SchemaVersion where
   show = show . unSchemaVersion
 
--- * Import and Display Entries
-
--- | An 'CSVEntry' is a record that is imported or exported from a CSV file
-data CSVEntry = CSVEntry
-  { csvDescription :: Description
-  , csvIdentity    :: Maybe Identity
-  , csvPlaintext   :: Plaintext
-  , csvMeta        :: Maybe Metadata
-  } deriving (Generic, Show, Eq)
-
-instance CSV.FromRecord CSVEntry
-instance CSV.ToRecord CSVEntry
-
-entryToCSVEntry
-  :: Monad m
-  => (Ciphertext -> m Plaintext)
-  -> Entry
-  -> m CSVEntry
-entryToCSVEntry decrypt e
-  = f e <$> decrypt (entryCiphertext e)
-  where
-    f ent plaintext = CSVEntry (entryDescription ent)
-                               (entryIdentity ent)
-                               plaintext
-                               (entryMeta ent)
+-- * Display Entry
 
 -- | A 'DisplayEntry' is a record that is displayed to the user in response to a
 -- command
@@ -207,12 +176,6 @@ newtype Plaintext = Plaintext T.Text
 
 instance Show Plaintext where
   show (Plaintext t) = show t
-
-instance CSV.ToField Plaintext where
-  toField (Plaintext bs) = CSV.toField bs
-
-instance CSV.FromField Plaintext where
-  parseField f = Plaintext <$> CSV.parseField f
 
 -- | A 'Ciphertext' represents an encrypted value
 newtype Ciphertext = Ciphertext ByteString64
@@ -384,12 +347,6 @@ instance ToField Description where
 instance FromField Description where
   fromField f = Description <$> fromField f
 
-instance CSV.ToField Description where
-  toField (Description bs) = CSV.toField bs
-
-instance CSV.FromField Description where
-  parseField f = Description <$> CSV.parseField f
-
 -- | An 'Identity' represents an identifying value.  It could be the username in
 -- a username/password pair
 newtype Identity = Identity T.Text
@@ -408,12 +365,6 @@ instance ToField Identity where
 instance FromField Identity where
   fromField f = Identity <$> fromField f
 
-instance CSV.ToField Identity where
-  toField (Identity bs) = CSV.toField bs
-
-instance CSV.FromField Identity where
-  parseField f = Identity <$> CSV.parseField f
-
 -- | A 'Metadata' value contains additional non-specific information for a given
 -- 'Entry'
 newtype Metadata = Metadata T.Text
@@ -431,12 +382,6 @@ instance ToField Metadata where
 
 instance FromField Metadata where
   fromField f = Metadata <$> fromField f
-
-instance CSV.ToField Metadata where
-  toField (Metadata bs) = CSV.toField bs
-
-instance CSV.FromField Metadata where
-  parseField f = Metadata <$> CSV.parseField f
 
 -- ** And some updaters
 

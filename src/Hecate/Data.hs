@@ -73,7 +73,7 @@ import           GHC.Generics                     (Generic)
 
 -- * Configuration
 
-data Backend = SQLite | JSON
+data Backend = SQLiteSimple | SQLite | JSON
   deriving (Eq, Show)
 
 -- | A 'PreConfig' is used in the creation of a 'Config'

@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Hecate.Backend.SQLite
+module Hecate.Backend.SQLiteSimple
   ( SQLite
   , run
   , initialize
@@ -8,15 +8,15 @@ module Hecate.Backend.SQLite
   , AppContext (..)
   ) where
 
-import           Control.Monad.Catch              (MonadThrow (..))
-import qualified Control.Monad.Except             as Except
-import           Control.Monad.IO.Class           (MonadIO (..))
-import           Control.Monad.Reader             (MonadReader, ReaderT, ask, asks, runReaderT)
-import qualified Database.SQLite.Simple           as SQLite
+import           Control.Monad.Catch                    (MonadThrow (..))
+import qualified Control.Monad.Except                   as Except
+import           Control.Monad.IO.Class                 (MonadIO (..))
+import           Control.Monad.Reader                   (MonadReader, ReaderT, ask, asks, runReaderT)
+import qualified Database.SQLite.Simple                 as SQLite
 
-import           Hecate.Backend.SQLite.AppContext (AppContext (..))
-import qualified Hecate.Backend.SQLite.Database   as Database
-import           Hecate.Data                      (Config, configDatabaseDirectory, configDatabaseFile)
+import           Hecate.Backend.SQLiteSimple.AppContext (AppContext (..))
+import qualified Hecate.Backend.SQLiteSimple.Database   as Database
+import           Hecate.Data                            (Config, configDatabaseDirectory, configDatabaseFile)
 import           Hecate.Interfaces
 
 

@@ -23,8 +23,10 @@ import           Hecate.Interfaces
 
 mkBackend :: T.Text -> Backend
 mkBackend txt = case T.toLower txt of
-  "json" -> JSON
-  _      -> SQLite
+  "json"          -> JSON
+  "sqlite"        -> SQLite
+  "sqlite-simple" -> SQLiteSimple
+  _               -> SQLite
 
 getDefaultDataDirectory :: MonadInteraction m => m (Maybe FilePath)
 getDefaultDataDirectory = case Info.os of

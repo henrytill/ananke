@@ -42,9 +42,9 @@ library
   exposed-modules:     Hecate
                      , Hecate.Backend.JSON
                      , Hecate.Backend.JSON.AppState
-                     , Hecate.Backend.SQLite
-                     , Hecate.Backend.SQLite.AppContext
-                     , Hecate.Backend.SQLite.Database
+                     , Hecate.Backend.SQLiteSimple
+                     , Hecate.Backend.SQLiteSimple.AppContext
+                     , Hecate.Backend.SQLiteSimple.Database
                      , Hecate.Configuration
                      , Hecate.Data
                      , Hecate.Evaluator

@@ -4,22 +4,22 @@ module Hecate.Properties
   ( doProperties
   ) where
 
-import           Data.List               ((\\))
-import           Data.Monoid             (First (..))
-import           Database.SQLite.Simple  hiding (Error)
-import qualified System.Directory        as Directory
-import qualified System.IO.Temp          as Temp
-import           Test.QuickCheck         (Arbitrary (..), Property, Result)
-import qualified Test.QuickCheck         as QuickCheck
-import qualified Test.QuickCheck.Monadic as Monadic
+import           Data.List                   ((\\))
+import           Data.Monoid                 (First (..))
+import           Database.SQLite.Simple      hiding (Error)
+import qualified System.Directory            as Directory
+import qualified System.IO.Temp              as Temp
+import           Test.QuickCheck             (Arbitrary (..), Property, Result)
+import qualified Test.QuickCheck             as QuickCheck
+import qualified Test.QuickCheck.Monadic     as Monadic
 
-import           Hecate.Backend.SQLite   (AppContext (..))
-import qualified Hecate.Backend.SQLite   as SQLite
-import qualified Hecate.Configuration    as Configuration
+import           Hecate.Backend.SQLiteSimple (AppContext (..))
+import qualified Hecate.Backend.SQLiteSimple as SQLite
+import qualified Hecate.Configuration        as Configuration
 import           Hecate.Data
-import qualified Hecate.Evaluator        as Evaluator
+import qualified Hecate.Evaluator            as Evaluator
 import           Hecate.Interfaces
-import           Hecate.Orphans          ()
+import           Hecate.Orphans              ()
 
 
 data TestData = TestData

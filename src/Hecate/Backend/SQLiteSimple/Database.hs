@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Hecate.Backend.SQLite.Database
+module Hecate.Backend.SQLiteSimple.Database
   ( put
   , delete
   , query

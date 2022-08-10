@@ -1,4 +1,4 @@
-module Hecate.Backend.SQLite.AppContext
+module Hecate.Backend.SQLiteSimple.AppContext
   ( AppContext (..)
   ) where
 

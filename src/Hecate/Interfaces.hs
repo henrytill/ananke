@@ -1,5 +1,3 @@
-{-# OPTIONS -Wno-unused-top-binds #-}
-
 module Hecate.Interfaces
   ( MonadConfigReader(..)
   , MonadStore(..)
@@ -28,7 +26,7 @@ import           Hecate.Error           (AppError (..))
 import qualified Hecate.GPG             as GPG
 
 
--- * MonadConfigReaer
+-- * MonadConfigReader
 
 class Monad m => MonadConfigReader m where
   askConfig :: m Config

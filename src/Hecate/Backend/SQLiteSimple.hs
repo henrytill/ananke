@@ -42,16 +42,16 @@ runSQLite m = runReaderT (unSQLite m)
 run :: SQLite a -> AppContext -> IO a
 run = runSQLite
 
-initialize :: MonadInteraction m => Config -> m AppContext
+initialize :: Config -> IO AppContext
 initialize cfg = do
   let dbDir  = configDatabaseDirectory cfg
       dbFile = configDatabaseFile cfg
   dbDirExists <- doesDirectoryExist dbDir
   Except.unless dbDirExists (createDirectory dbDir)
-  AppContext cfg <$> openSQLiteFile dbFile
+  AppContext cfg <$> SQLite.open dbFile
 
-finalize :: MonadInteraction m => AppContext -> m ()
-finalize ctx = closeSQLiteConnection conn
+finalize :: AppContext -> IO ()
+finalize ctx = SQLite.close conn
   where
     conn = appContextConnection ctx
 

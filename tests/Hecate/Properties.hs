@@ -6,7 +6,7 @@ module Hecate.Properties
 
 import           Data.List                   ((\\))
 import           Data.Monoid                 (First (..))
-import           Database.SQLite.Simple      hiding (Error)
+import qualified Database.SQLite.Simple      as SQLite
 import qualified System.Directory            as Directory
 import qualified System.IO.Temp              as Temp
 import           Test.QuickCheck             (Arbitrary (..), Property, Result)
@@ -84,5 +84,5 @@ doProperties = do
   ctx        <- Configuration.configureWith preConfig >>= SQLite.initialize
   _          <- SQLite.run Evaluator.setup ctx
   results    <- mapM (\ p -> QuickCheck.quickCheckWithResult QuickCheck.stdArgs (p ctx)) tests
-  _          <- close (appContextConnection ctx)
+  _          <- SQLite.close (appContextConnection ctx)
   return results

@@ -42,6 +42,8 @@ library
   exposed-modules:     Hecate
                      , Hecate.Backend.JSON
                      , Hecate.Backend.JSON.AppState
+                     , Hecate.Backend.SQLite
+                     , Hecate.Backend.SQLite.AppContext
                      , Hecate.Backend.SQLiteSimple
                      , Hecate.Backend.SQLiteSimple.AppContext
                      , Hecate.Backend.SQLiteSimple.Database
@@ -62,6 +64,7 @@ library
                      , bytestring           >=0.10   && <0.12
                      , containers           >=0.6    && <0.7
                      , deepseq              >=1.4    && <1.5
+                     , direct-sqlite        >=2.3    && <2.4
                      , directory            >=1.2    && <1.4
                      , exceptions           >=0.8    && <0.11
                      , filepath             >=1.4    && <1.5

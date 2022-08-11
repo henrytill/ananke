@@ -9,6 +9,7 @@ import qualified System.IO                   as IO
 import qualified Text.PrettyPrint.Leijen     as Leijen
 
 import qualified Hecate.Backend.JSON         as JSON
+import qualified Hecate.Backend.SQLite       as SQLite
 import qualified Hecate.Backend.SQLiteSimple as SQLiteSimple
 import           Hecate.Configuration        (Backend (..), Config (..), configure)
 import           Hecate.Error                (AppError)
@@ -39,6 +40,12 @@ runJSONApp (cfg, state) = do
   Exception.catch (JSON.run (Evaluator.eval command) state cfg >>= resultHandler command)
                   (exceptionHandler command)
 
+runSQLiteApp :: SQLite.AppContext -> IO ExitCode
+runSQLiteApp ctx = do
+  command <- Parser.runCLIParser
+  Exception.catch (SQLite.run (Evaluator.setup >> Evaluator.eval command) ctx >>= resultHandler command)
+                  (exceptionHandler command)
+
 runSQLiteSimpleApp :: SQLiteSimple.AppContext -> IO ExitCode
 runSQLiteSimpleApp ctx = do
   command <- Parser.runCLIParser
@@ -48,5 +55,5 @@ runSQLiteSimpleApp ctx = do
 run :: Config -> IO ExitCode
 run cfg = case configBackend cfg of
   JSON         -> Exception.bracket (JSON.initialize         cfg) JSON.finalize         runJSONApp
+  SQLite       -> Exception.bracket (SQLite.initialize       cfg) SQLite.finalize       runSQLiteApp
   SQLiteSimple -> Exception.bracket (SQLiteSimple.initialize cfg) SQLiteSimple.finalize runSQLiteSimpleApp
-  SQLite       -> undefined

@@ -2,6 +2,8 @@
 
 module Data.ByteString64
   ( ByteString64(..)
+  , toText
+  , fromText
   ) where
 
 import           Data.Aeson                       (FromJSON (..), ToJSON (..), Value (String))
@@ -20,20 +22,23 @@ import           GHC.Generics
 newtype ByteString64 = ByteString64 { unByteString64 :: BS.ByteString }
   deriving (Eq, Ord, Generic)
 
-toBase64 :: BS.ByteString -> T.Text
-toBase64 = decodeUtf8 . Base64.encode
+toText :: ByteString64 -> T.Text
+toText = decodeUtf8 . Base64.encode . unByteString64
+
+fromText :: MonadFail m => T.Text -> m ByteString64
+fromText = either fail (pure . ByteString64) . Base64.decode . encodeUtf8
 
 instance Show ByteString64 where
-  show (ByteString64 bs) = T.unpack (toBase64 bs)
+  show = T.unpack . toText
 
 instance ToJSON ByteString64 where
-  toJSON (ByteString64 bs) = String (toBase64 bs)
+  toJSON = String . toText
 
 instance FromJSON ByteString64 where
-  parseJSON = Aeson.withText "ByteString64" $ either fail (pure . ByteString64) . Base64.decode . encodeUtf8
+  parseJSON = Aeson.withText "ByteString64" $ fromText
 
 instance ToField ByteString64 where
-  toField (ByteString64 bs) = toField (toBase64 bs)
+  toField = toField . toText
 
 instance FromField ByteString64 where
-  fromField f = fromField f >>= either fail (pure . ByteString64) . Base64.decode . encodeUtf8
+  fromField f = fromField f >>= fromText

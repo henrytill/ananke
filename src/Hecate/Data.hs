@@ -17,22 +17,15 @@ module Hecate.Data
   , KeyId(..)
     -- * Decrypted and encrypted values
   , Plaintext(..)
-  , Ciphertext
+  , Ciphertext(..)
   , mkCiphertext
   , unCiphertext
     -- * Entries
-  , Entry
-  , entryId
-  , entryKeyId
-  , entryDescription
-  , entryIdentity
-  , entryCiphertext
-  , entryMeta
+  , Entry(..)
   , entryKeyOrder
   , createEntry
     -- ** Their constituents
-  , Id
-  , unId
+  , Id(..)
   , Description(..)
   , Identity(..)
   , Metadata(..)
@@ -331,15 +324,17 @@ instance FromField Id where
 
 -- | A 'Description' identifies a given 'Entry'.  It could be a URI or a
 -- descriptive name.
-newtype Description = Description T.Text
+newtype Description = Description { unDescription ::  T.Text }
   deriving (Eq, Ord, Generic)
 
 instance Show Description where
   show (Description d) = show d
 
 instance ToJSON Description where
+  toJSON = toJSON . unDescription
 
 instance FromJSON Description where
+  parseJSON = fmap Description . parseJSON
 
 instance ToField Description where
   toField (Description bs) = toField bs
@@ -349,15 +344,17 @@ instance FromField Description where
 
 -- | An 'Identity' represents an identifying value.  It could be the username in
 -- a username/password pair
-newtype Identity = Identity T.Text
+newtype Identity = Identity { unIdentity :: T.Text }
   deriving (Eq, Ord, Generic)
 
 instance Show Identity where
   show (Identity i) = show i
 
 instance ToJSON Identity where
+  toJSON = toJSON . unIdentity
 
 instance FromJSON Identity where
+  parseJSON = fmap Identity . parseJSON
 
 instance ToField Identity where
   toField (Identity bs) = toField bs
@@ -367,15 +364,17 @@ instance FromField Identity where
 
 -- | A 'Metadata' value contains additional non-specific information for a given
 -- 'Entry'
-newtype Metadata = Metadata T.Text
+newtype Metadata = Metadata { unMetadata :: T.Text }
   deriving (Eq, Ord, Generic)
 
 instance Show Metadata where
   show (Metadata m) = show m
 
 instance ToJSON Metadata where
+  toJSON = toJSON . unMetadata
 
 instance FromJSON Metadata where
+  parseJSON = fmap Metadata . parseJSON
 
 instance ToField Metadata where
   toField (Metadata bs) = toField bs

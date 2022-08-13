@@ -38,35 +38,29 @@ module Hecate.Data
   , Query(..)
   , query
   , queryIsEmpty
-  -- * Count
-  , Count
-  , unCount
   ) where
 
-import           Data.Aeson                       (FromJSON (..), Options, ToJSON (..))
-import qualified Data.Aeson                       as Aeson
-import qualified Data.ByteString                  as BS
-import qualified Data.ByteString.Lazy             as BSL
-import           Data.ByteString64                (ByteString64 (..))
-import qualified Data.Digest.Pure.SHA             as SHA
-import qualified Data.List                        as List
-import qualified Data.Maybe                       as Maybe
-import           Data.Monoid                      (First)
-import qualified Data.Ord                         as Ord
-import qualified Data.Semigroup                   as Sem
-import qualified Data.Text                        as T
-import qualified Data.Text.Encoding               as Encoding
-import           Data.Time.Clock                  (UTCTime)
-import qualified Data.Time.Format                 as Format
-import qualified Database.SQLite.Simple           as SQLite
-import           Database.SQLite.Simple.FromField (FromField (..))
-import           Database.SQLite.Simple.ToField   (ToField (..))
-import           GHC.Generics                     (Generic)
+import           Data.Aeson           (FromJSON (..), Options, ToJSON (..))
+import qualified Data.Aeson           as Aeson
+import qualified Data.ByteString      as BS
+import qualified Data.ByteString.Lazy as BSL
+import           Data.ByteString64    (ByteString64 (..))
+import qualified Data.Digest.Pure.SHA as SHA
+import qualified Data.List            as List
+import qualified Data.Maybe           as Maybe
+import           Data.Monoid          (First)
+import qualified Data.Ord             as Ord
+import qualified Data.Semigroup       as Sem
+import qualified Data.Text            as T
+import qualified Data.Text.Encoding   as Encoding
+import           Data.Time.Clock      (UTCTime)
+import qualified Data.Time.Format     as Format
+import           GHC.Generics         (Generic)
 
 
 -- * Configuration
 
-data Backend = SQLiteSimple | SQLite | JSON
+data Backend = SQLite | JSON
   deriving (Eq, Show)
 
 -- | A 'PreConfig' is used in the creation of a 'Config'
@@ -155,12 +149,6 @@ instance ToJSON KeyId where
 instance FromJSON KeyId where
   parseJSON = fmap KeyId . parseJSON
 
-instance ToField KeyId where
-  toField (KeyId bs) = toField bs
-
-instance FromField KeyId where
-  fromField f = KeyId <$> fromField f
-
 -- * Decrypted and encrypted values
 
 -- | A 'Plaintext' represents a decrypted value
@@ -183,12 +171,6 @@ unCiphertext (Ciphertext bs64) = unByteString64 bs64
 instance ToJSON Ciphertext where
 
 instance FromJSON Ciphertext where
-
-instance ToField Ciphertext where
-  toField (Ciphertext bs) = toField bs
-
-instance FromField Ciphertext where
-  fromField f = Ciphertext <$> fromField f
 
 -- * Entries
 
@@ -241,25 +223,6 @@ instance FromJSON Entry where
 
 instance ToJSON Entry where
   toJSON = Aeson.genericToJSON customOptions
-
-instance SQLite.FromRow Entry where
-  fromRow = Entry <$> SQLite.field
-                  <*> SQLite.field
-                  <*> SQLite.field
-                  <*> SQLite.field
-                  <*> SQLite.field
-                  <*> SQLite.field
-                  <*> SQLite.field
-
-instance SQLite.ToRow Entry where
-  toRow ent = SQLite.toRow ( entryId          ent
-                           , entryKeyId       ent
-                           , entryTimestamp   ent
-                           , entryDescription ent
-                           , entryIdentity    ent
-                           , entryCiphertext  ent
-                           , entryMeta        ent
-                           )
 
 showTime :: UTCTime -> T.Text
 showTime = T.pack . Format.formatTime Format.defaultTimeLocale "%s%Q"
@@ -316,12 +279,6 @@ instance ToJSON Id where
 instance FromJSON Id where
   parseJSON = fmap Id . parseJSON
 
-instance ToField Id where
-  toField (Id bs) = toField bs
-
-instance FromField Id where
-  fromField f = Id <$> fromField f
-
 -- | A 'Description' identifies a given 'Entry'.  It could be a URI or a
 -- descriptive name.
 newtype Description = Description { unDescription ::  T.Text }
@@ -335,12 +292,6 @@ instance ToJSON Description where
 
 instance FromJSON Description where
   parseJSON = fmap Description . parseJSON
-
-instance ToField Description where
-  toField (Description bs) = toField bs
-
-instance FromField Description where
-  fromField f = Description <$> fromField f
 
 -- | An 'Identity' represents an identifying value.  It could be the username in
 -- a username/password pair
@@ -356,12 +307,6 @@ instance ToJSON Identity where
 instance FromJSON Identity where
   parseJSON = fmap Identity . parseJSON
 
-instance ToField Identity where
-  toField (Identity bs) = toField bs
-
-instance FromField Identity where
-  fromField f = Identity <$> fromField f
-
 -- | A 'Metadata' value contains additional non-specific information for a given
 -- 'Entry'
 newtype Metadata = Metadata { unMetadata :: T.Text }
@@ -375,12 +320,6 @@ instance ToJSON Metadata where
 
 instance FromJSON Metadata where
   parseJSON = fmap Metadata . parseJSON
-
-instance ToField Metadata where
-  toField (Metadata bs) = toField bs
-
-instance FromField Metadata where
-  fromField f = Metadata <$> fromField f
 
 -- ** And some updaters
 
@@ -464,12 +403,3 @@ query i d iden m =
 queryIsEmpty :: Query -> Bool
 queryIsEmpty (Query Nothing Nothing Nothing Nothing) = True
 queryIsEmpty _                                       = False
-
--- * Count
-
--- | A 'Count' represents the results of a count query
-newtype Count = Count { unCount :: Int }
-  deriving (Show, Eq)
-
-instance SQLite.FromRow Count where
-  fromRow = Count <$> SQLite.field

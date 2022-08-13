@@ -6,14 +6,12 @@ module Data.ByteString64
   , fromText
   ) where
 
-import           Data.Aeson                       (FromJSON (..), ToJSON (..), Value (String))
-import qualified Data.Aeson                       as Aeson
-import qualified Data.ByteString                  as BS
-import qualified Data.ByteString.Base64           as Base64
-import qualified Data.Text                        as T
+import           Data.Aeson             (FromJSON (..), ToJSON (..), Value (String))
+import qualified Data.Aeson             as Aeson
+import qualified Data.ByteString        as BS
+import qualified Data.ByteString.Base64 as Base64
+import qualified Data.Text              as T
 import           Data.Text.Encoding
-import           Database.SQLite.Simple.FromField
-import           Database.SQLite.Simple.ToField
 import           GHC.Generics
 
 
@@ -36,9 +34,3 @@ instance ToJSON ByteString64 where
 
 instance FromJSON ByteString64 where
   parseJSON = Aeson.withText "ByteString64" $ fromText
-
-instance ToField ByteString64 where
-  toField = toField . toText
-
-instance FromField ByteString64 where
-  fromField f = fromField f >>= fromText

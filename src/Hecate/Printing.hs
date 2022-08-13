@@ -3,16 +3,16 @@ module Hecate.Printing
   , prettyError
   ) where
 
-import qualified Data.Text               as T
-import           Data.Time.Clock         (UTCTime)
-import qualified Data.Time.Format        as Format
-import           Prelude                 hiding ((<$>))
-import           Text.PrettyPrint.Leijen (Doc, (<$>), (<+>))
-import qualified Text.PrettyPrint.Leijen as Leijen
+import qualified Data.Text                as T
+import           Data.Time.Clock          (UTCTime)
+import           Data.Time.Format.ISO8601 (iso8601Show)
+import           Prelude                  hiding ((<$>))
+import           Text.PrettyPrint.Leijen  (Doc, (<$>), (<+>))
+import qualified Text.PrettyPrint.Leijen  as Leijen
 
 import           Hecate.Data
-import           Hecate.Error            (AppError (..))
-import           Hecate.Evaluator        (Command, Response (..), Verbosity (..))
+import           Hecate.Error             (AppError (..))
+import           Hecate.Evaluator         (Command, Response (..), Verbosity (..))
 
 
 prettyText :: T.Text -> Doc
@@ -25,7 +25,7 @@ prettyTimestamp :: UTCTime -> Doc
 prettyTimestamp t = prettyText (showTime t)
   where
     showTime :: UTCTime -> T.Text
-    showTime = T.pack . Format.formatTime Format.defaultTimeLocale "%c"
+    showTime = T.pack . iso8601Show
 
 prettyDescription :: Description -> Doc
 prettyDescription (Description d) = prettyText d

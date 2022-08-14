@@ -33,12 +33,12 @@ class Monad m => MonadConfigReader m where
 -- * MonadStore
 
 class Monad m => MonadStore m where
-  put                  :: Entry         -> m ()
-  delete               :: Entry         -> m ()
-  query                :: Query         -> m [Entry]
+  put                  :: Entry -> m ()
+  delete               :: Entry -> m ()
+  query                :: Query -> m [Entry]
   selectAll            :: m [Entry]
   getCount             :: m Int
-  getCountOfKeyId      :: KeyId         -> m Int
+  getCountOfKeyId      :: KeyId -> m Int
   createTable          :: m ()
   migrate              :: SchemaVersion -> KeyId -> m ()
   currentSchemaVersion :: m SchemaVersion
@@ -65,17 +65,17 @@ instance MonadEncrypt m => MonadEncrypt (StateT s m) where
 
 class Monad m => MonadInteraction m where
   now                         :: m UTCTime
-  doesFileExist               :: FilePath          -> m Bool
-  doesDirectoryExist          :: FilePath          -> m Bool
-  createDirectory             :: FilePath          -> m ()
-  readFileAsString            :: FilePath          -> m String
-  readFileAsLazyByteString    :: FilePath          -> m BSL.ByteString
-  readFileAsText              :: FilePath          -> m T.Text
-  writeFileFromString         :: FilePath          -> String         -> m ()
-  writeFileFromLazyByteString :: FilePath          -> BSL.ByteString -> m ()
-  getEnv                      :: String            -> m (Maybe String)
-  message                     :: String            -> m ()
-  prompt                      :: String            -> m String
+  doesFileExist               :: FilePath -> m Bool
+  doesDirectoryExist          :: FilePath -> m Bool
+  createDirectory             :: FilePath -> m ()
+  readFileAsString            :: FilePath -> m String
+  readFileAsLazyByteString    :: FilePath -> m BSL.ByteString
+  readFileAsText              :: FilePath -> m T.Text
+  writeFileFromString         :: FilePath -> String         -> m ()
+  writeFileFromLazyByteString :: FilePath -> BSL.ByteString -> m ()
+  getEnv                      :: String   -> m (Maybe String)
+  message                     :: String   -> m ()
+  prompt                      :: String   -> m String
 
 instance MonadInteraction IO where
   now                         = Clock.getCurrentTime

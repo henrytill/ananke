@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Hecate.Backend.SQLite.Database
@@ -16,7 +17,6 @@ module Hecate.Backend.SQLite.Database
 import qualified Control.Exception      as Exception
 import           Control.Monad.Catch    (MonadThrow (..))
 import           Control.Monad.IO.Class (MonadIO (..))
-import           Data.Maybe             (fromMaybe)
 import qualified Data.Text              as T
 import           Data.Time.Clock        (UTCTime)
 import qualified Database.SQLite3       as SQLite3
@@ -34,17 +34,15 @@ currentSchemaVersion :: SchemaVersion
 currentSchemaVersion = SchemaVersion 2
 
 executeStatement :: SQLite3.Statement -> IO ()
-executeStatement stmt = SQLite3.stepNoCB stmt >>= \result ->
-  case result of
-    SQLite3.Row  -> executeStatement stmt
-    SQLite3.Done -> return ()
+executeStatement stmt = SQLite3.stepNoCB stmt >>= \case
+  SQLite3.Row  -> executeStatement stmt
+  SQLite3.Done -> return ()
 
 columnMaybeText :: SQLite3.Statement -> SQLite3.ColumnIndex -> (T.Text -> a) -> IO (Maybe a)
-columnMaybeText stmt column f = SQLite3.column stmt column >>= \res ->
-  case res of
-    SQLite3.SQLText text -> return . Just . f $ text
-    SQLite3.SQLNull      -> return Nothing
-    _                    -> Exception.throwIO  . Database $ "unexpected type"
+columnMaybeText stmt column f = SQLite3.column stmt column >>= \case
+  SQLite3.SQLText text -> return . Just . f $ text
+  SQLite3.SQLNull      -> return Nothing
+  _                    -> Exception.throwIO . Database $ "unexpected type"
 
 getEntry :: SQLite3.Statement -> IO Entry
 getEntry stmt
@@ -63,39 +61,34 @@ getEntry stmt
     getCiphertext  :: SQLite3.Statement -> IO Ciphertext
     getIdentity    :: SQLite3.Statement -> IO (Maybe Identity)
     getMeta        :: SQLite3.Statement -> IO (Maybe Metadata)
-    getId          s = Id              <$> SQLite3.columnText s 0
-    getKeyId       s = KeyId           <$> SQLite3.columnText s 1
-    getDescription s = Description     <$> SQLite3.columnText s 3
+    getId          s = Id          <$> SQLite3.columnText s 0
+    getKeyId       s = KeyId       <$> SQLite3.columnText s 1
+    getDescription s = Description <$> SQLite3.columnText s 3
     getTimestamp   s = SQLite3.columnText s 2 >>= utcTimeFromText
     getCiphertext  s = SQLite3.columnText s 5 >>= ciphertextFromText
     getIdentity    s = columnMaybeText s 4 Identity
     getMeta        s = columnMaybeText s 6 Metadata
 
-execute :: SQLite3.Statement -> IO [Entry]
-execute = go []
+executeQuery :: SQLite3.Statement -> IO [Entry]
+executeQuery = go []
   where
-    go acc stmt = SQLite3.stepNoCB stmt >>= \result ->
-      case result of
-        SQLite3.Done -> return acc
-        SQLite3.Row  -> do { entry <- getEntry stmt
-                           ; go (entry : acc) stmt
-                           }
+    go acc stmt = SQLite3.stepNoCB stmt >>= \case
+      SQLite3.Done -> return acc
+      SQLite3.Row  -> do { entry <- getEntry stmt
+                         ; go (entry : acc) stmt
+                         }
 
 executeCount :: SQLite3.Statement -> IO Int
 executeCount = go 0
   where
-    go acc stmt = SQLite3.stepNoCB stmt >>= \result ->
-      case result of
-        SQLite3.Done -> return . fromIntegral $ acc
-        SQLite3.Row  -> do { count <- SQLite3.columnInt64 stmt 0
-                           ; go (acc + count) stmt
-                           }
+    go acc stmt = SQLite3.stepNoCB stmt >>= \case
+      SQLite3.Done -> return . fromIntegral $ acc
+      SQLite3.Row  -> do { count <- SQLite3.columnInt64 stmt 0
+                         ; go (acc + count) stmt
+                         }
 
 createTable :: (MonadThrow m, MonadIO m) => SQLite3.Database -> m ()
-createTable db = catchLift $ Exception.bracket
-  (SQLite3.prepare db s)
-  SQLite3.finalize
-  executeStatement
+createTable db = catchLift $ Exception.bracket (SQLite3.prepare db s) SQLite3.finalize executeStatement
   where
     s  = "CREATE TABLE IF NOT EXISTS entries (\
          \  id          TEXT UNIQUE NOT NULL, \
@@ -144,8 +137,8 @@ put db e = catchLift $ Exception.bracket
       ; SQLite3.bindSQLData stmt 3 (SQLite3.SQLText . utcTimeToText    . entryTimestamp   $ e)
       ; SQLite3.bindSQLData stmt 4 (SQLite3.SQLText . unDescription    . entryDescription $ e)
       ; SQLite3.bindSQLData stmt 6 (SQLite3.SQLText . ciphertextToText . entryCiphertext  $ e)
-      ; let { identity = fromMaybe SQLite3.SQLNull (SQLite3.SQLText . unIdentity <$> entryIdentity e)
-            ; metadata = fromMaybe SQLite3.SQLNull (SQLite3.SQLText . unMetadata <$> entryMeta     e)
+      ; let { identity = maybe SQLite3.SQLNull (SQLite3.SQLText . unIdentity) (entryIdentity e)
+            ; metadata = maybe SQLite3.SQLNull (SQLite3.SQLText . unMetadata) (entryMeta     e)
             }
       ; SQLite3.bindSQLData stmt 5 identity
       ; SQLite3.bindSQLData stmt 7 metadata
@@ -170,23 +163,13 @@ delete db e = catchLift $ Exception.bracket
     s = "DELETE FROM entries WHERE id = :id"
 
 selectAll :: (MonadThrow m, MonadIO m) => SQLite3.Database -> m [Entry]
-selectAll db = catchLift $ Exception.bracket
-  (do { stmt <- SQLite3.prepare db s
-      ; return stmt
-      })
-  SQLite3.finalize
-  execute
+selectAll db = catchLift $ Exception.bracket (SQLite3.prepare db s) SQLite3.finalize executeQuery
   where
     s = "SELECT id, keyid, timestamp, description, identity, ciphertext, meta \
         \FROM entries"
 
 getCount :: (MonadThrow m, MonadIO m) => SQLite3.Database -> m Int
-getCount db = catchLift $ Exception.bracket
-  (do { stmt <- SQLite3.prepare db s
-      ; return stmt
-      })
-  SQLite3.finalize
-  executeCount
+getCount db = catchLift $ Exception.bracket (SQLite3.prepare db s) SQLite3.finalize executeCount
   where
     s = "SELECT count(*) FROM entries"
 
@@ -246,6 +229,6 @@ query db q =
       ; return stmt
       })
   SQLite3.finalize
-  execute
+  executeQuery
   where
     (qs, nps) = generateQuery q

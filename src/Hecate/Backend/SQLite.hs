@@ -1,7 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-{-# OPTIONS -Wno-unused-top-binds #-}
-
 module Hecate.Backend.SQLite
   ( SQLite
   , run
@@ -40,7 +38,7 @@ instance MonadThrow SQLite where
   throwM = liftIO . throwM
 
 runSQLite :: SQLite a -> AppContext -> IO a
-runSQLite m = runReaderT (unSQLite m)
+runSQLite = runReaderT . unSQLite
 
 run :: SQLite a -> AppContext -> IO a
 run = runSQLite
@@ -54,9 +52,7 @@ initialize cfg = do
   AppContext cfg <$> SQLite3.open (T.pack dbFile)
 
 finalize :: AppContext -> IO ()
-finalize ctx = SQLite3.close db
-  where
-    db = appContextDatabase ctx
+finalize = SQLite3.close . appContextDatabase
 
 -- * Instances
 

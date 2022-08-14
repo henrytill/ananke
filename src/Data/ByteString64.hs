@@ -33,4 +33,4 @@ instance ToJSON ByteString64 where
   toJSON = String . toText
 
 instance FromJSON ByteString64 where
-  parseJSON = Aeson.withText "ByteString64" $ fromText
+  parseJSON = Aeson.withText "ByteString64" fromText

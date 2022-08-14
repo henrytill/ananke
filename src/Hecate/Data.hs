@@ -17,9 +17,11 @@ module Hecate.Data
   , KeyId(..)
     -- * Decrypted and encrypted values
   , Plaintext(..)
-  , Ciphertext(..)
+  , Ciphertext
   , mkCiphertext
   , unCiphertext
+  , ciphertextToText
+  , ciphertextFromText
     -- * Entries
   , Entry(..)
   , entryKeyOrder
@@ -38,24 +40,29 @@ module Hecate.Data
   , Query(..)
   , query
   , queryIsEmpty
+    -- * Helpers
+  , utcTimeToText
+  , utcTimeFromText
   ) where
 
-import           Data.Aeson           (FromJSON (..), Options, ToJSON (..))
-import qualified Data.Aeson           as Aeson
-import qualified Data.ByteString      as BS
-import qualified Data.ByteString.Lazy as BSL
-import           Data.ByteString64    (ByteString64 (..))
-import qualified Data.Digest.Pure.SHA as SHA
-import qualified Data.List            as List
-import qualified Data.Maybe           as Maybe
-import           Data.Monoid          (First)
-import qualified Data.Ord             as Ord
-import qualified Data.Semigroup       as Sem
-import qualified Data.Text            as T
-import qualified Data.Text.Encoding   as Encoding
-import           Data.Time.Clock      (UTCTime)
-import qualified Data.Time.Format     as Format
-import           GHC.Generics         (Generic)
+import           Data.Aeson               (FromJSON (..), Options, ToJSON (..))
+import qualified Data.Aeson               as Aeson
+import qualified Data.ByteString          as BS
+import qualified Data.ByteString.Lazy     as BSL
+import           Data.ByteString64        (ByteString64 (..))
+import qualified Data.ByteString64        as BS64
+import qualified Data.Digest.Pure.SHA     as SHA
+import qualified Data.List                as List
+import qualified Data.Maybe               as Maybe
+import           Data.Monoid              (First)
+import qualified Data.Ord                 as Ord
+import qualified Data.Semigroup           as Sem
+import qualified Data.Text                as T
+import qualified Data.Text.Encoding       as Encoding
+import           Data.Time.Clock          (UTCTime)
+import qualified Data.Time.Format         as Format
+import           Data.Time.Format.ISO8601 (iso8601ParseM, iso8601Show)
+import           GHC.Generics             (Generic)
 
 
 -- * Configuration
@@ -167,6 +174,12 @@ mkCiphertext = Ciphertext . ByteString64
 
 unCiphertext :: Ciphertext -> BS.ByteString
 unCiphertext (Ciphertext bs64) = unByteString64 bs64
+
+ciphertextToText :: Ciphertext -> T.Text
+ciphertextToText (Ciphertext bs64) = BS64.toText bs64
+
+ciphertextFromText :: MonadFail m => T.Text -> m Ciphertext
+ciphertextFromText t = Ciphertext <$> BS64.fromText t
 
 instance ToJSON Ciphertext where
 
@@ -403,3 +416,11 @@ query i d iden m =
 queryIsEmpty :: Query -> Bool
 queryIsEmpty (Query Nothing Nothing Nothing Nothing) = True
 queryIsEmpty _                                       = False
+
+-- * Helpers
+
+utcTimeToText :: UTCTime -> T.Text
+utcTimeToText = T.pack . iso8601Show
+
+utcTimeFromText :: MonadFail m => T.Text -> m UTCTime
+utcTimeFromText = iso8601ParseM . T.unpack

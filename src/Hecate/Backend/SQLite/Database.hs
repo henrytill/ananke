@@ -13,18 +13,16 @@ module Hecate.Backend.SQLite.Database
   , migrate
   ) where
 
-import qualified Control.Exception        as Exception
-import           Control.Monad.Catch      (MonadThrow (..))
-import           Control.Monad.IO.Class   (MonadIO (..))
-import           Data.ByteString64        (fromText, toText)
-import           Data.Maybe               (fromMaybe)
-import qualified Data.Text                as T
-import           Data.Time.Clock          (UTCTime)
-import           Data.Time.Format.ISO8601 (iso8601ParseM, iso8601Show)
-import qualified Database.SQLite3         as SQLite3
+import qualified Control.Exception      as Exception
+import           Control.Monad.Catch    (MonadThrow (..))
+import           Control.Monad.IO.Class (MonadIO (..))
+import           Data.Maybe             (fromMaybe)
+import qualified Data.Text              as T
+import           Data.Time.Clock        (UTCTime)
+import qualified Database.SQLite3       as SQLite3
 
-import           Hecate.Data              hiding (query)
-import           Hecate.Error             (AppError (..))
+import           Hecate.Data            hiding (query)
+import           Hecate.Error           (AppError (..))
 
 
 catchLift :: (MonadThrow m, MonadIO m) => IO a -> m a
@@ -68,8 +66,8 @@ getEntry stmt
     getId          s = Id              <$> SQLite3.columnText s 0
     getKeyId       s = KeyId           <$> SQLite3.columnText s 1
     getDescription s = Description     <$> SQLite3.columnText s 3
-    getTimestamp   s = SQLite3.columnText s 2 >>= iso8601ParseM . T.unpack
-    getCiphertext  s = SQLite3.columnText s 5 >>= fromText >>= return . Ciphertext
+    getTimestamp   s = SQLite3.columnText s 2 >>= utcTimeFromText
+    getCiphertext  s = SQLite3.columnText s 5 >>= ciphertextFromText
     getIdentity    s = columnMaybeText s 4 Identity
     getMeta        s = columnMaybeText s 6 Metadata
 
@@ -141,13 +139,11 @@ migrate _ (SchemaVersion v) _ =
 put :: (MonadThrow m, MonadIO m) => SQLite3.Database -> Entry -> m ()
 put db e = catchLift $ Exception.bracket
   (do { stmt <- SQLite3.prepare db s
-      ; let convertTimestamp = T.pack . iso8601Show
-      ; let convertCiphertext (Ciphertext bs64) = toText bs64
-      ; SQLite3.bindSQLData stmt 1 (SQLite3.SQLText . unId               . entryId          $ e)
-      ; SQLite3.bindSQLData stmt 2 (SQLite3.SQLText . unKeyId            . entryKeyId       $ e)
-      ; SQLite3.bindSQLData stmt 3 (SQLite3.SQLText . convertTimestamp   . entryTimestamp   $ e)
-      ; SQLite3.bindSQLData stmt 4 (SQLite3.SQLText . unDescription      . entryDescription $ e)
-      ; SQLite3.bindSQLData stmt 6 (SQLite3.SQLText . convertCiphertext  . entryCiphertext  $ e)
+      ; SQLite3.bindSQLData stmt 1 (SQLite3.SQLText . unId             . entryId          $ e)
+      ; SQLite3.bindSQLData stmt 2 (SQLite3.SQLText . unKeyId          . entryKeyId       $ e)
+      ; SQLite3.bindSQLData stmt 3 (SQLite3.SQLText . utcTimeToText    . entryTimestamp   $ e)
+      ; SQLite3.bindSQLData stmt 4 (SQLite3.SQLText . unDescription    . entryDescription $ e)
+      ; SQLite3.bindSQLData stmt 6 (SQLite3.SQLText . ciphertextToText . entryCiphertext  $ e)
       ; let { identity = fromMaybe SQLite3.SQLNull (SQLite3.SQLText . unIdentity <$> entryIdentity e)
             ; metadata = fromMaybe SQLite3.SQLNull (SQLite3.SQLText . unMetadata <$> entryMeta     e)
             }

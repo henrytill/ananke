@@ -22,7 +22,7 @@ check test:
 lint:
 	hlint executables src tests
 
-modules.png: hecate.cabal
+modules.png: FORCE
 	find executables src -name '*.hs' | xargs graphmod -q | dot -Tpng -o $@
 
 depends.png: hecate.cabal
@@ -36,3 +36,5 @@ nix:
 clean:
 	cabal v2-clean
 	rm -f modules.png depends.png
+
+FORCE:

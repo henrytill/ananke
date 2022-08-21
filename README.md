@@ -14,7 +14,7 @@ It is worth noting that `hecate` stores information in a manner that allows manu
 
 To build and install `hecate`, you will need either:
 
-* [cabal](https://www.haskell.org/cabal/) (version 2.2.0.0 or greater recommended)
+* [cabal](https://www.haskell.org/cabal/)
 
   or
 
@@ -32,13 +32,11 @@ Currently, the recommended way of getting `hecate` is to build and install it fr
 
 ### with `cabal`
 
-(instructions are for version 2.2.0.0 or greater)
-
 After downloading and decompressing the [latest release](https://git.sr.ht/~henrytill/hecate/refs),
 
 ```sh
 $ cd hecate-<version>
-$ cabal new-install exe:hecate
+$ cabal v2-install exe:hecate
 ```
 
 This will install the `hecate` executable in `$HOME/.cabal/bin`.
@@ -74,6 +72,7 @@ $ hecate add http://notarealwebsite.com -i alice@notarealserver.com -m "This is 
 Enter text to encrypt: notarealpassword
 
 # Retrieve an entry from the database and display its ciphertext as plaintext (see NOTE below)
+# In most cases, this command will cause pinentry to appear.
 $ hecate lookup http://notarealwebsite.com
 http://notarealwebsite.com alice@notarealserver.com notarealpassword This is some metadata
 
@@ -109,8 +108,6 @@ http://notarealwebsite.net alice_alt@notarealserver.com anotherfakepassword My a
 # Remove an entry from the database
 $ hecate remove -d http://notarealwebsite.net
 ```
-
-**NOTE**: The `hecate lookup` command will either cause `pinentry` to appear, after which it will only output the requested entry when you enter the correct passphrase, or it will simply output the requested entry if you have entered the correct passphrase recently.  This behavior depends on `gpg-agent`'s settings.  See the [`gpg-agent` manual](https://www.gnupg.org/documentation/manuals/gnupg/Invoking-GPG_002dAGENT.html) for more information.
 
 ### Bash completion
 

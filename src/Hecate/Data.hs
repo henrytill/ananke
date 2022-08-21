@@ -71,7 +71,7 @@ data Backend = SQLite | JSON
   deriving (Eq, Show)
 
 -- | A 'PreConfig' is used in the creation of a 'Config'
-data PreConfig = PreConfig
+data PreConfig = MkPreConfig
   { preConfigDataDirectory     :: First FilePath
   , preConfigBackend           :: First Backend
   , preConfigKeyId             :: First KeyId
@@ -83,16 +83,16 @@ instance Sem.Semigroup PreConfig where
 
 instance Monoid PreConfig where
   mempty
-    = PreConfig mempty mempty mempty mempty
+    = MkPreConfig mempty mempty mempty mempty
 
-  PreConfig a b c d `mappend` PreConfig e f g h
-    = PreConfig (a `mappend` e)
-                (b `mappend` f)
-                (c `mappend` g)
-                (d `mappend` h)
+  MkPreConfig a b c d `mappend` MkPreConfig e f g h
+    = MkPreConfig (a `mappend` e)
+                  (b `mappend` f)
+                  (c `mappend` g)
+                  (d `mappend` h)
 
 -- | A 'Config' represents our application's configuration
-data Config = Config
+data Config = MkConfig
   { configDataDirectory     :: FilePath
   , configBackend           :: Backend
   , configKeyId             :: KeyId
@@ -109,7 +109,7 @@ configDatabaseFile      cfg = configDatabaseDirectory cfg ++ "/db.sqlite"
 configDataFile          cfg = configDatabaseDirectory cfg ++ "/data.json"
 
 -- | A 'SchemaVersion' represents the database's schema version
-newtype SchemaVersion = SchemaVersion { unSchemaVersion :: Int }
+newtype SchemaVersion = MkSchemaVersion { unSchemaVersion :: Int }
   deriving Eq
 
 instance Show SchemaVersion where
@@ -119,7 +119,7 @@ instance Show SchemaVersion where
 
 -- | A 'DisplayEntry' is a record that is displayed to the user in response to a
 -- command
-data DisplayEntry = DisplayEntry
+data DisplayEntry = MkDisplayEntry
   { displayId          :: Id
   , displayTimestamp   :: UTCTime
   , displayDescription :: Description
@@ -136,50 +136,50 @@ entryToDisplayEntry
 entryToDisplayEntry decrypt e
   = f e <$> decrypt (entryCiphertext e)
   where
-    f ent plaintext = DisplayEntry (entryId ent)
-                                   (entryTimestamp ent)
-                                   (entryDescription ent)
-                                   (entryIdentity ent)
-                                   plaintext
-                                   (entryMeta ent)
+    f ent plaintext = MkDisplayEntry (entryId ent)
+                                     (entryTimestamp ent)
+                                     (entryDescription ent)
+                                     (entryIdentity ent)
+                                     plaintext
+                                     (entryMeta ent)
 
 -- | A 'KeyId' represents a GPG Key Id
-newtype KeyId = KeyId { unKeyId :: T.Text }
+newtype KeyId = MkKeyId { unKeyId :: T.Text }
   deriving (Eq, Ord, Generic)
 
 instance Show KeyId where
-  show (KeyId a) = show a
+  show (MkKeyId a) = show a
 
 instance ToJSON KeyId where
   toJSON = toJSON . unKeyId
 
 instance FromJSON KeyId where
-  parseJSON = fmap KeyId . parseJSON
+  parseJSON = fmap MkKeyId . parseJSON
 
 -- * Decrypted and encrypted values
 
 -- | A 'Plaintext' represents a decrypted value
-newtype Plaintext = Plaintext T.Text
+newtype Plaintext = MkPlaintext T.Text
   deriving Eq
 
 instance Show Plaintext where
-  show (Plaintext t) = show t
+  show (MkPlaintext t) = show t
 
 -- | A 'Ciphertext' represents an encrypted value
-newtype Ciphertext = Ciphertext ByteString64
+newtype Ciphertext = MkCiphertext ByteString64
   deriving (Show, Eq, Ord, Generic)
 
 mkCiphertext :: BS.ByteString -> Ciphertext
-mkCiphertext = Ciphertext . ByteString64
+mkCiphertext = MkCiphertext . MkByteString64
 
 unCiphertext :: Ciphertext -> BS.ByteString
-unCiphertext (Ciphertext bs64) = unByteString64 bs64
+unCiphertext (MkCiphertext bs64) = unByteString64 bs64
 
 ciphertextToText :: Ciphertext -> T.Text
-ciphertextToText (Ciphertext bs64) = BS64.toText bs64
+ciphertextToText (MkCiphertext bs64) = BS64.toText bs64
 
 ciphertextFromText :: MonadFail m => T.Text -> m Ciphertext
-ciphertextFromText t = Ciphertext <$> BS64.fromText t
+ciphertextFromText t = MkCiphertext <$> BS64.fromText t
 
 instance ToJSON Ciphertext where
 
@@ -189,7 +189,7 @@ instance FromJSON Ciphertext where
 
 -- | An 'Entry' is a record that stores an encrypted value along with associated
 -- information
-data Entry = Entry
+data Entry = MkEntry
   { entryId          :: Id
   , entryKeyId       :: KeyId
   , entryTimestamp   :: UTCTime
@@ -241,13 +241,11 @@ showTime :: UTCTime -> T.Text
 showTime = T.pack . Format.formatTime Format.defaultTimeLocale "%s%Q"
 
 ider :: T.Text -> Id
-ider = Id . T.pack . SHA.showDigest . SHA.sha1 . BSL.fromStrict . Encoding.encodeUtf8
+ider = MkId . T.pack . SHA.showDigest . SHA.sha1 . BSL.fromStrict . Encoding.encodeUtf8
 
 createId :: KeyId -> UTCTime -> Description -> Maybe Identity -> Id
-createId (KeyId k) ts (Description d) (Just (Identity i)) =
-  ider (k <> showTime ts <> d <> i)
-createId (KeyId k) ts (Description d) Nothing =
-  ider (k <> showTime ts <> d)
+createId (MkKeyId k) ts (MkDescription d) (Just (MkIdentity i)) = ider (k <> showTime ts <> d <> i)
+createId (MkKeyId k) ts (MkDescription d) Nothing               = ider (k <> showTime ts <> d)
 
 createEntry
   :: Monad m
@@ -262,7 +260,7 @@ createEntry
 createEntry encrypt keyId timestamp description identity plaintext meta = do
   let i = createId keyId timestamp description identity
   encrypted <- encrypt keyId plaintext
-  return (Entry i keyId timestamp description identity encrypted meta)
+  return (MkEntry i keyId timestamp description identity encrypted meta)
 
 updateEntry
   :: Monad m
@@ -275,64 +273,64 @@ updateEntry
   -> m Entry
 updateEntry keyId timestamp description identity ciphertext meta = do
   let i = createId keyId timestamp description identity
-  return (Entry i keyId timestamp description identity ciphertext meta)
+  return (MkEntry i keyId timestamp description identity ciphertext meta)
 
 -- ** Their constituents
 
 -- | A 'Id' identifies a given 'Entry'.
-newtype Id = Id { unId :: T.Text }
+newtype Id = MkId { unId :: T.Text }
   deriving (Eq, Ord, Generic)
 
 instance Show Id where
-  show (Id d) = show d
+  show (MkId d) = show d
 
 instance ToJSON Id where
   toJSON = toJSON . unId
 
 instance FromJSON Id where
-  parseJSON = fmap Id . parseJSON
+  parseJSON = fmap MkId . parseJSON
 
 -- | A 'Description' identifies a given 'Entry'.  It could be a URI or a
 -- descriptive name.
-newtype Description = Description { unDescription ::  T.Text }
+newtype Description = MkDescription { unDescription ::  T.Text }
   deriving (Eq, Ord, Generic)
 
 instance Show Description where
-  show (Description d) = show d
+  show (MkDescription d) = show d
 
 instance ToJSON Description where
   toJSON = toJSON . unDescription
 
 instance FromJSON Description where
-  parseJSON = fmap Description . parseJSON
+  parseJSON = fmap MkDescription . parseJSON
 
 -- | An 'Identity' represents an identifying value.  It could be the username in
 -- a username/password pair
-newtype Identity = Identity { unIdentity :: T.Text }
+newtype Identity = MkIdentity { unIdentity :: T.Text }
   deriving (Eq, Ord, Generic)
 
 instance Show Identity where
-  show (Identity i) = show i
+  show (MkIdentity i) = show i
 
 instance ToJSON Identity where
   toJSON = toJSON . unIdentity
 
 instance FromJSON Identity where
-  parseJSON = fmap Identity . parseJSON
+  parseJSON = fmap MkIdentity . parseJSON
 
 -- | A 'Metadata' value contains additional non-specific information for a given
 -- 'Entry'
-newtype Metadata = Metadata { unMetadata :: T.Text }
+newtype Metadata = MkMetadata { unMetadata :: T.Text }
   deriving (Eq, Ord, Generic)
 
 instance Show Metadata where
-  show (Metadata m) = show m
+  show (MkMetadata m) = show m
 
 instance ToJSON Metadata where
   toJSON = toJSON . unMetadata
 
 instance FromJSON Metadata where
-  parseJSON = fmap Metadata . parseJSON
+  parseJSON = fmap MkMetadata . parseJSON
 
 -- ** And some updaters
 
@@ -398,7 +396,7 @@ updateMetadata now meta ent
 -- * Queries
 
 -- | A 'Query' represents a database query
-data Query = Query
+data Query = MkQuery
   { queryId          :: Maybe Id
   , queryDescription :: Maybe Description
   , queryIdentity    :: Maybe Identity
@@ -407,15 +405,15 @@ data Query = Query
 
 query :: Maybe String -> Maybe String -> Maybe String -> Maybe String -> Query
 query i d iden m =
-  Query { queryId          = Id          . T.pack <$> i
-        , queryDescription = Description . T.pack <$> d
-        , queryIdentity    = Identity    . T.pack <$> iden
-        , queryMeta        = Metadata    . T.pack <$> m
-        }
+  MkQuery { queryId          = MkId          . T.pack <$> i
+          , queryDescription = MkDescription . T.pack <$> d
+          , queryIdentity    = MkIdentity    . T.pack <$> iden
+          , queryMeta        = MkMetadata    . T.pack <$> m
+          }
 
 queryIsEmpty :: Query -> Bool
-queryIsEmpty (Query Nothing Nothing Nothing Nothing) = True
-queryIsEmpty _                                       = False
+queryIsEmpty (MkQuery Nothing Nothing Nothing Nothing) = True
+queryIsEmpty _                                         = False
 
 -- * Helpers
 

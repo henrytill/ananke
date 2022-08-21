@@ -17,14 +17,14 @@ import           GHC.Generics
 
 -- | Represents a ByteString which is displayed and stored in its base64-encoded
 -- version
-newtype ByteString64 = ByteString64 { unByteString64 :: BS.ByteString }
+newtype ByteString64 = MkByteString64 { unByteString64 :: BS.ByteString }
   deriving (Eq, Ord, Generic)
 
 toText :: ByteString64 -> T.Text
 toText = decodeUtf8 . Base64.encode . unByteString64
 
 fromText :: MonadFail m => T.Text -> m ByteString64
-fromText = either fail (pure . ByteString64) . Base64.decode . encodeUtf8
+fromText = either fail (pure . MkByteString64) . Base64.decode . encodeUtf8
 
 instance Show ByteString64 where
   show = T.unpack . toText

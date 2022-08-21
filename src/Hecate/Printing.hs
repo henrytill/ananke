@@ -28,18 +28,18 @@ prettyTimestamp t = prettyText (showTime t)
     showTime = T.pack . iso8601Show
 
 prettyDescription :: Description -> Doc
-prettyDescription (Description d) = prettyText d
+prettyDescription (MkDescription d) = prettyText d
 
 prettyIdentity :: Maybe Identity -> Doc
-prettyIdentity (Just (Identity i)) = prettyText i
-prettyIdentity Nothing             = Leijen.text "<none>"
+prettyIdentity (Just (MkIdentity i)) = prettyText i
+prettyIdentity Nothing               = Leijen.text "<none>"
 
 prettyPlaintext :: Plaintext -> Doc
-prettyPlaintext (Plaintext t) = prettyText t
+prettyPlaintext (MkPlaintext t) = prettyText t
 
 prettyMeta :: Maybe Metadata -> Doc
-prettyMeta (Just (Metadata m)) = prettyText m
-prettyMeta Nothing             = Leijen.text "<none>"
+prettyMeta (Just (MkMetadata m)) = prettyText m
+prettyMeta Nothing               = Leijen.text "<none>"
 
 printPlain :: DisplayEntry -> Doc
 printPlain ent = prettyPlaintext (displayPlaintext ent)

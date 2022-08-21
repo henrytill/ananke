@@ -13,17 +13,17 @@ instance Arbitrary T.Text where
     shrink xs = T.pack <$> shrink (T.unpack xs)
 
 instance Arbitrary Description where
-  arbitrary               = Description <$> arbitrary
-  shrink (Description xs) = Description <$> shrink xs
+  arbitrary                 = MkDescription <$> arbitrary
+  shrink (MkDescription xs) = MkDescription <$> shrink xs
 
 instance Arbitrary Identity where
-  arbitrary            = Identity <$> arbitrary
-  shrink (Identity xs) = Identity <$> shrink xs
+  arbitrary              = MkIdentity <$> arbitrary
+  shrink (MkIdentity xs) = MkIdentity <$> shrink xs
 
 instance Arbitrary Plaintext where
-  arbitrary             = Plaintext <$> arbitrary
-  shrink (Plaintext xs) = Plaintext <$> shrink xs
+  arbitrary               = MkPlaintext <$> arbitrary
+  shrink (MkPlaintext xs) = MkPlaintext <$> shrink xs
 
 instance Arbitrary Metadata where
-  arbitrary            = Metadata <$> arbitrary
-  shrink (Metadata xs) = Metadata <$> shrink xs
+  arbitrary              = MkMetadata <$> arbitrary
+  shrink (MkMetadata xs) = MkMetadata <$> shrink xs

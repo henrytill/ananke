@@ -86,7 +86,7 @@ encrypt
   => KeyId
   -> Plaintext
   -> m Ciphertext
-encrypt (KeyId keyid) (Plaintext pt) = w (gpgEncrypt (T.unpack keyid)) pt
+encrypt (MkKeyId keyid) (MkPlaintext pt) = w (gpgEncrypt (T.unpack keyid)) pt
   where
     w :: (BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)) -> T.Text -> m Ciphertext
     w f = (mkCiphertext <$>) . lifter . f . Encoding.encodeUtf8
@@ -98,4 +98,4 @@ decrypt
 decrypt = w gpgDecrypt
   where
     w ::  (BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)) -> Ciphertext -> m Plaintext
-    w f = (Plaintext . Encoding.decodeUtf8 <$>) . lifter . f . unCiphertext
+    w f = (MkPlaintext . Encoding.decodeUtf8 <$>) . lifter . f . unCiphertext

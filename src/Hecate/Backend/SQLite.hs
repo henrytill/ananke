@@ -23,7 +23,7 @@ import           Hecate.Interfaces
 
 -- * SQLite
 
-newtype SQLite a = SQLite { unSQLite :: ReaderT AppContext IO a }
+newtype SQLite a = MkSQLite { unSQLite :: ReaderT AppContext IO a }
   deriving ( Functor
            , Applicative
            , Monad
@@ -49,7 +49,7 @@ initialize cfg = do
       dbFile = configDatabaseFile cfg
   dbDirExists <- doesDirectoryExist dbDir
   Except.unless dbDirExists (createDirectory dbDir)
-  AppContext cfg <$> SQLite3.open (T.pack dbFile)
+  MkAppContext cfg <$> SQLite3.open (T.pack dbFile)
 
 finalize :: AppContext -> IO ()
 finalize = SQLite3.close . appContextDatabase

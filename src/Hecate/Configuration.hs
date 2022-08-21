@@ -42,7 +42,7 @@ getBackendFromEnv
 
 getKeyIdFromEnv :: MonadInteraction m => m (Maybe KeyId)
 getKeyIdFromEnv
-  = fmap (KeyId . T.pack) <$> getEnv "HECATE_KEYID"
+  = fmap (MkKeyId . T.pack) <$> getEnv "HECATE_KEYID"
 
 getAllowMultipleKeysFromEnv :: MonadInteraction m => m (Maybe Bool)
 getAllowMultipleKeysFromEnv
@@ -71,7 +71,7 @@ getBackend tbl
 
 getKeyId :: [(T.Text, TOML.Value)] -> Maybe KeyId
 getKeyId tbl
-  = tbl ^? tableAt "gnupg" . lup "keyid" . just_ . _String . to KeyId
+  = tbl ^? tableAt "gnupg" . lup "keyid" . just_ . _String . to MkKeyId
 
 getAllowMultipleKeys :: [(T.Text, TOML.Value)] -> Maybe Bool
 getAllowMultipleKeys tbl
@@ -83,22 +83,22 @@ createPreConfig = do
   backend <- First <$> getBackendFromEnv
   keyId   <- First <$> getKeyIdFromEnv
   mult    <- First <$> getAllowMultipleKeysFromEnv
-  return PreConfig { preConfigDataDirectory     = dir
-                   , preConfigBackend           = backend
-                   , preConfigKeyId             = keyId
-                   , preConfigAllowMultipleKeys = mult
-                   }
+  return MkPreConfig { preConfigDataDirectory     = dir
+                     , preConfigBackend           = backend
+                     , preConfigKeyId             = keyId
+                     , preConfigAllowMultipleKeys = mult
+                     }
 
 addDefaultConfig :: MonadInteraction m => PreConfig -> m PreConfig
 addDefaultConfig preConfig = mappend preConfig <$> defaultConfig
   where
     defaultConfig = do
       dir <- First <$> getDefaultDataDirectory
-      return PreConfig { preConfigDataDirectory     = dir
-                       , preConfigBackend           = mempty
-                       , preConfigKeyId             = mempty
-                       , preConfigAllowMultipleKeys = First (Just False)
-                       }
+      return MkPreConfig { preConfigDataDirectory     = dir
+                         , preConfigBackend           = mempty
+                         , preConfigKeyId             = mempty
+                         , preConfigAllowMultipleKeys = First (Just False)
+                         }
 
 addTOMLConfig :: (MonadAppError m, MonadInteraction m) => PreConfig -> m PreConfig
 addTOMLConfig preConfig = mappend preConfig <$> tomlConfig
@@ -110,18 +110,18 @@ addTOMLConfig preConfig = mappend preConfig <$> tomlConfig
       let backend = First (getBackend tbl)
           keyId   = First (getKeyId tbl)
           mult    = First (getAllowMultipleKeys tbl)
-      return PreConfig { preConfigDataDirectory     = mempty
-                       , preConfigBackend           = backend
-                       , preConfigKeyId             = keyId
-                       , preConfigAllowMultipleKeys = mult
-                       }
+      return MkPreConfig { preConfigDataDirectory     = mempty
+                         , preConfigBackend           = backend
+                         , preConfigKeyId             = keyId
+                         , preConfigAllowMultipleKeys = mult
+                         }
 
 preConfigToConfig :: MonadAppError m => PreConfig -> m Config
 preConfigToConfig preConfig =
-  Config <$> firstOrError dirMsg (preConfigDataDirectory     preConfig)
-         <*> firstOrError bakMsg (preConfigBackend           preConfig)
-         <*> firstOrError keyMsg (preConfigKeyId             preConfig)
-         <*> firstOrError mulMsg (preConfigAllowMultipleKeys preConfig)
+  MkConfig <$> firstOrError dirMsg (preConfigDataDirectory     preConfig)
+           <*> firstOrError bakMsg (preConfigBackend           preConfig)
+           <*> firstOrError keyMsg (preConfigKeyId             preConfig)
+           <*> firstOrError mulMsg (preConfigAllowMultipleKeys preConfig)
   where
     firstOrError msg = maybe (configurationError msg) pure . getFirst
     dirMsg = "Please set HECATE_DATA_DIR"

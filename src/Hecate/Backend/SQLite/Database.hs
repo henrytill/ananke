@@ -31,7 +31,7 @@ catchLift a = liftIO . Exception.catch a $ \err ->
      throwM . Database . T.unpack $ details
 
 currentSchemaVersion :: SchemaVersion
-currentSchemaVersion = SchemaVersion 2
+currentSchemaVersion = MkSchemaVersion 2
 
 executeStatement :: SQLite3.Statement -> IO ()
 executeStatement stmt = SQLite3.stepNoCB stmt >>= \case
@@ -46,13 +46,13 @@ columnMaybeText stmt column f = SQLite3.column stmt column >>= \case
 
 getEntry :: SQLite3.Statement -> IO Entry
 getEntry stmt
-  = Entry <$> getId          stmt
-          <*> getKeyId       stmt
-          <*> getTimestamp   stmt
-          <*> getDescription stmt
-          <*> getIdentity    stmt
-          <*> getCiphertext  stmt
-          <*> getMeta        stmt
+  = MkEntry <$> getId          stmt
+            <*> getKeyId       stmt
+            <*> getTimestamp   stmt
+            <*> getDescription stmt
+            <*> getIdentity    stmt
+            <*> getCiphertext  stmt
+            <*> getMeta        stmt
   where
     getId          :: SQLite3.Statement -> IO Id
     getKeyId       :: SQLite3.Statement -> IO KeyId
@@ -61,13 +61,13 @@ getEntry stmt
     getCiphertext  :: SQLite3.Statement -> IO Ciphertext
     getIdentity    :: SQLite3.Statement -> IO (Maybe Identity)
     getMeta        :: SQLite3.Statement -> IO (Maybe Metadata)
-    getId          s = Id          <$> SQLite3.columnText s 0
-    getKeyId       s = KeyId       <$> SQLite3.columnText s 1
-    getDescription s = Description <$> SQLite3.columnText s 3
+    getId          s = MkId          <$> SQLite3.columnText s 0
+    getKeyId       s = MkKeyId       <$> SQLite3.columnText s 1
+    getDescription s = MkDescription <$> SQLite3.columnText s 3
     getTimestamp   s = SQLite3.columnText s 2 >>= utcTimeFromText
     getCiphertext  s = SQLite3.columnText s 5 >>= ciphertextFromText
-    getIdentity    s = columnMaybeText s 4 Identity
-    getMeta        s = columnMaybeText s 6 Metadata
+    getIdentity    s = columnMaybeText s 4 MkIdentity
+    getMeta        s = columnMaybeText s 6 MkMetadata
 
 executeQuery :: SQLite3.Statement -> IO [Entry]
 executeQuery = go []
@@ -101,7 +101,7 @@ createTable db = catchLift $ Exception.bracket (SQLite3.prepare db s) SQLite3.fi
          \)"
 
 addKeyId :: (MonadThrow m, MonadIO m) => SQLite3.Database -> KeyId -> m ()
-addKeyId db (KeyId keyId) = catchLift $ Exception.bracket
+addKeyId db (MkKeyId keyId) = catchLift $ Exception.bracket
   (do { stmt <- SQLite3.prepare db s
       ; SQLite3.bindSQLData stmt 1 (SQLite3.SQLText keyId)
       ; return stmt
@@ -120,13 +120,13 @@ migrate
   -> SchemaVersion
   -> KeyId
   -> m ()
-migrate db (SchemaVersion 1) keyId =
+migrate db (MkSchemaVersion 1) keyId =
   catchLift $ do
     SQLite3.exec db "ALTER TABLE entries RENAME TO entries_v1"
     createTable db
     addKeyId db keyId
     SQLite3.exec db "DROP TABLE entries_v1"
-migrate _ (SchemaVersion v) _ =
+migrate _ (MkSchemaVersion v) _ =
   throwM . Migration $ "no supported migration path for schema version " ++ show v
 
 put :: (MonadThrow m, MonadIO m) => SQLite3.Database -> Entry -> m ()
@@ -174,7 +174,7 @@ getCount db = catchLift $ Exception.bracket (SQLite3.prepare db s) SQLite3.final
     s = "SELECT count(*) FROM entries"
 
 getCountOfKeyId :: (MonadThrow m, MonadIO m) => SQLite3.Database -> KeyId -> m Int
-getCountOfKeyId db (KeyId keyId) = catchLift $ Exception.bracket
+getCountOfKeyId db (MkKeyId keyId) = catchLift $ Exception.bracket
   (do { stmt <- SQLite3.prepare db s
       ; SQLite3.bindNamed stmt [(":keyid", SQLite3.SQLText keyId)]
       ; return stmt
@@ -190,10 +190,10 @@ idMatcher          :: Id          -> (T.Text, [(T.Text, SQLite3.SQLData)])
 descriptionMatcher :: Description -> (T.Text, [(T.Text, SQLite3.SQLData)])
 identityMatcher    :: Identity    -> (T.Text, [(T.Text, SQLite3.SQLData)])
 metadataMatcher    :: Metadata    -> (T.Text, [(T.Text, SQLite3.SQLData)])
-idMatcher          (Id i)          = ("id = :id",                      [(":id",          SQLite3.SQLText i)])
-descriptionMatcher (Description d) = ("description LIKE :description", [(":description", SQLite3.SQLText ("%" <> d <> "%"))])
-identityMatcher    (Identity i)    = ("identity LIKE :identity",       [(":identity",    SQLite3.SQLText i)])
-metadataMatcher    (Metadata m)    = ("meta LIKE :meta",               [(":meta",        SQLite3.SQLText m)])
+idMatcher          (MkId i)          = ("id = :id",                      [(":id",          SQLite3.SQLText i)])
+descriptionMatcher (MkDescription d) = ("description LIKE :description", [(":description", SQLite3.SQLText ("%" <> d <> "%"))])
+identityMatcher    (MkIdentity i)    = ("identity LIKE :identity",       [(":identity",    SQLite3.SQLText i)])
+metadataMatcher    (MkMetadata m)    = ("meta LIKE :meta",               [(":meta",        SQLite3.SQLText m)])
 
 queryFolder
   :: (T.Text, [(T.Text, SQLite3.SQLData)])

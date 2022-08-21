@@ -22,7 +22,7 @@ import           Hecate.Interfaces
 import           Hecate.Orphans          ()
 
 
-data TestData = TestData
+data TestData = MkTestData
   { testDescription :: Description
   , testIdentity    :: Maybe Identity
   , testPlaintext   :: Plaintext
@@ -30,8 +30,8 @@ data TestData = TestData
   } deriving (Eq, Show)
 
 instance Arbitrary TestData where
-  arbitrary                     = TestData <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
-  shrink (TestData as bs cs ds) = TestData <$> shrink as <*> shrink bs <*> shrink cs <*> shrink ds
+  arbitrary                       = MkTestData <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+  shrink (MkTestData as bs cs ds) = MkTestData <$> shrink as <*> shrink bs <*> shrink cs <*> shrink ds
 
 createEntryFromTestData
   :: (MonadAppError m, MonadInteraction m, MonadEncrypt m, MonadConfigReader m)
@@ -79,7 +79,7 @@ doProperties = do
   sysTempDir <- Temp.getCanonicalTemporaryDirectory
   dir        <- Temp.createTempDirectory sysTempDir "hecate"
   _          <- print ("dir: " ++ dir)
-  let preConfig = PreConfig (First (Just dir)) mempty mempty mempty
+  let preConfig = MkPreConfig (First (Just dir)) mempty mempty mempty
   _          <- Directory.copyFile "./example/hecate.toml" (dir ++ "/hecate.toml")
   ctx        <- Configuration.configureWith preConfig >>= SQLite.initialize
   _          <- SQLite.run Evaluator.setup ctx

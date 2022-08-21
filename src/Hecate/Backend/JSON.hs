@@ -26,7 +26,7 @@ import           Hecate.Interfaces
 
 -- * JSON
 
-newtype JSON a = JSON { unJSON :: ReaderT Config (StateT AppState IO) a }
+newtype JSON a = MkJSON { unJSON :: ReaderT Config (StateT AppState IO) a }
   deriving ( Functor
            , Applicative
            , Monad

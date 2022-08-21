@@ -67,7 +67,7 @@ data Response
   deriving (Show, Eq)
 
 getSchemaVersionFromFile :: MonadInteraction m => FilePath -> m SchemaVersion
-getSchemaVersionFromFile path = SchemaVersion . read <$> readFileAsString path
+getSchemaVersionFromFile path = MkSchemaVersion . read <$> readFileAsString path
 
 createSchemaFile :: MonadInteraction m => FilePath -> SchemaVersion -> m ()
 createSchemaFile path version = writeFileFromString path (show version)
@@ -184,10 +184,10 @@ create d i m = do
   createEntry encrypt
               (configKeyId cfg)
               timestamp
-              (Description . T.pack  $  d)
-              (Identity    . T.pack <$> i)
-              (Plaintext   . T.pack  $  t)
-              (Metadata    . T.pack <$> m)
+              (MkDescription . T.pack  $  d)
+              (MkIdentity    . T.pack <$> i)
+              (MkPlaintext   . T.pack  $  t)
+              (MkMetadata    . T.pack <$> m)
 
 update
   :: MonadInteraction m
@@ -200,19 +200,19 @@ update Nothing Nothing e =
 update (Just "") Nothing e =
   now >>= \ ts -> updateIdentity ts Nothing e
 update miden Nothing e =
-  now >>= \ ts -> updateIdentity ts (Identity . T.pack <$> miden) e
+  now >>= \ ts -> updateIdentity ts (MkIdentity . T.pack <$> miden) e
 update Nothing (Just "") e =
   now >>= \ ts -> updateMetadata ts Nothing e
 update Nothing mmeta e =
-  now >>= \ ts -> updateMetadata ts (Metadata . T.pack <$> mmeta) e
+  now >>= \ ts -> updateMetadata ts (MkMetadata . T.pack <$> mmeta) e
 update (Just "") (Just "") e =
   now                         >>= \ ts ->
   updateIdentity ts Nothing e >>=
   updateMetadata ts Nothing
 update miden mmeta e =
-  now                                               >>= \ ts ->
-  updateIdentity ts (Identity . T.pack <$> miden) e >>=
-  updateMetadata ts (Metadata . T.pack <$> mmeta)
+  now                                                 >>= \ ts ->
+  updateIdentity ts (MkIdentity . T.pack <$> miden) e >>=
+  updateMetadata ts (MkMetadata . T.pack <$> mmeta)
 
 updateCiphertext
   :: (MonadEncrypt m, MonadInteraction m, MonadConfigReader m)
@@ -228,7 +228,7 @@ updateCiphertext Change ent = do
               timestamp
               (entryDescription ent)
               (entryIdentity ent)
-              (Plaintext . T.pack $ t)
+              (MkPlaintext . T.pack $ t)
               (entryMeta ent)
 updateCiphertext Keep ent =
   return ent
@@ -303,7 +303,7 @@ redescribeOnlySingletons [e] s
   where
     k = do
       ts  <- now
-      ue  <- updateDescription ts (Description . T.pack $ s) e
+      ue  <- updateDescription ts (MkDescription . T.pack $ s) e
       _   <- put ue
       _   <- delete e
       return Redescribed

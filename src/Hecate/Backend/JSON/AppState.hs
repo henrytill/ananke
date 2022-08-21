@@ -24,13 +24,13 @@ import           Hecate.Data   hiding (query)
 
 type EntriesMap = Multimap Description Entry
 
-data AppState = AppState
+data AppState = MkAppState
   { appStateDirty :: Bool
   , appStateData  :: EntriesMap
   } deriving (Show, Eq)
 
 mkAppState :: [Entry] -> AppState
-mkAppState entries = AppState
+mkAppState entries = MkAppState
   { appStateDirty = False
   , appStateData  = Multimap.fromList (tupler <$> entries)
   }
@@ -49,8 +49,8 @@ delete ent = update (Multimap.delete (entryDescription ent) ent)
 
 idenIsInfixOf :: Identity    -> Identity    -> Bool
 descIsInfixOf :: Description -> Description -> Bool
-idenIsInfixOf (Identity    needle) (Identity    haystack) = Text.isInfixOf needle haystack
-descIsInfixOf (Description needle) (Description haystack) = Text.isInfixOf needle haystack
+idenIsInfixOf (MkIdentity    needle) (MkIdentity    haystack) = Text.isInfixOf needle haystack
+descIsInfixOf (MkDescription needle) (MkDescription haystack) = Text.isInfixOf needle haystack
 
 idenMatcher :: Maybe Identity    -> Maybe Identity -> Bool
 idenMatcher queryIden entryIden = Maybe.fromMaybe True (idenIsInfixOf <$> queryIden <*> entryIden)
@@ -62,7 +62,7 @@ filterEntries predicate = Set.foldr f []
             | otherwise                   = acc
 
 queryFolder :: Query -> Description -> Set Entry -> [Entry] -> [Entry]
-queryFolder (Query (Just eid) Nothing Nothing Nothing) _ es acc
+queryFolder (MkQuery (Just eid) Nothing Nothing Nothing) _ es acc
   = Set.toList matches ++ acc
   where
     matches = Set.filter (\ e -> entryId e == eid) es
@@ -74,7 +74,7 @@ queryFolder q d es acc
     idenMatches = idenMatcher (queryIdentity q)
 
 query :: Query -> AppState -> [Entry]
-query q AppState{appStateData} = Multimap.foldrWithKey (queryFolder q) [] appStateData
+query q MkAppState{appStateData} = Multimap.foldrWithKey (queryFolder q) [] appStateData
 
 selectAll :: AppState -> [Entry]
 selectAll = Multimap.elems . appStateData

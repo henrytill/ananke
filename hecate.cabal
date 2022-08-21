@@ -5,11 +5,11 @@ name:                hecate
 version:             0.8.0.0
 synopsis:            A minimal password manager
 description:         hecate is a minimal password manager.
-license:             Apache-2.0
+license:             ISC
 license-file:        LICENSE
 author:              Henry Till
 maintainer:          henrytill@gmail.com
--- copyright:           
+copyright:           (c) 2017-2022 Henry Till
 category:            System
 build-type:          Simple
 cabal-version:       >=1.10

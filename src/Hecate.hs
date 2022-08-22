@@ -18,15 +18,13 @@ import qualified Hecate.Parser           as Parser
 import qualified Hecate.Printing         as Printing
 
 
-exceptionHandler :: Command -> AppError -> IO ExitCode
-exceptionHandler command err = do
-  Leijen.hPutDoc IO.stderr (Printing.prettyError command err)
-  return (ExitFailure 1)
+handleError :: Command -> AppError -> IO ExitCode
+handleError cmd err = Leijen.hPutDoc IO.stderr (Printing.prettyError cmd err) >> return (ExitFailure 1)
 
-resultHandler :: Command -> Response -> IO ExitCode
-resultHandler command res =
+handleResponse :: Command -> Response -> IO ExitCode
+handleResponse cmd res =
   let
-    pr r = Leijen.hPutDoc IO.stdout (Printing.prettyResponse command r)
+    pr = Leijen.hPutDoc IO.stdout . Printing.prettyResponse cmd
   in case res of
     (SingleEntry     _  _) -> pr res >> return ExitSuccess
     (MultipleEntries [] _) -> pr res >> return (ExitFailure 1)
@@ -35,15 +33,15 @@ resultHandler command res =
 
 runJSONApp :: (Config, JSON.AppState) -> IO ExitCode
 runJSONApp (cfg, state) = do
-  command <- Parser.runCLIParser
-  Exception.catch (JSON.run (Evaluator.eval command) state cfg >>= resultHandler command)
-                  (exceptionHandler command)
+  cmd <- Parser.runCLIParser
+  Exception.catch (JSON.run (Evaluator.eval cmd) state cfg >>= handleResponse cmd)
+                  (handleError cmd)
 
 runSQLiteApp :: SQLite.AppContext -> IO ExitCode
 runSQLiteApp ctx = do
-  command <- Parser.runCLIParser
-  Exception.catch (SQLite.run (Evaluator.setup >> Evaluator.eval command) ctx >>= resultHandler command)
-                  (exceptionHandler command)
+  cmd <- Parser.runCLIParser
+  Exception.catch (SQLite.run (Evaluator.setup >> Evaluator.eval cmd) ctx >>= handleResponse cmd)
+                  (handleError cmd)
 
 run :: Config -> IO ExitCode
 run cfg = case configBackend cfg of

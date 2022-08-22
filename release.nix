@@ -9,12 +9,13 @@ let
       }:
 
       let
-        tpSrc  = pkgs.fetchFromGitHub {
+        tpSrc = pkgs.fetchFromGitHub {
           owner  = "henrytill";
           repo   = "toml-parser";
           rev    = "2f9000030f98e8bb79ddba1826e8def583754d3c";
           sha256 = "sha256-pvJK2eSq/Bke4PzhjToZarxMP8XGOgKMHa+JxVMjVUg=";
         };
+
         ltpSrc = pkgs.fetchFromGitHub {
           owner  = "henrytill";
           repo   = "lens-toml-parser";
@@ -24,11 +25,11 @@ let
 
         toml-parser      = pkgs.haskell.packages.${compiler}.callCabal2nix "toml-parser"      tpSrc  {};
         lens-toml-parser = pkgs.haskell.packages.${compiler}.callCabal2nix "lens-toml-parser" ltpSrc { inherit toml-parser; };
-        hecateRaw        = pkgs.haskell.packages.${compiler}.callCabal2nix "hecate"           ./.    { inherit lens-toml-parser toml-parser; };
+        _hecate          = pkgs.haskell.packages.${compiler}.callCabal2nix "hecate"           ./.    { inherit lens-toml-parser toml-parser; };
 
-        extDeps          = [ pkgs.sqlite pkgs.gnupg ];
+        extDeps = [ pkgs.gnupg ];
       in
-        pkgs.haskell.lib.overrideCabal hecateRaw (oldAttrs: {
+        pkgs.haskell.lib.overrideCabal _hecate (oldAttrs: {
           inherit doCheck;
           isLibrary               = false;
           enableSharedExecutables = false;

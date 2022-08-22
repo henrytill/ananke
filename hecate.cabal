@@ -26,7 +26,7 @@ extra-source-files:
 
 source-repository head
   type:     git
-  location: https://github.com/henrytill/hecate
+  location: https://git.sr.ht/~henrytill/hecate
 
 executable hecate
   main-is:             Main.hs

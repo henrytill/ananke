@@ -1,6 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
-
 module Hecate.Configuration
   ( Config(..)
   , Backend(..)
@@ -8,24 +5,31 @@ module Hecate.Configuration
   , configure
   ) where
 
-import qualified Data.Maybe         as Maybe
-import           Data.Monoid        (First (..))
-import qualified Data.Text          as T
-import           Lens.Family2
-import           Lens.Family2.Stock (just_)
-import qualified System.Info        as Info
-import qualified TOML
-import           TOML.Lens
+import           Data.Char                   (toLower)
+import qualified Data.Maybe                  as Maybe
+import           Data.Monoid                 (First (..))
+import qualified Data.Text                   as T
+import qualified System.Info                 as Info
 
+import           Hecate.Configuration.Parser (Pairs)
+import qualified Hecate.Configuration.Parser as Parser
 import           Hecate.Data
 import           Hecate.Interfaces
 
 
-mkBackend :: T.Text -> Backend
-mkBackend txt = case T.toLower txt of
+mkBackend :: String -> Backend
+mkBackend txt = case toLower <$> txt of
   "json"   -> JSON
   "sqlite" -> SQLite
   _        -> SQLite
+
+mkBool :: String -> Bool
+mkBool "True" = True
+mkBool "true" = True
+mkBool "TRUE" = True
+mkBool "t"    = True
+mkBool "1"    = True
+mkBool _      = False
 
 getDefaultDataDirectory :: MonadInteraction m => m (Maybe FilePath)
 getDefaultDataDirectory = case Info.os of
@@ -37,45 +41,22 @@ getDataDirectoryFromEnv
   = getEnv "HECATE_DATA_DIR"
 
 getBackendFromEnv :: MonadInteraction m => m (Maybe Backend)
-getBackendFromEnv
-  = fmap (mkBackend . T.pack) <$> getEnv "HECATE_BACKEND"
+getBackendFromEnv = fmap mkBackend <$> getEnv "HECATE_BACKEND"
 
 getKeyIdFromEnv :: MonadInteraction m => m (Maybe KeyId)
-getKeyIdFromEnv
-  = fmap (MkKeyId . T.pack) <$> getEnv "HECATE_KEYID"
+getKeyIdFromEnv = fmap (MkKeyId . T.pack) <$> getEnv "HECATE_KEYID"
 
 getAllowMultipleKeysFromEnv :: MonadInteraction m => m (Maybe Bool)
-getAllowMultipleKeysFromEnv
-  = fmap f <$> getEnv "HECATE_ALLOW_MULTIPLE_KEYS"
-  where
-    f "1" = True
-    f "0" = False
-    f _   = False
+getAllowMultipleKeysFromEnv = fmap mkBool <$> getEnv "HECATE_ALLOW_MULTIPLE_KEYS"
 
-lup
-  :: T.Text
-  -> Getter' [(T.Text, TOML.Value)] (Maybe TOML.Value)
-lup = to . lookup
+getBackend :: Pairs -> Maybe Backend
+getBackend = fmap mkBackend . lookup "backend"
 
-tableAt
-  :: (Applicative f, Phantom f)
-  => T.Text
-  -> ([(T.Text, TOML.Value)] -> f [(T.Text, TOML.Value)])
-  -> [(T.Text, TOML.Value)]
-  -> f [(T.Text, TOML.Value)]
-tableAt k = lup k . just_ . _Table
+getKeyId :: Pairs -> Maybe KeyId
+getKeyId = fmap (MkKeyId . T.pack) . lookup "keyid"
 
-getBackend :: [(T.Text, TOML.Value)] -> Maybe Backend
-getBackend tbl
-  = tbl ^? tableAt "core" . lup "backend" . just_ . _String . to mkBackend
-
-getKeyId :: [(T.Text, TOML.Value)] -> Maybe KeyId
-getKeyId tbl
-  = tbl ^? tableAt "gnupg" . lup "keyid" . just_ . _String . to MkKeyId
-
-getAllowMultipleKeys :: [(T.Text, TOML.Value)] -> Maybe Bool
-getAllowMultipleKeys tbl
-  = tbl ^? tableAt "entries" . lup "allow_multiple_keys" . just_ . _Bool
+getAllowMultipleKeys :: Pairs -> Maybe Bool
+getAllowMultipleKeys = fmap mkBool . lookup "allow_multiple_keys"
 
 createPreConfig :: MonadInteraction m => m PreConfig
 createPreConfig = do
@@ -100,13 +81,13 @@ addDefaultConfig preConfig = mappend preConfig <$> defaultConfig
                          , preConfigAllowMultipleKeys = First (Just False)
                          }
 
-addTOMLConfig :: (MonadAppError m, MonadInteraction m) => PreConfig -> m PreConfig
-addTOMLConfig preConfig = mappend preConfig <$> tomlConfig
+addFileConfig :: (MonadAppError m, MonadInteraction m) => PreConfig -> m PreConfig
+addFileConfig preConfig = mappend preConfig <$> fileConfig
   where
-    tomlConfig = do
+    fileConfig = do
       let dataDir = Maybe.fromJust (getFirst (preConfigDataDirectory preConfig))
-      txt <- readFileAsText (dataDir ++ "/hecate.toml")
-      tbl <- either tomlError pure (TOML.parseTOML txt)
+      txt <- readFileAsString (dataDir ++ "/hecate.conf")
+      tbl <- maybe (configError "unable to parse hecate.conf") pure (Parser.parse txt)
       let backend = First (getBackend tbl)
           keyId   = First (getKeyId tbl)
           mult    = First (getAllowMultipleKeys tbl)
@@ -125,12 +106,12 @@ preConfigToConfig preConfig =
   where
     firstOrError msg = maybe (configurationError msg) pure . getFirst
     dirMsg = "Please set HECATE_DATA_DIR"
-    bakMsg = "Please set HECATE_BACKEND or core.backend in hecate.toml"
-    keyMsg = "Please set HECATE_KEYID or gnupg.keyid in hecate.toml"
-    mulMsg = "Please set HECATE_ALLOW_MULTIPLE_KEYS or entries.allow_multiple_keys in hecate.toml"
+    bakMsg = "Please set HECATE_BACKEND or backend in hecate.conf"
+    keyMsg = "Please set HECATE_KEYID or keyid in hecate.conf"
+    mulMsg = "Please set HECATE_ALLOW_MULTIPLE_KEYS or allow_multiple_keys in hecate.conf"
 
 configureWith :: (MonadAppError m, MonadInteraction m) => PreConfig -> m Config
-configureWith preConfig = addDefaultConfig preConfig >>= addTOMLConfig >>= preConfigToConfig
+configureWith preConfig = addDefaultConfig preConfig >>= addFileConfig >>= preConfigToConfig
 
 configure :: (MonadAppError m, MonadInteraction m) => m Config
 configure = createPreConfig >>= configureWith

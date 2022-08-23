@@ -2,13 +2,12 @@ module Hecate.Error (module Hecate.Error) where
 
 import           Control.Exception (Exception)
 import           Data.Typeable     (Typeable)
-import           TOML              (TOMLError)
 
 
 -- | 'AppError' represents application errors
 data AppError
   = CsvDecoding String
-  | TOML TOMLError
+  | Config String
   | Configuration String
   | Aeson String
   | GPG String
@@ -21,7 +20,7 @@ data AppError
 
 instance Show AppError where
   show (CsvDecoding s)    = "CSV Decoding Error: " ++ s
-  show (TOML e)           = show e
+  show (Config s)         = "Config Error: " ++ s
   show (Configuration s)  = "Configuration Error: " ++ s
   show (Aeson s)          = "Aeson Error: " ++ s
   show (GPG s)            = s

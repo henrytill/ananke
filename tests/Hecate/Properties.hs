@@ -80,7 +80,7 @@ doProperties = do
   dir        <- Temp.createTempDirectory sysTempDir "hecate"
   _          <- print ("dir: " ++ dir)
   let preConfig = MkPreConfig (First (Just dir)) mempty mempty mempty
-  _          <- Directory.copyFile "./example/hecate.toml" (dir ++ "/hecate.toml")
+  _          <- Directory.copyFile "./example/hecate.conf" (dir ++ "/hecate.conf")
   ctx        <- Configuration.configureWith preConfig >>= SQLite.initialize
   _          <- SQLite.run Evaluator.setup ctx
   results    <- mapM (\ p -> QuickCheck.quickCheckWithResult QuickCheck.stdArgs (p ctx)) tests

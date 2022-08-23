@@ -18,7 +18,6 @@ import qualified Data.Time.Clock      as Clock
 import qualified System.Directory     as Directory
 import qualified System.Environment   as Env
 import qualified System.IO            as IO
-import           TOML                 (TOMLError)
 
 import           Hecate.Data
 import           Hecate.Error         (AppError (..))
@@ -122,20 +121,20 @@ instance MonadInteraction m => MonadInteraction (StateT s m)  where
 -- * MonadAppError
 
 class Monad m => MonadAppError m where
-  csvDecodingError    :: String    -> m a
-  tomlError           :: TOMLError -> m a
-  configurationError  :: String    -> m a
-  aesonError          :: String    -> m a
-  gpgError            :: String    -> m a
-  databaseError       :: String    -> m a
-  fileSystemError     :: String    -> m a
-  ambiguousInputError :: String    -> m a
-  migrationError      :: String    -> m a
-  defaultError        :: String    -> m a
+  csvDecodingError    :: String -> m a
+  configError         :: String -> m a
+  configurationError  :: String -> m a
+  aesonError          :: String -> m a
+  gpgError            :: String -> m a
+  databaseError       :: String -> m a
+  fileSystemError     :: String -> m a
+  ambiguousInputError :: String -> m a
+  migrationError      :: String -> m a
+  defaultError        :: String -> m a
 
 instance MonadAppError IO where
   csvDecodingError    = throwM . CsvDecoding
-  tomlError           = throwM . TOML
+  configError         = throwM . Config
   configurationError  = throwM . Configuration
   aesonError          = throwM . Aeson
   gpgError            = throwM . GPG
@@ -147,7 +146,7 @@ instance MonadAppError IO where
 
 instance MonadAppError m => MonadAppError (ReaderT r m) where
   csvDecodingError    = lift . csvDecodingError
-  tomlError           = lift . tomlError
+  configError         = lift . configError
   configurationError  = lift . configurationError
   aesonError          = lift . aesonError
   gpgError            = lift . gpgError
@@ -159,7 +158,7 @@ instance MonadAppError m => MonadAppError (ReaderT r m) where
 
 instance MonadAppError m => MonadAppError (StateT s m) where
   csvDecodingError    = lift . csvDecodingError
-  tomlError           = lift . tomlError
+  configError         = lift . configError
   configurationError  = lift . configurationError
   aesonError          = lift . aesonError
   gpgError            = lift . gpgError

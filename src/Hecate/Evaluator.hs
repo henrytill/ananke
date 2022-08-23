@@ -89,16 +89,15 @@ initDatabase
 initDatabase path schemaVersion keyId = do
   current <- currentSchemaVersion
   if schemaVersion == current
-  then createTable
-  else do
-    message ("Migrating database from schema version "
-             ++ show schemaVersion
-             ++ " to version "
-             ++ show current
-             ++ "...")
-    migrate schemaVersion keyId
-    reencryptAll keyId
-    createSchemaFile path current
+    then createTable
+    else do message ("Migrating database from schema version "
+                     ++ show schemaVersion
+                     ++ " to version "
+                     ++ show current
+                     ++ "...")
+            migrate schemaVersion keyId
+            reencryptAll keyId
+            createSchemaFile path current
 
 setup
   :: ( MonadInteraction m
@@ -154,16 +153,15 @@ checkKey k = do
   total <- getCount
   if total == 0
     then k
-    else do
-    let q     = "New keyid found: do you want to re-encrypt all entries?"
-        reenc = reencryptAll keyId
-        err   = defaultError "You have set allow_multiple_keys to false"
-    count <- getCountOfKeyId keyId
-    case (count, allowMultKeys) of
-      (0, False)              -> binaryChoice q (reenc >> k) err
-      (x, _    ) | x == total -> k
-      (_, True )              -> binaryChoice q (reenc >> k) k
-      (_, False)              -> defaultError "All entries do not have the same keyid"
+    else do let q     = "New keyid found: do you want to re-encrypt all entries?"
+                reenc = reencryptAll keyId
+                err   = defaultError "You have set allow_multiple_keys to false"
+            count <- getCountOfKeyId keyId
+            case (count, allowMultKeys) of
+              (0, False)              -> binaryChoice q (reenc >> k) err
+              (x, _    ) | x == total -> k
+              (_, True )              -> binaryChoice q (reenc >> k) k
+              (_, False)              -> defaultError "All entries do not have the same keyid"
 
 exportJSON :: (MonadInteraction m) => FilePath -> [Entry] -> m ()
 exportJSON jsonFile entries = writeFileFromLazyByteString jsonFile json

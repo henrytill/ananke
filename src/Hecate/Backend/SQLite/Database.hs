@@ -224,11 +224,11 @@ query db q =
   if queryIsEmpty q
   then selectAll db
   else catchLift $ Exception.bracket
-  (do { stmt <- SQLite3.prepare db qs
-      ; SQLite3.bindNamed stmt nps
-      ; return stmt
-      })
-  SQLite3.finalize
-  executeQuery
+    (do { stmt <- SQLite3.prepare db qs
+        ; SQLite3.bindNamed stmt nps
+        ; return stmt
+        })
+    SQLite3.finalize
+    executeQuery
   where
     (qs, nps) = generateQuery q

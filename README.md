@@ -49,9 +49,9 @@ $ nix-env -f https://git.sr.ht/~henrytill/hecate/archive/<version>.tar.gz -i hec
 
 ## Setup
 
-Before using `hecate`, **you must create a configuration file** at `$HOME/.hecate/hecate.toml`.
+Before using `hecate`, **you must create a configuration file** at `$HOME/.hecate/hecate.conf`.
 
-Your configuration file should look like the example given [here](example/hecate.toml).
+Your configuration file should look like the example given [here](example/hecate.conf).
 
 `keyid` is used to specify the public key of the GnuPG keypair with which you will encrypt and decrypt passwords.
 

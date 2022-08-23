@@ -1,5 +1,5 @@
 let
-  pkgs = import <nixpkgs> { config.allowBroken = true; };
+  pkgs = import <nixpkgs> {};
 
   jobs = {
 

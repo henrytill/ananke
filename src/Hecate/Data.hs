@@ -79,17 +79,15 @@ data PreConfig = MkPreConfig
   } deriving (Show, Eq)
 
 instance Sem.Semigroup PreConfig where
-  (<>) = mappend
+  MkPreConfig a b c d <> MkPreConfig e f g h
+    = MkPreConfig (a <> e)
+                  (b <> f)
+                  (c <> g)
+                  (d <> h)
 
 instance Monoid PreConfig where
   mempty
     = MkPreConfig mempty mempty mempty mempty
-
-  MkPreConfig a b c d `mappend` MkPreConfig e f g h
-    = MkPreConfig (a `mappend` e)
-                  (b `mappend` f)
-                  (c `mappend` g)
-                  (d `mappend` h)
 
 -- | A 'Config' represents our application's configuration
 data Config = MkConfig

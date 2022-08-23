@@ -1,4 +1,4 @@
-PROJECT_DIR = $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+PROJECT_DIR = $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 .PHONY: all
 all:
@@ -14,8 +14,9 @@ install:
 	cabal v2-install --overwrite-policy=always
 
 .PHONY: check test
-check test: export GNUPGHOME= $(PROJECT_DIR)/example/gnupg
+check test: export GNUPGHOME = $(PROJECT_DIR)/example/gnupg
 check test:
+	@echo GNUPGHOME=$(GNUPGHOME)
 	cabal v2-test
 
 .PHONY: lint

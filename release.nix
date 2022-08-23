@@ -4,7 +4,7 @@ let
   jobs = {
 
     hecate =
-      { compiler ? "ghc8107"
+      { compiler ? "ghc924"
       , doCheck ? ! pkgs.stdenv.isDarwin
       }:
 

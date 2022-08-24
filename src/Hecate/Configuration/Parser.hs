@@ -33,10 +33,10 @@ eol = string "\n\r"
   >> return ()
 
 comment :: ReadP ()
-comment = skipManySpaces >> char '#' >> manyTill get eol >> return ()
+comment = spaces >> char '#' >> manyTill get eol >> return ()
   where
-    skipManySpaces :: ReadP ()
-    skipManySpaces = skipMany . satisfy $ \c -> c == ' ' || c == '\t'
+    spaces :: ReadP ()
+    spaces = skipMany . satisfy $ \c -> c == ' ' || c == '\t'
 
 pairs :: ReadP Pairs
 pairs = many (comment <++ eol) >> endBy pair (many1 (comment <++ eol))

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP            #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
 module Hecate.Evaluator
@@ -10,9 +11,12 @@ module Hecate.Evaluator
   , setup
   ) where
 
+#ifdef BACKEND_JSON
 import qualified Data.Aeson.Encode.Pretty as Aeson
-import qualified Data.Char                as Char
 import qualified Data.List                as List
+#endif
+
+import qualified Data.Char                as Char
 import qualified Data.Text                as T
 
 import           Hecate.Data              hiding (query)
@@ -163,11 +167,16 @@ checkKey k = do
               (_, True )              -> binaryChoice q (reenc >> k) k
               (_, False)              -> defaultError "All entries do not have the same keyid"
 
+#ifdef BACKEND_JSON
 exportJSON :: (MonadInteraction m) => FilePath -> [Entry] -> m ()
 exportJSON jsonFile entries = writeFileFromLazyByteString jsonFile json
   where
     cfg  = Aeson.defConfig{Aeson.confCompare = Aeson.keyOrder entryKeyOrder}
     json = Aeson.encodePretty' cfg (List.sort entries)
+#else
+exportJSON :: (MonadAppError m, MonadInteraction m) => FilePath -> [Entry] -> m ()
+exportJSON _  _ = defaultError "No JSON support.  Please rebuild with backend-json flag enabled."
+#endif
 
 create
   :: (MonadEncrypt m, MonadInteraction m, MonadConfigReader m)

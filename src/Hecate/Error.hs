@@ -9,7 +9,6 @@ data AppError
   = CsvDecoding String
   | Config String
   | Configuration String
-  | Aeson String
   | GPG String
   | Database String
   | FileSystem String
@@ -22,7 +21,6 @@ instance Show AppError where
   show (CsvDecoding s)    = "CSV Decoding Error: " ++ s
   show (Config s)         = "Config Error: " ++ s
   show (Configuration s)  = "Configuration Error: " ++ s
-  show (Aeson s)          = "Aeson Error: " ++ s
   show (GPG s)            = s
   show (Database s)       = "Database Error: " ++ s
   show (FileSystem s)     = "Filesystem Error: " ++ s

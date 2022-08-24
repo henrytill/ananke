@@ -6,15 +6,13 @@ packages:
 sources:
   - https://git.sr.ht/~henrytill/hecate
 tasks:
-  - deps: |
-      cd hecate
-      make deps
-  - setup: |
+  - cabal-update: |
+      cabal v2-update
+  - default: |
       cd hecate
       ./configure
-  - build: |
+      make all test
+  - backend-json: |
       cd hecate
-      make
-  - test: |
-      cd hecate
-      make test
+      ./configure -fbackend-json
+      make all test

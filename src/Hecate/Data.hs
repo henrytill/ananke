@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -45,15 +46,18 @@ module Hecate.Data
   , utcTimeFromText
   ) where
 
+#ifdef BACKEND_JSON
 import           Data.Aeson               (FromJSON (..), Options, ToJSON (..))
 import qualified Data.Aeson               as Aeson
+import qualified Data.List                as List
+import qualified Data.Maybe               as Maybe
+#endif
+
 import qualified Data.ByteString          as BS
 import qualified Data.ByteString.Lazy     as BSL
 import           Data.ByteString64        (ByteString64 (..))
 import qualified Data.ByteString64        as BS64
 import qualified Data.Digest.Pure.SHA     as SHA
-import qualified Data.List                as List
-import qualified Data.Maybe               as Maybe
 import           Data.Monoid              (First)
 import qualified Data.Ord                 as Ord
 import qualified Data.Semigroup           as Sem
@@ -148,11 +152,13 @@ newtype KeyId = MkKeyId { unKeyId :: T.Text }
 instance Show KeyId where
   show (MkKeyId a) = show a
 
+#ifdef BACKEND_JSON
 instance ToJSON KeyId where
   toJSON = toJSON . unKeyId
 
 instance FromJSON KeyId where
   parseJSON = fmap MkKeyId . parseJSON
+#endif
 
 -- * Decrypted and encrypted values
 
@@ -179,9 +185,11 @@ ciphertextToText (MkCiphertext bs64) = BS64.toText bs64
 ciphertextFromText :: MonadFail m => T.Text -> m Ciphertext
 ciphertextFromText t = MkCiphertext <$> BS64.fromText t
 
+#ifdef BACKEND_JSON
 instance ToJSON Ciphertext where
 
 instance FromJSON Ciphertext where
+#endif
 
 -- * Entries
 
@@ -220,6 +228,7 @@ entryOrdering x y | entryTimestamp   x /= entryTimestamp   y = Ord.comparing ent
 instance Ord Entry where
   compare = entryOrdering
 
+#ifdef BACKEND_JSON
 customOptions :: Options
 customOptions = Aeson.defaultOptions{Aeson.fieldLabelModifier = strip}
   where
@@ -234,6 +243,7 @@ instance FromJSON Entry where
 
 instance ToJSON Entry where
   toJSON = Aeson.genericToJSON customOptions
+#endif
 
 showTime :: UTCTime -> T.Text
 showTime = T.pack . Format.formatTime Format.defaultTimeLocale "%s%Q"
@@ -282,11 +292,13 @@ newtype Id = MkId { unId :: T.Text }
 instance Show Id where
   show (MkId d) = show d
 
+#ifdef BACKEND_JSON
 instance ToJSON Id where
   toJSON = toJSON . unId
 
 instance FromJSON Id where
   parseJSON = fmap MkId . parseJSON
+#endif
 
 -- | A 'Description' identifies a given 'Entry'.  It could be a URI or a
 -- descriptive name.
@@ -296,11 +308,13 @@ newtype Description = MkDescription { unDescription ::  T.Text }
 instance Show Description where
   show (MkDescription d) = show d
 
+#ifdef BACKEND_JSON
 instance ToJSON Description where
   toJSON = toJSON . unDescription
 
 instance FromJSON Description where
   parseJSON = fmap MkDescription . parseJSON
+#endif
 
 -- | An 'Identity' represents an identifying value.  It could be the username in
 -- a username/password pair
@@ -310,11 +324,13 @@ newtype Identity = MkIdentity { unIdentity :: T.Text }
 instance Show Identity where
   show (MkIdentity i) = show i
 
+#ifdef BACKEND_JSON
 instance ToJSON Identity where
   toJSON = toJSON . unIdentity
 
 instance FromJSON Identity where
   parseJSON = fmap MkIdentity . parseJSON
+#endif
 
 -- | A 'Metadata' value contains additional non-specific information for a given
 -- 'Entry'
@@ -324,11 +340,13 @@ newtype Metadata = MkMetadata { unMetadata :: T.Text }
 instance Show Metadata where
   show (MkMetadata m) = show m
 
+#ifdef BACKEND_JSON
 instance ToJSON Metadata where
   toJSON = toJSON . unMetadata
 
 instance FromJSON Metadata where
   parseJSON = fmap MkMetadata . parseJSON
+#endif
 
 -- ** And some updaters
 

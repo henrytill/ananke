@@ -124,7 +124,6 @@ class Monad m => MonadAppError m where
   csvDecodingError    :: String -> m a
   configError         :: String -> m a
   configurationError  :: String -> m a
-  aesonError          :: String -> m a
   gpgError            :: String -> m a
   databaseError       :: String -> m a
   fileSystemError     :: String -> m a
@@ -136,7 +135,6 @@ instance MonadAppError IO where
   csvDecodingError    = throwM . CsvDecoding
   configError         = throwM . Config
   configurationError  = throwM . Configuration
-  aesonError          = throwM . Aeson
   gpgError            = throwM . GPG
   databaseError       = throwM . Database
   fileSystemError     = throwM . FileSystem
@@ -148,7 +146,6 @@ instance MonadAppError m => MonadAppError (ReaderT r m) where
   csvDecodingError    = lift . csvDecodingError
   configError         = lift . configError
   configurationError  = lift . configurationError
-  aesonError          = lift . aesonError
   gpgError            = lift . gpgError
   databaseError       = lift . databaseError
   fileSystemError     = lift . fileSystemError
@@ -160,7 +157,6 @@ instance MonadAppError m => MonadAppError (StateT s m) where
   csvDecodingError    = lift . csvDecodingError
   configError         = lift . configError
   configurationError  = lift . configurationError
-  aesonError          = lift . aesonError
   gpgError            = lift . gpgError
   databaseError       = lift . databaseError
   fileSystemError     = lift . fileSystemError

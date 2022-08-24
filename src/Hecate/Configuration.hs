@@ -19,8 +19,8 @@ import           Hecate.Interfaces
 
 mkBackend :: String -> Backend
 mkBackend txt = case toLower <$> txt of
-  "json"   -> JSON
   "sqlite" -> SQLite
+  "json"   -> JSON
   _        -> SQLite
 
 mkBool :: String -> Bool

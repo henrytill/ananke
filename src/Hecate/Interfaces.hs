@@ -121,8 +121,6 @@ instance MonadInteraction m => MonadInteraction (StateT s m)  where
 -- * MonadAppError
 
 class Monad m => MonadAppError m where
-  csvDecodingError    :: String -> m a
-  configError         :: String -> m a
   configurationError  :: String -> m a
   gpgError            :: String -> m a
   databaseError       :: String -> m a
@@ -132,8 +130,6 @@ class Monad m => MonadAppError m where
   defaultError        :: String -> m a
 
 instance MonadAppError IO where
-  csvDecodingError    = throwM . CsvDecoding
-  configError         = throwM . Config
   configurationError  = throwM . Configuration
   gpgError            = throwM . GPG
   databaseError       = throwM . Database
@@ -143,8 +139,6 @@ instance MonadAppError IO where
   defaultError        = throwM . Default
 
 instance MonadAppError m => MonadAppError (ReaderT r m) where
-  csvDecodingError    = lift . csvDecodingError
-  configError         = lift . configError
   configurationError  = lift . configurationError
   gpgError            = lift . gpgError
   databaseError       = lift . databaseError
@@ -154,8 +148,6 @@ instance MonadAppError m => MonadAppError (ReaderT r m) where
   defaultError        = lift . defaultError
 
 instance MonadAppError m => MonadAppError (StateT s m) where
-  csvDecodingError    = lift . csvDecodingError
-  configError         = lift . configError
   configurationError  = lift . configurationError
   gpgError            = lift . gpgError
   databaseError       = lift . databaseError

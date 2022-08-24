@@ -6,17 +6,15 @@ module Hecate.Printing
 import qualified Data.Text                as T
 import           Data.Time.Clock          (UTCTime)
 import           Data.Time.Format.ISO8601 (iso8601Show)
-import           Prelude                  hiding ((<$>))
-import           Text.PrettyPrint.Leijen  (Doc, (<$>), (<+>))
-import qualified Text.PrettyPrint.Leijen  as Leijen
+import           Text.PrettyPrint         (Doc, empty, text, ($$), (<+>))
 
 import           Hecate.Data
 import           Hecate.Error             (AppError (..))
-import           Hecate.Evaluator         (Command, Response (..), Verbosity (..))
+import           Hecate.Evaluator         (Response (..), Verbosity (..))
 
 
 prettyText :: T.Text -> Doc
-prettyText = Leijen.text . T.unpack
+prettyText = text . T.unpack
 
 prettyId :: Id -> Doc
 prettyId i = prettyText (unId i)
@@ -32,14 +30,14 @@ prettyDescription (MkDescription d) = prettyText d
 
 prettyIdentity :: Maybe Identity -> Doc
 prettyIdentity (Just (MkIdentity i)) = prettyText i
-prettyIdentity Nothing               = Leijen.text "<none>"
+prettyIdentity Nothing               = text "<none>"
 
 prettyPlaintext :: Plaintext -> Doc
 prettyPlaintext (MkPlaintext t) = prettyText t
 
 prettyMeta :: Maybe Metadata -> Doc
 prettyMeta (Just (MkMetadata m)) = prettyText m
-prettyMeta Nothing               = Leijen.text "<none>"
+prettyMeta Nothing               = text "<none>"
 
 printPlain :: DisplayEntry -> Doc
 printPlain ent = prettyPlaintext (displayPlaintext ent)
@@ -60,29 +58,14 @@ printOneVerbose ent =
   prettyPlaintext   (displayPlaintext   ent) <+>
   prettyMeta        (displayMeta        ent)
 
-prettyResponse :: Command -> Response -> Doc
-prettyResponse _ (SingleEntry de Normal) =
-  printPlain de <> Leijen.linebreak
-prettyResponse _ (SingleEntry de Verbose) =
-  printOneVerbose de <> Leijen.linebreak
-prettyResponse _ (MultipleEntries [] _) =
-  Leijen.empty
-prettyResponse _ (MultipleEntries ds Normal) =
-  foldl (\ acc b -> printOne b <$> acc) Leijen.empty ds
-prettyResponse _ (MultipleEntries ds Verbose) =
-  foldl (\ acc b -> printOneVerbose b <$> acc) Leijen.empty ds
-prettyResponse _ Added =
-  Leijen.text "Added" <> Leijen.linebreak
-prettyResponse _ Exported =
-  Leijen.text "Exported" <> Leijen.linebreak
-prettyResponse _ Modified =
-  Leijen.text "Modified" <> Leijen.linebreak
-prettyResponse _ Redescribed =
-  Leijen.text "Redescribed" <> Leijen.linebreak
-prettyResponse _ Removed =
-  Leijen.text "Removed" <> Leijen.linebreak
-prettyResponse _ CheckedForMultipleKeys =
-  Leijen.text "All entries have the same keyid" <> Leijen.linebreak
+prettyResponse :: Response -> Doc
+prettyResponse (SingleEntry d Normal)       = printPlain      d
+prettyResponse (SingleEntry d Verbose)      = printOneVerbose d
+prettyResponse (MultipleEntries [] _)       = empty
+prettyResponse (MultipleEntries ds Normal)  = foldl (\acc d -> printOne        d $$ acc) empty ds
+prettyResponse (MultipleEntries ds Verbose) = foldl (\acc d -> printOneVerbose d $$ acc) empty ds
+prettyResponse CheckedForMultipleKeys       = text "All entries have the same keyid"
+prettyResponse _                            = empty
 
-prettyError :: Command -> AppError -> Doc
-prettyError _ e = Leijen.text (show e) <> Leijen.linebreak
+prettyError :: AppError -> Doc
+prettyError e = text (show e)

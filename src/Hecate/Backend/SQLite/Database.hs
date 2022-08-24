@@ -27,8 +27,8 @@ import           Hecate.Error           (AppError (..))
 
 catchLift :: (MonadThrow m, MonadIO m) => IO a -> m a
 catchLift a = liftIO . Exception.catch a $ \err ->
-  do let details = SQLite3.sqlErrorDetails err
-     throwM . Database . T.unpack $ details
+  let details = SQLite3.sqlErrorDetails err
+  in throwM . Database . T.unpack $ details
 
 currentSchemaVersion :: SchemaVersion
 currentSchemaVersion = MkSchemaVersion 2
@@ -74,18 +74,16 @@ executeQuery = go []
   where
     go acc stmt = SQLite3.stepNoCB stmt >>= \case
       SQLite3.Done -> return acc
-      SQLite3.Row  -> do { entry <- getEntry stmt
-                         ; go (entry : acc) stmt
-                         }
+      SQLite3.Row  -> do entry <- getEntry stmt
+                         go (entry : acc) stmt
 
 executeCount :: SQLite3.Statement -> IO Int
 executeCount = go 0
   where
     go acc stmt = SQLite3.stepNoCB stmt >>= \case
       SQLite3.Done -> return . fromIntegral $ acc
-      SQLite3.Row  -> do { count <- SQLite3.columnInt64 stmt 0
-                         ; go (acc + count) stmt
-                         }
+      SQLite3.Row  -> do count <- SQLite3.columnInt64 stmt 0
+                         go (acc + count) stmt
 
 createTable :: (MonadThrow m, MonadIO m) => SQLite3.Database -> m ()
 createTable db = catchLift $ Exception.bracket (SQLite3.prepare db s) SQLite3.finalize executeStatement
@@ -102,10 +100,9 @@ createTable db = catchLift $ Exception.bracket (SQLite3.prepare db s) SQLite3.fi
 
 addKeyId :: (MonadThrow m, MonadIO m) => SQLite3.Database -> KeyId -> m ()
 addKeyId db (MkKeyId keyId) = catchLift $ Exception.bracket
-  (do { stmt <- SQLite3.prepare db s
-      ; SQLite3.bindSQLData stmt 1 (SQLite3.SQLText keyId)
-      ; return stmt
-      })
+  (do stmt <- SQLite3.prepare db s
+      SQLite3.bindSQLData stmt 1 (SQLite3.SQLText keyId)
+      return stmt)
   SQLite3.finalize
   executeStatement
   where
@@ -131,19 +128,17 @@ migrate _ (MkSchemaVersion v) _ =
 
 put :: (MonadThrow m, MonadIO m) => SQLite3.Database -> Entry -> m ()
 put db e = catchLift $ Exception.bracket
-  (do { stmt <- SQLite3.prepare db s
-      ; SQLite3.bindSQLData stmt 1 (SQLite3.SQLText . unId             . entryId          $ e)
-      ; SQLite3.bindSQLData stmt 2 (SQLite3.SQLText . unKeyId          . entryKeyId       $ e)
-      ; SQLite3.bindSQLData stmt 3 (SQLite3.SQLText . utcTimeToText    . entryTimestamp   $ e)
-      ; SQLite3.bindSQLData stmt 4 (SQLite3.SQLText . unDescription    . entryDescription $ e)
-      ; SQLite3.bindSQLData stmt 6 (SQLite3.SQLText . ciphertextToText . entryCiphertext  $ e)
-      ; let { identity = maybe SQLite3.SQLNull (SQLite3.SQLText . unIdentity) (entryIdentity e)
-            ; metadata = maybe SQLite3.SQLNull (SQLite3.SQLText . unMetadata) (entryMeta     e)
-            }
-      ; SQLite3.bindSQLData stmt 5 identity
-      ; SQLite3.bindSQLData stmt 7 metadata
-      ; return stmt
-      })
+  (do stmt <- SQLite3.prepare db s
+      SQLite3.bindSQLData stmt 1 (SQLite3.SQLText . unId             . entryId          $ e)
+      SQLite3.bindSQLData stmt 2 (SQLite3.SQLText . unKeyId          . entryKeyId       $ e)
+      SQLite3.bindSQLData stmt 3 (SQLite3.SQLText . utcTimeToText    . entryTimestamp   $ e)
+      SQLite3.bindSQLData stmt 4 (SQLite3.SQLText . unDescription    . entryDescription $ e)
+      SQLite3.bindSQLData stmt 6 (SQLite3.SQLText . ciphertextToText . entryCiphertext  $ e)
+      let identity = maybe SQLite3.SQLNull (SQLite3.SQLText . unIdentity) (entryIdentity e)
+          metadata = maybe SQLite3.SQLNull (SQLite3.SQLText . unMetadata) (entryMeta     e)
+      SQLite3.bindSQLData stmt 5 identity
+      SQLite3.bindSQLData stmt 7 metadata
+      return stmt)
   SQLite3.finalize
   executeStatement
   where
@@ -153,10 +148,9 @@ put db e = catchLift $ Exception.bracket
 
 delete :: (MonadThrow m, MonadIO m) => SQLite3.Database -> Entry -> m ()
 delete db e = catchLift $ Exception.bracket
-  (do { stmt <- SQLite3.prepare db s
-      ; SQLite3.bindNamed stmt [(":id", SQLite3.SQLText . unId . entryId $ e)]
-      ; return stmt
-      })
+  (do stmt <- SQLite3.prepare db s
+      SQLite3.bindNamed stmt [(":id", SQLite3.SQLText . unId . entryId $ e)]
+      return stmt)
   SQLite3.finalize
   executeStatement
   where
@@ -175,10 +169,9 @@ getCount db = catchLift $ Exception.bracket (SQLite3.prepare db s) SQLite3.final
 
 getCountOfKeyId :: (MonadThrow m, MonadIO m) => SQLite3.Database -> KeyId -> m Int
 getCountOfKeyId db (MkKeyId keyId) = catchLift $ Exception.bracket
-  (do { stmt <- SQLite3.prepare db s
-      ; SQLite3.bindNamed stmt [(":keyid", SQLite3.SQLText keyId)]
-      ; return stmt
-      })
+  (do stmt <- SQLite3.prepare db s
+      SQLite3.bindNamed stmt [(":keyid", SQLite3.SQLText keyId)]
+      return stmt)
   SQLite3.finalize
   executeCount
   where
@@ -190,16 +183,16 @@ idMatcher          :: Id          -> (T.Text, [(T.Text, SQLite3.SQLData)])
 descriptionMatcher :: Description -> (T.Text, [(T.Text, SQLite3.SQLData)])
 identityMatcher    :: Identity    -> (T.Text, [(T.Text, SQLite3.SQLData)])
 metadataMatcher    :: Metadata    -> (T.Text, [(T.Text, SQLite3.SQLData)])
-idMatcher          (MkId i)          = ("id = :id",                      [(":id",          SQLite3.SQLText i)])
+idMatcher          (MkId          i) = ("id = :id",                      [(":id",          SQLite3.SQLText i)])
 descriptionMatcher (MkDescription d) = ("description LIKE :description", [(":description", SQLite3.SQLText ("%" <> d <> "%"))])
-identityMatcher    (MkIdentity i)    = ("identity LIKE :identity",       [(":identity",    SQLite3.SQLText i)])
-metadataMatcher    (MkMetadata m)    = ("meta LIKE :meta",               [(":meta",        SQLite3.SQLText m)])
+identityMatcher    (MkIdentity    i) = ("identity LIKE :identity",       [(":identity",    SQLite3.SQLText i)])
+metadataMatcher    (MkMetadata    m) = ("meta LIKE :meta",               [(":meta",        SQLite3.SQLText m)])
 
 queryFolder
   :: (T.Text, [(T.Text, SQLite3.SQLData)])
   -> Maybe (T.Text, [(T.Text, SQLite3.SQLData)])
   -> (T.Text, [(T.Text, SQLite3.SQLData)])
-queryFolder ("", [])       (Just (qs, np)) = (qs, np)
+queryFolder ("",       []) (Just (qs, np)) = (qs, np)
 queryFolder (accQs, accNp) (Just (qs, np)) = (accQs <> " AND " <> qs, accNp <> np)
 queryFolder (accQs, accNp) Nothing         = (accQs, accNp)
 
@@ -224,10 +217,9 @@ query db q =
   if queryIsEmpty q
   then selectAll db
   else catchLift $ Exception.bracket
-    (do { stmt <- SQLite3.prepare db qs
-        ; SQLite3.bindNamed stmt nps
-        ; return stmt
-        })
+    (do stmt <- SQLite3.prepare db qs
+        SQLite3.bindNamed stmt nps
+        return stmt)
     SQLite3.finalize
     executeQuery
   where

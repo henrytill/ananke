@@ -39,7 +39,7 @@ comment = skipManySpaces >> char '#' >> manyTill get eol >> return ()
     skipManySpaces = skipMany . satisfy $ \c -> c == ' ' || c == '\t'
 
 pairs :: ReadP Pairs
-pairs = endBy pair . many1 $ comment <++ eol
+pairs = many (comment <++ eol) >> endBy pair (many1 (comment <++ eol))
 
 parse :: String -> Maybe Pairs
 parse = fmap fst . find (null . snd) . readP_to_S pairs

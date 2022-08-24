@@ -17,13 +17,10 @@ prettyText :: T.Text -> Doc
 prettyText = text . T.unpack
 
 prettyId :: Id -> Doc
-prettyId i = prettyText (unId i)
+prettyId = prettyText . unId
 
 prettyTimestamp :: UTCTime -> Doc
-prettyTimestamp t = prettyText (showTime t)
-  where
-    showTime :: UTCTime -> T.Text
-    showTime = T.pack . iso8601Show
+prettyTimestamp = text . iso8601Show
 
 prettyDescription :: Description -> Doc
 prettyDescription (MkDescription d) = prettyText d
@@ -40,7 +37,7 @@ prettyMeta (Just (MkMetadata m)) = prettyText m
 prettyMeta Nothing               = text "<none>"
 
 printPlain :: DisplayEntry -> Doc
-printPlain ent = prettyPlaintext (displayPlaintext ent)
+printPlain = prettyPlaintext . displayPlaintext
 
 printOne :: DisplayEntry -> Doc
 printOne ent =
@@ -59,13 +56,13 @@ printOneVerbose ent =
   prettyMeta        (displayMeta        ent)
 
 prettyResponse :: Response -> Doc
-prettyResponse (SingleEntry d Normal)       = printPlain      d
-prettyResponse (SingleEntry d Verbose)      = printOneVerbose d
-prettyResponse (MultipleEntries [] _)       = empty
-prettyResponse (MultipleEntries ds Normal)  = foldl (\acc d -> printOne        d $$ acc) empty ds
+prettyResponse (SingleEntry     d   Normal) = printPlain      d
+prettyResponse (SingleEntry     d  Verbose) = printOneVerbose d
+prettyResponse (MultipleEntries []       _) = empty
+prettyResponse (MultipleEntries ds  Normal) = foldl (\acc d -> printOne        d $$ acc) empty ds
 prettyResponse (MultipleEntries ds Verbose) = foldl (\acc d -> printOneVerbose d $$ acc) empty ds
 prettyResponse CheckedForMultipleKeys       = text "All entries have the same keyid"
 prettyResponse _                            = empty
 
 prettyError :: AppError -> Doc
-prettyError e = text (show e)
+prettyError = text . show

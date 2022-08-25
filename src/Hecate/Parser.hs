@@ -11,7 +11,7 @@ descArgP :: Parser String
 descArgP = argument str $ metavar "DESC" <> help "Description of ciphertext"
 
 pathArgP :: Parser String
-pathArgP = argument str $ metavar "PATH" <> help "Path of CSV file"
+pathArgP = argument str $ metavar "PATH" <> help "Path of JSON file"
 
 hashOptP :: Parser String
 hashOptP = strOption $ long "hash"

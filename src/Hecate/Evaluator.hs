@@ -205,19 +205,19 @@ update
 update Nothing Nothing e =
   return e
 update (Just "") Nothing e =
-  now >>= \ ts -> updateIdentity ts Nothing e
+  now >>= \ts -> updateIdentity ts Nothing e
 update miden Nothing e =
-  now >>= \ ts -> updateIdentity ts (MkIdentity . T.pack <$> miden) e
+  now >>= \ts -> updateIdentity ts (MkIdentity . T.pack <$> miden) e
 update Nothing (Just "") e =
-  now >>= \ ts -> updateMetadata ts Nothing e
+  now >>= \ts -> updateMetadata ts Nothing e
 update Nothing mmeta e =
-  now >>= \ ts -> updateMetadata ts (MkMetadata . T.pack <$> mmeta) e
+  now >>= \ts -> updateMetadata ts (MkMetadata . T.pack <$> mmeta) e
 update (Just "") (Just "") e =
-  now                         >>= \ ts ->
+  now                         >>= \ts ->
   updateIdentity ts Nothing e >>=
   updateMetadata ts Nothing
 update miden mmeta e =
-  now                                                 >>= \ ts ->
+  now                                                 >>= \ts ->
   updateIdentity ts (MkIdentity . T.pack <$> miden) e >>=
   updateMetadata ts (MkMetadata . T.pack <$> mmeta)
 
@@ -275,8 +275,8 @@ findAndModify
   -> Maybe String
   -> Maybe String
   -> m Response
-findAndModify q maction miden mmeta
-  = checkKey (query q >>= \ rs -> modifyOnlySingletons rs maction miden mmeta)
+findAndModify q maction miden mmeta =
+  checkKey (query q >>= \rs -> modifyOnlySingletons rs maction miden mmeta)
 
 modify
   :: ( MonadAppError m

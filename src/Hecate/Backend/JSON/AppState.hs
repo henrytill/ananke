@@ -62,10 +62,10 @@ filterEntries predicate = Set.foldr f []
             | otherwise                   = acc
 
 queryFolder :: Query -> Description -> Set Entry -> [Entry] -> [Entry]
-queryFolder (MkQuery (Just eid) Nothing Nothing Nothing) _ es acc
-  = Set.toList matches ++ acc
+queryFolder (MkQuery (Just eid) Nothing Nothing Nothing) _ es acc =
+  Set.toList matches ++ acc
   where
-    matches = Set.filter (\ e -> entryId e == eid) es
+    matches = Set.filter (\e -> entryId e == eid) es
 queryFolder q d es acc
   | Just True <- descMatches = filterEntries idenMatches es ++ acc
   | otherwise                = acc
@@ -83,4 +83,4 @@ getCount :: AppState -> Int
 getCount = Multimap.size . appStateData
 
 getCountOfKeyId :: KeyId -> AppState -> Int
-getCountOfKeyId keyid = length . filter (\ e -> entryKeyId e == keyid) . selectAll
+getCountOfKeyId keyid = length . filter (\e -> entryKeyId e == keyid) . selectAll

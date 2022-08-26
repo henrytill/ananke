@@ -45,14 +45,14 @@ columnMaybeText stmt column f = SQLite3.column stmt column >>= \case
   _                    -> Exception.throwIO . Database $ "unexpected type"
 
 getEntry :: SQLite3.Statement -> IO Entry
-getEntry stmt
-  = MkEntry <$> getId          stmt
-            <*> getKeyId       stmt
-            <*> getTimestamp   stmt
-            <*> getDescription stmt
-            <*> getIdentity    stmt
-            <*> getCiphertext  stmt
-            <*> getMeta        stmt
+getEntry stmt =
+  MkEntry <$> getId          stmt
+          <*> getKeyId       stmt
+          <*> getTimestamp   stmt
+          <*> getDescription stmt
+          <*> getIdentity    stmt
+          <*> getCiphertext  stmt
+          <*> getMeta        stmt
   where
     getId          :: SQLite3.Statement -> IO Id
     getKeyId       :: SQLite3.Statement -> IO KeyId
@@ -129,11 +129,11 @@ migrate _ (MkSchemaVersion v) _ =
 put :: (MonadThrow m, MonadIO m) => SQLite3.Database -> Entry -> m ()
 put db e = catchLift $ Exception.bracket
   (do stmt <- SQLite3.prepare db s
-      SQLite3.bindSQLData stmt 1 (SQLite3.SQLText . unId             . entryId          $ e)
-      SQLite3.bindSQLData stmt 2 (SQLite3.SQLText . unKeyId          . entryKeyId       $ e)
-      SQLite3.bindSQLData stmt 3 (SQLite3.SQLText . utcTimeToText    . entryTimestamp   $ e)
-      SQLite3.bindSQLData stmt 4 (SQLite3.SQLText . unDescription    . entryDescription $ e)
-      SQLite3.bindSQLData stmt 6 (SQLite3.SQLText . ciphertextToText . entryCiphertext  $ e)
+      SQLite3.bindSQLData stmt 1 . SQLite3.SQLText . unId             . entryId          $ e
+      SQLite3.bindSQLData stmt 2 . SQLite3.SQLText . unKeyId          . entryKeyId       $ e
+      SQLite3.bindSQLData stmt 3 . SQLite3.SQLText . utcTimeToText    . entryTimestamp   $ e
+      SQLite3.bindSQLData stmt 4 . SQLite3.SQLText . unDescription    . entryDescription $ e
+      SQLite3.bindSQLData stmt 6 . SQLite3.SQLText . ciphertextToText . entryCiphertext  $ e
       let identity = maybe SQLite3.SQLNull (SQLite3.SQLText . unIdentity) (entryIdentity e)
           metadata = maybe SQLite3.SQLNull (SQLite3.SQLText . unMetadata) (entryMeta     e)
       SQLite3.bindSQLData stmt 5 identity

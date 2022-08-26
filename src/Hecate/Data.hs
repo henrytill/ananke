@@ -83,15 +83,10 @@ data PreConfig = MkPreConfig
   } deriving (Show, Eq)
 
 instance Sem.Semigroup PreConfig where
-  MkPreConfig a b c d <> MkPreConfig e f g h
-    = MkPreConfig (a <> e)
-                  (b <> f)
-                  (c <> g)
-                  (d <> h)
+  MkPreConfig a b c d <> MkPreConfig e f g h = MkPreConfig (a <> e) (b <> f) (c <> g) (d <> h)
 
 instance Monoid PreConfig where
-  mempty
-    = MkPreConfig mempty mempty mempty mempty
+  mempty = MkPreConfig mempty mempty mempty mempty
 
 -- | A 'Config' represents our application's configuration
 data Config = MkConfig
@@ -135,8 +130,7 @@ entryToDisplayEntry
   => (Ciphertext -> m Plaintext)
   -> Entry
   -> m DisplayEntry
-entryToDisplayEntry decrypt e
-  = f e <$> decrypt (entryCiphertext e)
+entryToDisplayEntry decrypt e = f e <$> decrypt (entryCiphertext e)
   where
     f ent plaintext = MkDisplayEntry (entryId ent)
                                      (entryTimestamp ent)
@@ -234,7 +228,6 @@ customOptions = Aeson.defaultOptions{Aeson.fieldLabelModifier = strip}
   where
     strip :: String -> String
     strip str = Maybe.fromMaybe str (List.stripPrefix prefix str)
-
     prefix :: String
     prefix = "entry"
 
@@ -279,9 +272,9 @@ updateEntry
   -> Ciphertext
   -> Maybe Metadata
   -> m Entry
-updateEntry keyId timestamp description identity ciphertext meta = do
+updateEntry keyId timestamp description identity ciphertext meta =
   let i = createId keyId timestamp description identity
-  return (MkEntry i keyId timestamp description identity ciphertext meta)
+  in return (MkEntry i keyId timestamp description identity ciphertext meta)
 
 -- ** Their constituents
 
@@ -373,13 +366,13 @@ updateDescription
   -> Description
   -> Entry
   -> m Entry
-updateDescription now desc ent
-  = updateEntry (entryKeyId ent)
-                now
-                desc
-                (entryIdentity ent)
-                (entryCiphertext ent)
-                (entryMeta ent)
+updateDescription now desc ent =
+  updateEntry (entryKeyId ent)
+              now
+              desc
+              (entryIdentity ent)
+              (entryCiphertext ent)
+              (entryMeta ent)
 
 updateIdentity
   :: Monad m
@@ -387,13 +380,13 @@ updateIdentity
   -> Maybe Identity
   -> Entry
   -> m Entry
-updateIdentity now iden ent
-  = updateEntry (entryKeyId ent)
-                now
-                (entryDescription ent)
-                iden
-                (entryCiphertext ent)
-                (entryMeta ent)
+updateIdentity now iden ent =
+  updateEntry (entryKeyId ent)
+              now
+              (entryDescription ent)
+              iden
+              (entryCiphertext ent)
+              (entryMeta ent)
 
 updateMetadata
   :: Monad m
@@ -401,13 +394,13 @@ updateMetadata
   -> Maybe Metadata
   -> Entry
   -> m Entry
-updateMetadata now meta ent
-  = updateEntry (entryKeyId ent)
-                now
-                (entryDescription ent)
-                (entryIdentity ent)
-                (entryCiphertext ent)
-                meta
+updateMetadata now meta ent =
+  updateEntry (entryKeyId ent)
+              now
+              (entryDescription ent)
+              (entryIdentity ent)
+              (entryCiphertext ent)
+              meta
 
 -- * Queries
 

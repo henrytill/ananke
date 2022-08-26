@@ -83,6 +83,6 @@ doProperties = do
   _          <- Directory.copyFile "./example/hecate.conf" (dir ++ "/hecate.conf")
   ctx        <- Configuration.configureWith preConfig >>= SQLite.initialize
   _          <- SQLite.run Evaluator.setup ctx
-  results    <- mapM (\ p -> QuickCheck.quickCheckWithResult QuickCheck.stdArgs (p ctx)) tests
+  results    <- mapM (\p -> QuickCheck.quickCheckWithResult QuickCheck.stdArgs (p ctx)) tests
   _          <- SQLite3.close (appContextDatabase ctx)
   return results

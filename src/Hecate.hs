@@ -30,17 +30,14 @@ render = renderStyle style{mode = LeftMode}
 
 handleError :: AppError -> IO ExitCode
 handleError err =
-  let
-    pr = IO.hPutStrLn IO.stderr . render . Printing.prettyError
-  in
-    pr err >> return (ExitFailure 1)
+  let pr = IO.hPutStrLn IO.stderr . render . Printing.prettyError
+  in pr err >> return (ExitFailure 1)
 
 handleResponse :: Response -> IO ExitCode
 handleResponse res =
-  let
-    pr r = case Printing.prettyResponse r of
-      doc | doc == empty -> return ()
-          | otherwise    -> IO.hPutStrLn IO.stdout . render $ doc
+  let pr r = case Printing.prettyResponse r of
+        doc | doc == empty -> return ()
+            | otherwise    -> IO.hPutStrLn IO.stdout . render $ doc
   in case res of
     (MultipleEntries [] _) -> pr res >> return (ExitFailure 1)
     _                      -> pr res >> return ExitSuccess

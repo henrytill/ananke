@@ -87,7 +87,7 @@ addFileConfig preConfig = mappend preConfig <$> fileConfig
     fileConfig = do
       let dataDir = Maybe.fromJust (getFirst (preConfigDataDirectory preConfig))
       txt <- readFileAsString (dataDir ++ "/hecate.conf")
-      tbl <- maybe (configurationError "Unable to parse hecate.conf") pure (Parser.parse txt)
+      tbl <- maybe (configurationError "Unable to parse hecate.conf") return (Parser.parse txt)
       let backend = First (getBackend tbl)
           keyId   = First (getKeyId tbl)
           mult    = First (getAllowMultipleKeys tbl)

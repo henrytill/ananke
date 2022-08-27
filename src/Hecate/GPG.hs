@@ -70,10 +70,8 @@ convertResult
   :: (MonadThrow m, MonadIO m)
   => (ExitCode, BS.ByteString, BS.ByteString)
   -> m BS.ByteString
-convertResult (ExitSuccess  , stdout, _     ) = pure stdout
-convertResult (ExitFailure _, _     , stderr) = perr stderr
-  where
-    perr x = throwM (GPG (T.unpack (Encoding.decodeUtf8 x)))
+convertResult (ExitSuccess  , stdout, _     ) = return stdout
+convertResult (ExitFailure _, _     , stderr) = throwM . GPG . T.unpack . Encoding.decodeUtf8 $ stderr
 
 lifter
   :: (MonadThrow m, MonadIO m)

@@ -400,7 +400,7 @@ eval Lookup{lookupDescription, lookupIdentity, lookupVerbosity} = do
   let q = Data.query Nothing (Just lookupDescription) lookupIdentity Nothing
   res <- query q
   case res of
-    []  -> pure (MultipleEntries [] lookupVerbosity)
+    []  -> return (MultipleEntries [] lookupVerbosity)
     [e] -> SingleEntry     <$> entryToDisplayEntry decrypt e         <*> pure lookupVerbosity
     es  -> MultipleEntries <$> mapM (entryToDisplayEntry decrypt) es <*> pure lookupVerbosity
 eval ExportJSON{exportFile} = do

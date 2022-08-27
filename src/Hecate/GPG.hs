@@ -18,8 +18,8 @@ import           Foreign.C.Error         (Errno (..), ePIPE)
 import           GHC.IO.Exception        (IOErrorType (..), IOException (..))
 import           GHC.IO.Handle           (hClose, hSetBinaryMode)
 import           System.Exit             (ExitCode (..))
-import           System.Process          (CreateProcess (..), StdStream (..))
 import qualified System.Process          as Process
+import           System.Process          (CreateProcess (..), StdStream (..))
 
 import           Hecate.Data             (Ciphertext, KeyId (..), Plaintext (..), mkCiphertext, unCiphertext)
 import           Hecate.Error            (AppError (..))

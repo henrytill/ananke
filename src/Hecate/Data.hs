@@ -264,17 +264,16 @@ createEntry encrypt keyId timestamp description identity plaintext meta = do
   return (MkEntry i keyId timestamp description identity encrypted meta)
 
 updateEntry
-  :: Monad m
-  => KeyId
+  :: KeyId
   -> UTCTime
   -> Description
   -> Maybe Identity
   -> Ciphertext
   -> Maybe Metadata
-  -> m Entry
+  -> Entry
 updateEntry keyId timestamp description identity ciphertext meta =
   let i = createId keyId timestamp description identity
-  in return (MkEntry i keyId timestamp description identity ciphertext meta)
+  in MkEntry i keyId timestamp description identity ciphertext meta
 
 -- ** Their constituents
 
@@ -361,11 +360,10 @@ updateKeyId decrypt encrypt keyId ent = do
               (entryMeta ent)
 
 updateDescription
-  :: Monad m
-  => UTCTime
+  :: UTCTime
   -> Description
   -> Entry
-  -> m Entry
+  -> Entry
 updateDescription now desc ent =
   updateEntry (entryKeyId ent)
               now
@@ -375,11 +373,10 @@ updateDescription now desc ent =
               (entryMeta ent)
 
 updateIdentity
-  :: Monad m
-  => UTCTime
+  :: UTCTime
   -> Maybe Identity
   -> Entry
-  -> m Entry
+  -> Entry
 updateIdentity now iden ent =
   updateEntry (entryKeyId ent)
               now
@@ -389,11 +386,10 @@ updateIdentity now iden ent =
               (entryMeta ent)
 
 updateMetadata
-  :: Monad m
-  => UTCTime
+  :: UTCTime
   -> Maybe Metadata
   -> Entry
-  -> m Entry
+  -> Entry
 updateMetadata now meta ent =
   updateEntry (entryKeyId ent)
               now

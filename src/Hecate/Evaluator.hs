@@ -205,21 +205,23 @@ update
 update Nothing Nothing e =
   return e
 update (Just "") Nothing e =
-  now >>= \ts -> updateIdentity ts Nothing e
+  do ts <- now
+     return . updateIdentity ts Nothing $ e
 update miden Nothing e =
-  now >>= \ts -> updateIdentity ts (MkIdentity . T.pack <$> miden) e
+  do ts <- now
+     return . updateIdentity ts (MkIdentity . T.pack <$> miden) $ e
 update Nothing (Just "") e =
-  now >>= \ts -> updateMetadata ts Nothing e
+  do ts <- now
+     return . updateMetadata ts Nothing $ e
 update Nothing mmeta e =
-  now >>= \ts -> updateMetadata ts (MkMetadata . T.pack <$> mmeta) e
+  do ts <- now
+     return . updateMetadata ts (MkMetadata . T.pack <$> mmeta) $ e
 update (Just "") (Just "") e =
-  now                         >>= \ts ->
-  updateIdentity ts Nothing e >>=
-  updateMetadata ts Nothing
+  do ts <- now
+     return . updateMetadata ts Nothing . updateIdentity ts Nothing $ e
 update miden mmeta e =
-  now                                                 >>= \ts ->
-  updateIdentity ts (MkIdentity . T.pack <$> miden) e >>=
-  updateMetadata ts (MkMetadata . T.pack <$> mmeta)
+  do ts <- now
+     return . updateMetadata ts (MkMetadata . T.pack <$> mmeta) . updateIdentity ts (MkIdentity . T.pack <$> miden) $ e
 
 updateCiphertext
   :: (MonadEncrypt m, MonadInteraction m, MonadConfigReader m)
@@ -310,7 +312,7 @@ redescribeOnlySingletons [e] s
   where
     k = do
       ts  <- now
-      ue  <- updateDescription ts (MkDescription . T.pack $ s) e
+      let ue = updateDescription ts (MkDescription . T.pack $ s) e
       _   <- put ue
       _   <- delete e
       return Redescribed

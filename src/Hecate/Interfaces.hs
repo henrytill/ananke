@@ -34,7 +34,7 @@ class Monad m => MonadConfigReader m where
 class Monad m => MonadStore m where
   put                  :: Entry -> m ()
   delete               :: Entry -> m ()
-  query                :: Query -> m [Entry]
+  runQuery             :: Query -> m [Entry]
   selectAll            :: m [Entry]
   getCount             :: m Int
   getCountOfKeyId      :: KeyId -> m Int

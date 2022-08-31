@@ -65,7 +65,7 @@ withDatabase f = ask >>= f . appContextDatabase
 instance MonadStore SQLite where
   put             e       = withDatabase (\db -> Database.put             db e)
   delete          e       = withDatabase (\db -> Database.delete          db e)
-  query           q       = withDatabase (\db -> Database.query           db q)
+  runQuery        q       = withDatabase (\db -> Database.query           db q)
   selectAll               = withDatabase (\db -> Database.selectAll       db)
   getCount                = withDatabase (\db -> Database.getCount        db)
   getCountOfKeyId kid     = withDatabase (\db -> Database.getCountOfKeyId db kid)

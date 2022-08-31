@@ -21,7 +21,7 @@ import qualified Data.Text              as T
 import           Data.Time.Clock        (UTCTime)
 import qualified Database.SQLite3       as SQLite3
 
-import           Hecate.Data            hiding (query)
+import           Hecate.Data
 import           Hecate.Error           (AppError (..))
 
 

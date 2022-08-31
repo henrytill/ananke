@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Hecate.Data
@@ -12,12 +13,10 @@ module Hecate.Data
   , configDatabaseFile
   , configDataFile
   , SchemaVersion(..)
-    -- * Import & Display Entries
-  , DisplayEntry(..)
-  , entryToDisplayEntry
   , KeyId(..)
     -- * Decrypted and encrypted values
   , Plaintext(..)
+  , mkPlaintext
   , Ciphertext
   , mkCiphertext
   , unCiphertext
@@ -26,20 +25,17 @@ module Hecate.Data
     -- * Entries
   , Entry(..)
   , entryKeyOrder
-  , createEntry
+  , mkEntry
+  , updateEntry
     -- ** Their constituents
   , Id(..)
   , Description(..)
   , Identity(..)
   , Metadata(..)
-    -- ** And some updaters
-  , updateKeyId
-  , updateDescription
-  , updateIdentity
-  , updateMetadata
+    -- * Display Entries
+  , DisplayEntry(..)
     -- * Queries
   , Query(..)
-  , query
   , queryIsEmpty
     -- * Helpers
   , utcTimeToText
@@ -64,7 +60,6 @@ import qualified Data.Semigroup           as Sem
 import qualified Data.Text                as T
 import qualified Data.Text.Encoding       as Encoding
 import           Data.Time.Clock          (UTCTime)
-import qualified Data.Time.Format         as Format
 import           Data.Time.Format.ISO8601 (iso8601ParseM, iso8601Show)
 import           GHC.Generics             (Generic)
 
@@ -96,6 +91,7 @@ data Config = MkConfig
   , configAllowMultipleKeys :: Bool
   } deriving (Show, Eq)
 
+-- Virtual fields
 configDatabaseDirectory :: Config -> FilePath
 configSchemaFile        :: Config -> FilePath
 configDatabaseFile      :: Config -> FilePath
@@ -111,33 +107,6 @@ newtype SchemaVersion = MkSchemaVersion { unSchemaVersion :: Int }
 
 instance Show SchemaVersion where
   show = show . unSchemaVersion
-
--- * Display Entry
-
--- | A 'DisplayEntry' is a record that is displayed to the user in response to a
--- command
-data DisplayEntry = MkDisplayEntry
-  { displayId          :: Id
-  , displayTimestamp   :: UTCTime
-  , displayDescription :: Description
-  , displayIdentity    :: Maybe Identity
-  , displayPlaintext   :: Plaintext
-  , displayMeta        :: Maybe Metadata
-  } deriving (Show, Eq)
-
-entryToDisplayEntry
-  :: Monad m
-  => (Ciphertext -> m Plaintext)
-  -> Entry
-  -> m DisplayEntry
-entryToDisplayEntry decrypt e = f e <$> decrypt (entryCiphertext e)
-  where
-    f ent plaintext = MkDisplayEntry (entryId ent)
-                                     (entryTimestamp ent)
-                                     (entryDescription ent)
-                                     (entryIdentity ent)
-                                     plaintext
-                                     (entryMeta ent)
 
 -- | A 'KeyId' represents a GPG Key Id
 newtype KeyId = MkKeyId { unKeyId :: T.Text }
@@ -162,6 +131,9 @@ newtype Plaintext = MkPlaintext T.Text
 
 instance Show Plaintext where
   show (MkPlaintext t) = show t
+
+mkPlaintext :: String -> Plaintext
+mkPlaintext = MkPlaintext . T.pack
 
 -- | A 'Ciphertext' represents an encrypted value
 newtype Ciphertext = MkCiphertext ByteString64
@@ -210,17 +182,14 @@ entryKeyOrder =
   , "Meta"
   ]
 
-entryOrdering :: Entry -> Entry -> Ordering
-entryOrdering x y | entryTimestamp   x /= entryTimestamp   y = Ord.comparing entryTimestamp   x y
-                  | entryId          x /= entryId          y = Ord.comparing entryId          x y
-                  | entryKeyId       x /= entryKeyId       y = Ord.comparing entryKeyId       x y
-                  | entryDescription x /= entryDescription y = Ord.comparing entryDescription x y
-                  | entryIdentity    x /= entryIdentity    y = Ord.comparing entryIdentity    x y
-                  | entryCiphertext  x /= entryCiphertext  y = Ord.comparing entryCiphertext  x y
-                  | otherwise                                = Ord.comparing entryMeta        x y
-
 instance Ord Entry where
-  compare = entryOrdering
+  compare x y | entryTimestamp   x /= entryTimestamp   y = Ord.comparing entryTimestamp   x y
+              | entryId          x /= entryId          y = Ord.comparing entryId          x y
+              | entryKeyId       x /= entryKeyId       y = Ord.comparing entryKeyId       x y
+              | entryDescription x /= entryDescription y = Ord.comparing entryDescription x y
+              | entryIdentity    x /= entryIdentity    y = Ord.comparing entryIdentity    x y
+              | entryCiphertext  x /= entryCiphertext  y = Ord.comparing entryCiphertext  x y
+              | otherwise                                = Ord.comparing entryMeta        x y
 
 #ifdef BACKEND_JSON
 customOptions :: Options
@@ -237,43 +206,6 @@ instance FromJSON Entry where
 instance ToJSON Entry where
   toJSON = Aeson.genericToJSON customOptions
 #endif
-
-showTime :: UTCTime -> T.Text
-showTime = T.pack . Format.formatTime Format.defaultTimeLocale "%s%Q"
-
-ider :: T.Text -> Id
-ider = MkId . T.pack . SHA.showDigest . SHA.sha1 . BSL.fromStrict . Encoding.encodeUtf8
-
-createId :: KeyId -> UTCTime -> Description -> Maybe Identity -> Id
-createId (MkKeyId k) ts (MkDescription d) (Just (MkIdentity i)) = ider (k <> showTime ts <> d <> i)
-createId (MkKeyId k) ts (MkDescription d) Nothing               = ider (k <> showTime ts <> d)
-
-createEntry
-  :: Monad m
-  => (KeyId -> Plaintext -> m Ciphertext)
-  -> KeyId
-  -> UTCTime
-  -> Description
-  -> Maybe Identity
-  -> Plaintext
-  -> Maybe Metadata
-  -> m Entry
-createEntry encrypt keyId timestamp description identity plaintext meta = do
-  let i = createId keyId timestamp description identity
-  encrypted <- encrypt keyId plaintext
-  return (MkEntry i keyId timestamp description identity encrypted meta)
-
-updateEntry
-  :: KeyId
-  -> UTCTime
-  -> Description
-  -> Maybe Identity
-  -> Ciphertext
-  -> Maybe Metadata
-  -> Entry
-updateEntry keyId timestamp description identity ciphertext meta =
-  let i = createId keyId timestamp description identity
-  in MkEntry i keyId timestamp description identity ciphertext meta
 
 -- ** Their constituents
 
@@ -340,63 +272,46 @@ instance FromJSON Metadata where
   parseJSON = fmap MkMetadata . parseJSON
 #endif
 
--- ** And some updaters
+-- ** And their constructors and updaters
 
-updateKeyId
-  :: Monad m
-  => (Ciphertext -> m Plaintext)
-  -> (KeyId -> Plaintext -> m Ciphertext)
-  -> KeyId
-  -> Entry
-  -> m Entry
-updateKeyId decrypt encrypt keyId ent = do
-  plaintext <- decrypt (entryCiphertext ent)
-  createEntry encrypt
-              keyId
-              (entryTimestamp ent)
-              (entryDescription ent)
-              (entryIdentity ent)
-              plaintext
-              (entryMeta ent)
+mkId :: T.Text -> Id
+mkId = MkId . T.pack . SHA.showDigest . SHA.sha1 . BSL.fromStrict . Encoding.encodeUtf8
 
-updateDescription
-  :: UTCTime
+generateId :: KeyId -> UTCTime -> Description -> Maybe Identity -> Id
+generateId (MkKeyId k) ts (MkDescription d) (Just (MkIdentity i)) = mkId (k <> utcTimeToText ts <> d <> i)
+generateId (MkKeyId k) ts (MkDescription d) Nothing               = mkId (k <> utcTimeToText ts <> d)
+
+mkEntry
+  :: KeyId
+  -> UTCTime
   -> Description
-  -> Entry
-  -> Entry
-updateDescription now desc ent =
-  updateEntry (entryKeyId ent)
-              now
-              desc
-              (entryIdentity ent)
-              (entryCiphertext ent)
-              (entryMeta ent)
-
-updateIdentity
-  :: UTCTime
   -> Maybe Identity
-  -> Entry
-  -> Entry
-updateIdentity now iden ent =
-  updateEntry (entryKeyId ent)
-              now
-              (entryDescription ent)
-              iden
-              (entryCiphertext ent)
-              (entryMeta ent)
-
-updateMetadata
-  :: UTCTime
+  -> Ciphertext
   -> Maybe Metadata
   -> Entry
+mkEntry keyId timestamp description identity ciphertext meta =
+  let entryId = generateId keyId timestamp description identity
+  in MkEntry entryId keyId timestamp description identity ciphertext meta
+
+updateEntry
+  :: Entry
   -> Entry
-updateMetadata now meta ent =
-  updateEntry (entryKeyId ent)
-              now
-              (entryDescription ent)
-              (entryIdentity ent)
-              (entryCiphertext ent)
-              meta
+updateEntry entry@(MkEntry _ keyId timestamp description identity _ _) =
+  let entryId = generateId keyId timestamp description identity
+  in entry{entryId}
+
+-- * Display Entry
+
+-- | A 'DisplayEntry' is a record that is displayed to the user in response to a
+-- command
+data DisplayEntry = MkDisplayEntry
+  { displayId          :: Id
+  , displayTimestamp   :: UTCTime
+  , displayDescription :: Description
+  , displayIdentity    :: Maybe Identity
+  , displayPlaintext   :: Plaintext
+  , displayMeta        :: Maybe Metadata
+  } deriving (Show, Eq)
 
 -- * Queries
 
@@ -407,14 +322,6 @@ data Query = MkQuery
   , queryIdentity    :: Maybe Identity
   , queryMeta        :: Maybe Metadata
   } deriving (Show, Eq)
-
-query :: Maybe String -> Maybe String -> Maybe String -> Maybe String -> Query
-query i d iden m =
-  MkQuery { queryId          = MkId          . T.pack <$> i
-          , queryDescription = MkDescription . T.pack <$> d
-          , queryIdentity    = MkIdentity    . T.pack <$> iden
-          , queryMeta        = MkMetadata    . T.pack <$> m
-          }
 
 queryIsEmpty :: Query -> Bool
 queryIsEmpty (MkQuery Nothing Nothing Nothing Nothing) = True

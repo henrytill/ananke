@@ -4,38 +4,39 @@ module Hecate.Parser
 
 import           Options.Applicative
 
+import           Hecate.Data
 import           Hecate.Evaluator
 
 
-descArgP :: Parser String
-descArgP = argument str $ metavar "DESC" <> help "Description of ciphertext"
+descArgP :: Parser Description
+descArgP = MkDescription <$> argument str (metavar "DESC" <> help "Description of ciphertext")
 
-pathArgP :: Parser String
+pathArgP :: Parser FilePath
 pathArgP = argument str $ metavar "PATH" <> help "Path of JSON file"
 
-hashOptP :: Parser String
-hashOptP = strOption $ long "hash"
-                    <> short 'h'
-                    <> metavar "HASH"
-                    <> help "SHA1 Hash of desired entry"
+hashOptP :: Parser Id
+hashOptP = MkId <$> strOption (long "hash"
+                               <> short 'h'
+                               <> metavar "HASH"
+                               <> help "SHA1 Hash of desired entry")
 
-descOptP :: Parser String
-descOptP = strOption $ long "description"
-                    <> short 'd'
-                    <> metavar "DESC"
-                    <> help "Description of desired entry"
+descOptP :: Parser Description
+descOptP = MkDescription <$> strOption (long "description"
+                                        <> short 'd'
+                                        <> metavar "DESC"
+                                        <> help "Description of desired entry")
 
-idenOptP :: Parser String
-idenOptP = strOption $ long "identity"
-                    <> short 'i'
-                    <> metavar "ID"
-                    <> help "Identity associated with ciphertext"
+idenOptP :: Parser Identity
+idenOptP = MkIdentity <$> strOption (long "identity"
+                                     <> short 'i'
+                                     <> metavar "ID"
+                                     <> help "Identity associated with ciphertext")
 
-metaOptP :: Parser String
-metaOptP = strOption $ long "metadata"
-                    <> short 'm'
-                    <> metavar "META"
-                    <> help "Metadata associated with ciphertext"
+metaOptP :: Parser Metadata
+metaOptP = MkMetadata <$> strOption (long "metadata"
+                                     <> short 'm'
+                                     <> metavar "META"
+                                     <> help "Metadata associated with ciphertext")
 
 targetP :: Parser Target
 targetP = (TargetId <$> hashOptP) <|> (TargetDescription <$> descOptP)

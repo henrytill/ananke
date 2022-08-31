@@ -37,7 +37,7 @@ handleResponse :: Response -> IO ExitCode
 handleResponse res =
   let pr r = case Printing.prettyResponse r of
         doc | doc == empty -> return ()
-            | otherwise    -> IO.hPutStrLn IO.stdout . render $ doc
+            | otherwise    -> putStrLn . render $ doc
   in case res of
     (MultipleEntries [] _) -> pr res >> return (ExitFailure 1)
     _                      -> pr res >> return ExitSuccess

@@ -9,8 +9,8 @@ import           Data.Monoid             (First (..))
 import qualified Database.SQLite3        as SQLite3
 import qualified System.Directory        as Directory
 import qualified System.IO.Temp          as Temp
-import qualified Test.QuickCheck         as QuickCheck
 import           Test.QuickCheck         (Arbitrary (..), Property, Result)
+import qualified Test.QuickCheck         as QuickCheck
 import qualified Test.QuickCheck.Monadic as Monadic
 
 import           Hecate.Backend.SQLite   (AppContext (..))
@@ -40,13 +40,14 @@ createEntryFromTestData
 createEntryFromTestData td = do
   cfg       <- askConfig
   timestamp <- now
-  createEntry encrypt
-              (configKeyId cfg)
-              timestamp
-              (testDescription td)
-              (testIdentity td)
-              (testPlaintext td)
-              (testMetadata td)
+  let keyId = configKeyId cfg
+  ciphertext <- encrypt keyId (testPlaintext td)
+  return $ mkEntry keyId
+                   timestamp
+                   (testDescription td)
+                   (testIdentity td)
+                   ciphertext
+                   (testMetadata td)
 
 addEntryToDatabase
   :: ( MonadAppError m

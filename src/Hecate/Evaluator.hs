@@ -1,5 +1,6 @@
-{-# LANGUAGE CPP            #-}
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE CPP               #-}
+{-# LANGUAGE NamedFieldPuns    #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Hecate.Evaluator
   ( ModifyAction(..)
@@ -16,11 +17,11 @@ import qualified Data.Aeson.Encode.Pretty as Aeson
 import qualified Data.List                as List
 #endif
 
-import qualified Data.Char                as Char
-import qualified Data.Text                as T
+import           Data.Char                (toLower)
+import           Data.Time.Clock          (UTCTime)
+import           Prelude                  hiding (lookup)
 
-import           Hecate.Data              hiding (query)
-import qualified Hecate.Data              as Data
+import           Hecate.Data
 import           Hecate.Interfaces
 
 
@@ -31,30 +32,30 @@ data Verbosity = Normal | Verbose
   deriving (Show, Eq)
 
 data Target
-  = TargetId String
-  | TargetDescription String
+  = TargetId Id
+  | TargetDescription Description
   deriving (Show, Eq)
 
 -- | 'Command' represents CLI commands
 data Command
-  = Add { addDescription :: String
-        , addIdentity    :: Maybe String
-        , addMeta        :: Maybe String
+  = Add { addDescription :: Description
+        , addIdentity    :: Maybe Identity
+        , addMeta        :: Maybe Metadata
         }
-  | Lookup { lookupDescription :: String
-           , lookupIdentity    :: Maybe String
+  | Lookup { lookupDescription :: Description
+           , lookupIdentity    :: Maybe Identity
            , lookupVerbosity   :: Verbosity
            }
   | ExportJSON { exportFile :: FilePath }
   | Modify { modifyTarget     :: Target
            , modifyCiphertext :: ModifyAction
-           , modifyIdentity   :: Maybe String
-           , modifyMeta       :: Maybe String
+           , modifyIdentity   :: Maybe Identity
+           , modifyMeta       :: Maybe Metadata
            }
   | Redescribe { redescribeTarget      :: Target
-               , redescribeDescription :: String
+               , redescribeDescription :: Description
                }
-  | Remove Target
+  | Remove { removeTarget :: Target }
   | CheckForMultipleKeys
   deriving Show
 
@@ -70,22 +71,25 @@ data Response
   | CheckedForMultipleKeys
   deriving (Show, Eq)
 
+queryFromTarget :: Target -> Query
+queryFromTarget (TargetId targetId)                   = MkQuery (Just targetId) Nothing Nothing Nothing
+queryFromTarget (TargetDescription targetDescription) = MkQuery Nothing (Just targetDescription) Nothing Nothing
+
 getSchemaVersionFromFile :: MonadInteraction m => FilePath -> m SchemaVersion
 getSchemaVersionFromFile path = MkSchemaVersion . read <$> readFileAsString path
 
-createSchemaFile :: MonadInteraction m => FilePath -> SchemaVersion -> m ()
-createSchemaFile path version = writeFileFromString path (show version)
+createSchemaFile :: MonadInteraction m => FilePath -> SchemaVersion -> m SchemaVersion
+createSchemaFile path version = writeFileFromString path (show version) >> return version
 
 getSchemaVersion :: (MonadInteraction m, MonadStore m) => FilePath -> m SchemaVersion
 getSchemaVersion path = do
-  version <- currentSchemaVersion
-  exists  <- doesFileExist path
-  if exists
+  fileExists <- doesFileExist path
+  if fileExists
     then getSchemaVersionFromFile path
-    else createSchemaFile path version >> return version
+    else currentSchemaVersion >>= createSchemaFile path
 
 initDatabase
-  :: (MonadInteraction m, MonadEncrypt m, MonadStore m)
+  :: (MonadEncrypt m, MonadInteraction m, MonadStore m)
   => FilePath
   -> SchemaVersion
   -> KeyId
@@ -101,15 +105,10 @@ initDatabase path schemaVersion keyId = do
                      ++ "...")
             migrate schemaVersion keyId
             reencryptAll keyId
-            createSchemaFile path current
+            _ <- createSchemaFile path current
+            return ()
 
-setup
-  :: ( MonadInteraction m
-     , MonadEncrypt m
-     , MonadStore m
-     , MonadConfigReader m
-     )
-  => m ()
+setup :: (MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m) => m ()
 setup = do
   cfg <- askConfig
   let schemaFile = configSchemaFile cfg
@@ -117,297 +116,178 @@ setup = do
   schemaVersion <- getSchemaVersion schemaFile
   initDatabase schemaFile schemaVersion keyId
 
-reencryptAll
-  :: (MonadEncrypt m, MonadStore m)
-  => KeyId
-  -> m ()
+reencryptAll :: (MonadEncrypt m, MonadStore m) => KeyId -> m ()
 reencryptAll keyId = do
-  es  <- selectAll
-  ues <- mapM (updateKeyId decrypt encrypt keyId) es
-  mapM_ put  ues
-  mapM_ delete es
+  entries        <- selectAll
+  updatedEntries <- mapM reencrypt entries
+  mapM_ put    updatedEntries
+  mapM_ delete entries
+  where
+    reencrypt :: MonadEncrypt m => Entry -> m Entry
+    reencrypt entry = do
+      plaintext  <- decrypt $ entryCiphertext entry
+      ciphertext <- encrypt keyId plaintext
+      return $ mkEntry keyId
+                       (entryTimestamp entry)
+                       (entryDescription entry)
+                       (entryIdentity entry)
+                       ciphertext
+                       (entryMeta entry)
 
-binaryChoice
+noYes
   :: (MonadAppError m, MonadInteraction m)
   => String
   -> m a
   -> m a
   -> m a
-binaryChoice s yes no = do
-  ans <- prompt (s ++ " [N/y] ")
-  case map Char.toLower ans of
-    ""  -> no
-    "n" -> no
-    "y" -> yes
+noYes promptString kYes kNo = do
+  input <- prompt (promptString ++ " [N/y] ")
+  case map toLower input of
+    ""  -> kNo
+    "n" -> kNo
+    "y" -> kYes
     _   -> defaultError "Please answer y or n"
 
 checkKey
-  :: ( MonadAppError m
-     , MonadEncrypt m
-     , MonadInteraction m
-     , MonadStore m
-     , MonadConfigReader m
-     )
+  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
   => m Response
   -> m Response
 checkKey k = do
-  cfg <- askConfig
-  let keyId         = configKeyId cfg
-      allowMultKeys = configAllowMultipleKeys cfg
-  total <- getCount
-  if total == 0
+  totalCount <- getCount
+  if totalCount == 0
     then k
-    else do let q     = "New keyid found: do you want to re-encrypt all entries?"
-                reenc = reencryptAll keyId
-                err   = defaultError "You have set allow_multiple_keys to false"
-            count <- getCountOfKeyId keyId
-            case (count, allowMultKeys) of
-              (0, False)              -> binaryChoice q (reenc >> k) err
-              (x, _    ) | x == total -> k
-              (_, True )              -> binaryChoice q (reenc >> k) k
-              (_, False)              -> defaultError "All entries do not have the same keyid"
+    else do cfg <- askConfig
+            let keyId         = configKeyId cfg
+                allowMultKeys = configAllowMultipleKeys cfg
+                question      = "New keyid found: do you want to re-encrypt all entries?"
+                err           = defaultError "You have set allow_multiple_keys to false"
+            keyCount <- getCountOfKeyId keyId
+            case (keyCount, allowMultKeys) of
+              (0, False)                   -> noYes question (reencryptAll keyId >> k) err
+              (x, _    ) | x == totalCount -> k
+              (_, True )                   -> noYes question (reencryptAll keyId >> k) k
+              (_, False)                   -> defaultError "All entries do not have the same keyid"
+
+add
+  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
+  => Description
+  -> Maybe Identity
+  -> Maybe Metadata
+  -> m Response
+add description maybeIdentity maybeMeta = checkKey $ do
+  input      <- prompt "Enter text to encrypt: "
+  timestamp  <- now
+  keyId      <- configKeyId <$> askConfig
+  ciphertext <- encrypt keyId $ mkPlaintext input
+  put $ mkEntry keyId timestamp description maybeIdentity ciphertext maybeMeta
+  return Added
+
+lookup :: (MonadEncrypt m, MonadStore m) => Description -> Maybe Identity -> Verbosity -> m Response
+lookup description maybeIdentity verbosity = do
+  entries <- runQuery $ MkQuery Nothing (Just description) maybeIdentity Nothing
+  case entries of
+    []      -> return (MultipleEntries [] verbosity)
+    [entry] -> SingleEntry     <$> f entry        <*> pure verbosity
+    _       -> MultipleEntries <$> mapM f entries <*> pure verbosity
+  where
+    f :: MonadEncrypt m => Entry -> m DisplayEntry
+    f MkEntry{entryId, entryTimestamp, entryDescription, entryIdentity, entryCiphertext, entryMeta} =
+      do plaintext <- decrypt entryCiphertext
+         return $ MkDisplayEntry entryId entryTimestamp entryDescription entryIdentity plaintext entryMeta
 
 #ifdef BACKEND_JSON
-exportJSON :: (MonadInteraction m) => FilePath -> [Entry] -> m ()
-exportJSON jsonFile entries = writeFileFromLazyByteString jsonFile json
-  where
-    cfg  = Aeson.defConfig{Aeson.confCompare = Aeson.keyOrder entryKeyOrder}
-    json = Aeson.encodePretty' cfg (List.sort entries)
+exportJSON :: (MonadInteraction m, MonadStore m) => FilePath -> m Response
+exportJSON jsonFile = do
+  entries <- selectAll
+  let cfg  = Aeson.defConfig{Aeson.confCompare = Aeson.keyOrder entryKeyOrder}
+      json = Aeson.encodePretty' cfg (List.sort entries)
+  writeFileFromLazyByteString jsonFile json
+  return Exported
 #else
-exportJSON :: (MonadAppError m, MonadInteraction m) => FilePath -> [Entry] -> m ()
-exportJSON _  _ = defaultError "No JSON support.  Please rebuild with backend-json flag enabled."
+exportJSON :: (MonadAppError m) => FilePath -> m Response
+exportJSON _ = defaultError "No JSON support.  Please rebuild with backend-json flag enabled."
 #endif
 
-create
-  :: (MonadEncrypt m, MonadInteraction m, MonadConfigReader m)
-  => String
-  -> Maybe String
-  -> Maybe String
-  -> m Entry
-create d i m = do
-  t         <- prompt "Enter text to encrypt: "
-  cfg       <- askConfig
-  timestamp <- now
-  createEntry encrypt
-              (configKeyId cfg)
-              timestamp
-              (MkDescription . T.pack  $  d)
-              (MkIdentity    . T.pack <$> i)
-              (MkPlaintext   . T.pack  $  t)
-              (MkMetadata    . T.pack <$> m)
-
-update
-  :: MonadInteraction m
-  => Maybe String
-  -> Maybe String
-  -> Entry
-  -> m Entry
-update Nothing Nothing e =
-  return e
-update (Just "") Nothing e =
-  do ts <- now
-     return . updateIdentity ts Nothing $ e
-update miden Nothing e =
-  do ts <- now
-     return . updateIdentity ts (MkIdentity . T.pack <$> miden) $ e
-update Nothing (Just "") e =
-  do ts <- now
-     return . updateMetadata ts Nothing $ e
-update Nothing mmeta e =
-  do ts <- now
-     return . updateMetadata ts (MkMetadata . T.pack <$> mmeta) $ e
-update (Just "") (Just "") e =
-  do ts <- now
-     return . updateMetadata ts Nothing . updateIdentity ts Nothing $ e
-update miden mmeta e =
-  do ts <- now
-     return . updateMetadata ts (MkMetadata . T.pack <$> mmeta) . updateIdentity ts (MkIdentity . T.pack <$> miden) $ e
+update :: Maybe Identity -> Maybe Metadata -> Entry -> UTCTime -> Entry
+update Nothing                Nothing                entry _              = entry
+update (Just (MkIdentity "")) Nothing                entry entryTimestamp = updateEntry entry{entryTimestamp, entryIdentity = Nothing}
+update entryIdentity          Nothing                entry entryTimestamp = updateEntry entry{entryTimestamp, entryIdentity}
+update Nothing                (Just (MkMetadata "")) entry entryTimestamp = updateEntry entry{entryTimestamp, entryMeta = Nothing}
+update Nothing                entryMeta              entry entryTimestamp = updateEntry entry{entryTimestamp, entryMeta}
+update (Just (MkIdentity "")) (Just (MkMetadata "")) entry entryTimestamp = updateEntry entry{entryTimestamp, entryIdentity = Nothing, entryMeta = Nothing}
+update entryIdentity          entryMeta              entry entryTimestamp = updateEntry entry{entryTimestamp, entryIdentity, entryMeta}
 
 updateCiphertext
-  :: (MonadEncrypt m, MonadInteraction m, MonadConfigReader m)
+  :: (MonadConfigReader m, MonadEncrypt m, MonadInteraction m)
   => ModifyAction
   -> Entry
   -> m Entry
-updateCiphertext Change ent = do
-  t         <- prompt "Enter text to encrypt: "
-  cfg       <- askConfig
-  timestamp <- now
-  createEntry encrypt
-              (configKeyId cfg)
-              timestamp
-              (entryDescription ent)
-              (entryIdentity ent)
-              (MkPlaintext . T.pack $ t)
-              (entryMeta ent)
-updateCiphertext Keep ent =
-  return ent
-
-modifyOnlySingletons
-  :: ( MonadAppError m
-     , MonadEncrypt m
-     , MonadInteraction m
-     , MonadStore m
-     , MonadConfigReader m
-     )
-  => [Entry]
-  -> ModifyAction
-  -> Maybe String
-  -> Maybe String
-  -> m Response
-modifyOnlySingletons [e] maction miden mmeta = do
-  ue1 <- update miden mmeta e
-  ue2 <- updateCiphertext maction ue1
-  _   <- put ue2
-  _   <- delete e
-  return Modified
-modifyOnlySingletons [] _ _ _ =
-  ambiguousInputError "There are no entries matching your input criteria."
-modifyOnlySingletons _ _ _ _ =
-  ambiguousInputError "There are multiple entries matching your input criteria."
-
-findAndModify
-  :: ( MonadAppError m
-     , MonadEncrypt m
-     , MonadInteraction m
-     , MonadStore m
-     , MonadConfigReader m
-     )
-  => Query
-  -> ModifyAction
-  -> Maybe String
-  -> Maybe String
-  -> m Response
-findAndModify q maction miden mmeta =
-  checkKey (query q >>= \rs -> modifyOnlySingletons rs maction miden mmeta)
+updateCiphertext Change entry = do
+  input           <- prompt "Enter text to encrypt: "
+  entryTimestamp  <- now
+  keyId           <- configKeyId <$> askConfig
+  entryCiphertext <- encrypt keyId (mkPlaintext input)
+  return $ updateEntry entry{entryTimestamp, entryCiphertext}
+updateCiphertext Keep entry =
+  return entry
 
 modify
-  :: ( MonadAppError m
-     , MonadEncrypt m
-     , MonadInteraction m
-     , MonadStore m
-     , MonadConfigReader m
-     )
+  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
   => Target
   -> ModifyAction
-  -> Maybe String
-  -> Maybe String
+  -> Maybe Identity
+  -> Maybe Metadata
   -> m Response
-modify (TargetId mid) maction miden mmeta =
-  findAndModify (Data.query (Just mid) Nothing Nothing Nothing) maction miden mmeta
-modify (TargetDescription mdesc) maction miden mmeta =
-  findAndModify (Data.query Nothing (Just mdesc) Nothing Nothing) maction miden mmeta
-
-redescribeOnlySingletons
-  :: ( MonadAppError m
-     , MonadEncrypt m
-     , MonadInteraction m
-     , MonadStore m
-     , MonadConfigReader m
-     )
-  => [Entry]
-  -> String
-  -> m Response
-redescribeOnlySingletons [e] s
-  = checkKey k
-  where
-    k = do
-      ts  <- now
-      let ue = updateDescription ts (MkDescription . T.pack $ s) e
-      _   <- put ue
-      _   <- delete e
-      return Redescribed
-redescribeOnlySingletons _ _ =
-  ambiguousInputError "There are multiple entries matching your input criteria."
-
-findAndRedescribe
-  :: ( MonadAppError m
-     , MonadEncrypt m
-     , MonadInteraction m
-     , MonadStore m
-     , MonadConfigReader m
-     )
-  => Query
-  -> String
-  -> m Response
-findAndRedescribe q s = do
-  rs  <- query q
-  redescribeOnlySingletons rs s
+modify target modifyAction maybeIdentity maybeMeta = checkKey $ do
+  entries <- runQuery $ queryFromTarget target
+  case entries of
+    [entry] -> now >>= updateCiphertext modifyAction . update maybeIdentity maybeMeta entry >>= put >> delete entry >> return Modified
+    []      -> ambiguousInputError "There are no entries matching your input criteria."
+    _       -> ambiguousInputError "There are multiple entries matching your input criteria."
 
 redescribe
-  :: ( MonadAppError m
-     , MonadEncrypt m
-     , MonadInteraction m
-     , MonadStore m
-     , MonadConfigReader m
-     )
+  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
   => Target
-  -> String
+  -> Description
   -> m Response
-redescribe (TargetId tid) s =
-  findAndRedescribe (Data.query (Just tid) Nothing Nothing Nothing) s
-redescribe (TargetDescription tdesc) s =
-  findAndRedescribe (Data.query Nothing (Just tdesc) Nothing Nothing) s
-
-removeOnlySingletons
-  :: (MonadAppError m, MonadStore m, MonadConfigReader m)
-  => [Entry]
-  -> m Response
-removeOnlySingletons [e] =
-  delete e >> return Removed
-removeOnlySingletons _ =
-  ambiguousInputError "There are multiple entries matching your input criteria."
-
-findAndRemove
-  :: (MonadAppError m, MonadStore m, MonadConfigReader m)
-  => Query
-  -> m Response
-findAndRemove q =
-  query q >>= removeOnlySingletons
+redescribe target entryDescription = do
+  entries <- runQuery $ queryFromTarget target
+  case entries of
+    [entry] -> checkKey $ do entryTimestamp <- now
+                             put $ updateEntry entry{entryTimestamp, entryDescription}
+                             delete entry
+                             return Redescribed
+    _       -> ambiguousInputError "There are multiple entries matching your input criteria."
 
 remove
-  :: (MonadAppError m, MonadStore m, MonadConfigReader m)
+  :: (MonadAppError m, MonadConfigReader m, MonadStore m)
   => Target
   -> m Response
-remove (TargetId rid) =
-  findAndRemove (Data.query (Just rid) Nothing Nothing Nothing)
-remove (TargetDescription rdesc) =
-  findAndRemove (Data.query Nothing (Just rdesc) Nothing Nothing)
+remove target = do
+  entries <- runQuery $ queryFromTarget target
+  case entries of
+    [entry] -> delete entry >> return Removed
+    _       -> ambiguousInputError "There are multiple entries matching your input criteria."
 
 check
-  :: (MonadAppError m, MonadStore m, MonadConfigReader m)
+  :: (MonadAppError m, MonadConfigReader m, MonadStore m)
   => m Response
 check = do
-  cfg <- askConfig
-  t   <- getCount
-  let keyId = configKeyId cfg
-  r <- getCountOfKeyId keyId
-  if t == r
+  keyId      <- configKeyId <$> askConfig
+  totalCount <- getCount
+  keyCount   <- getCountOfKeyId keyId
+  if totalCount == keyCount
     then return CheckedForMultipleKeys
     else defaultError "All entries do not have the same keyid"
 
 eval
-  :: ( MonadAppError m
-     , MonadEncrypt m
-     , MonadInteraction m
-     , MonadStore m
-     , MonadConfigReader m
-     )
+  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
   => Command
   -> m Response
-eval Add{addDescription, addIdentity, addMeta} =
-  checkKey $ create addDescription addIdentity addMeta >>= put >> return Added
-eval Lookup{lookupDescription, lookupIdentity, lookupVerbosity} = do
-  let q = Data.query Nothing (Just lookupDescription) lookupIdentity Nothing
-  res <- query q
-  case res of
-    []  -> return (MultipleEntries [] lookupVerbosity)
-    [e] -> SingleEntry     <$> entryToDisplayEntry decrypt e         <*> pure lookupVerbosity
-    es  -> MultipleEntries <$> mapM (entryToDisplayEntry decrypt) es <*> pure lookupVerbosity
-eval ExportJSON{exportFile} = do
-  es  <- selectAll
-  _   <- exportJSON exportFile es
-  return Exported
-eval (Modify t c i m)     = modify t c i m
-eval (Redescribe t s)     = redescribe t s
-eval (Remove t)           = remove t
-eval CheckForMultipleKeys = check
+eval Add{addDescription, addIdentity, addMeta}                          = add addDescription addIdentity addMeta
+eval Lookup{lookupDescription, lookupIdentity, lookupVerbosity}         = lookup lookupDescription lookupIdentity lookupVerbosity
+eval ExportJSON{exportFile}                                             = exportJSON exportFile
+eval Modify{modifyTarget, modifyCiphertext, modifyIdentity, modifyMeta} = modify modifyTarget modifyCiphertext modifyIdentity modifyMeta
+eval Redescribe{redescribeTarget, redescribeDescription}                = redescribe redescribeTarget redescribeDescription
+eval Remove{removeTarget}                                               = remove removeTarget
+eval CheckForMultipleKeys                                               = check

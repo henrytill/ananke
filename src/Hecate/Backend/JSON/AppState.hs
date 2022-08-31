@@ -19,7 +19,7 @@ import           Data.Set      (Set)
 import qualified Data.Set      as Set
 import qualified Data.Text     as Text
 
-import           Hecate.Data   hiding (query)
+import           Hecate.Data
 
 
 type EntriesMap = Multimap Description Entry

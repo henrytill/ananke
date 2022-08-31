@@ -83,7 +83,7 @@ instance MonadConfigReader JSON where
 instance MonadStore JSON where
   put             e     = modify $ AppState.put    e
   delete          e     = modify $ AppState.delete e
-  query           q     = gets (AppState.query  q)
+  runQuery        q     = gets (AppState.query  q)
   selectAll             = gets AppState.selectAll
   getCount              = gets AppState.getCount
   getCountOfKeyId kid   = gets (AppState.getCountOfKeyId kid)

@@ -25,7 +25,7 @@ lint:
 modules.png: FORCE
 	find executables src -name '*.hs' | xargs graphmod -q | dot -Tpng -o $@
 
-depends.png: hecate.cabal
+depends.png: FORCE
 	cabal-plan dot --tred | dot -Tpng -o $@
 
 .PHONY: nix

@@ -25,13 +25,14 @@ module Hecate.Data
     -- * Entries
   , Entry(..)
   , entryKeyOrder
-  , mkEntry
-  , updateEntry
-    -- ** Their constituents
+    -- ** their constituents
   , Id(..)
   , Description(..)
   , Identity(..)
   , Metadata(..)
+    -- ** and related
+  , mkEntry
+  , updateEntry
     -- * Display Entries
   , DisplayEntry(..)
     -- * Queries
@@ -207,7 +208,7 @@ instance ToJSON Entry where
   toJSON = Aeson.genericToJSON customOptions
 #endif
 
--- ** Their constituents
+-- ** their constituents
 
 -- | A 'Id' identifies a given 'Entry'.
 newtype Id = MkId { unId :: T.Text }
@@ -272,7 +273,7 @@ instance FromJSON Metadata where
   parseJSON = fmap MkMetadata . parseJSON
 #endif
 
--- ** And their constructors and updaters
+-- ** and related
 
 mkId :: T.Text -> Id
 mkId = MkId . T.pack . SHA.showDigest . SHA.sha1 . BSL.fromStrict . Encoding.encodeUtf8
@@ -293,9 +294,7 @@ mkEntry keyId timestamp description identity ciphertext meta =
   let entryId = generateId keyId timestamp description identity
   in MkEntry entryId keyId timestamp description identity ciphertext meta
 
-updateEntry
-  :: Entry
-  -> Entry
+updateEntry :: Entry -> Entry
 updateEntry entry@(MkEntry _ keyId timestamp description identity _ _) =
   let entryId = generateId keyId timestamp description identity
   in entry{entryId}

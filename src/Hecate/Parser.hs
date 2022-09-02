@@ -42,42 +42,24 @@ targetP :: Parser Target
 targetP = (TargetId <$> hashOptP) <|> (TargetDescription <$> descOptP)
 
 modifyCiphertextFlagP :: Parser ModifyAction
-modifyCiphertextFlagP = flag Keep Change $ long "ciphertext"
-                                        <> short 'c'
-                                        <> help "Modify ciphertext"
+verbosityFlagP        :: Parser Verbosity
+modifyCiphertextFlagP = flag Keep   Change  $ long "ciphertext" <> short 'c' <> help "Modify ciphertext"
+verbosityFlagP        = flag Normal Verbose $ long "verbose"    <> short 'v' <> help "Display verbose results"
 
-verbosityFlagP :: Parser Verbosity
-verbosityFlagP = flag Normal Verbose $ long "verbose"
-                                    <> short 'v'
-                                    <> help "Display verbose results"
-
-addP :: Parser Command
-addP = Add <$> descArgP
-           <*> optional idenOptP
-           <*> optional metaOptP
-
-lookupP :: Parser Command
-lookupP = Lookup <$> descArgP
-                 <*> optional idenOptP
-                 <*> verbosityFlagP
-
+addP        :: Parser Command
+lookupP     :: Parser Command
 exportJSONP :: Parser Command
-exportJSONP = ExportJSON <$> pathArgP
-
-modifyP :: Parser Command
-modifyP = Modify <$> targetP
-                 <*> modifyCiphertextFlagP
-                 <*> optional idenOptP
-                 <*> optional metaOptP
-
+modifyP     :: Parser Command
 redescribeP :: Parser Command
-redescribeP = Redescribe <$> targetP <*> descArgP
-
-removeP :: Parser Command
-removeP = Remove <$> targetP
-
-checkP :: Parser Command
-checkP = pure CheckForMultipleKeys
+removeP     :: Parser Command
+checkP      :: Parser Command
+addP        = Add        <$> descArgP <*> optional idenOptP     <*> optional metaOptP
+lookupP     = Lookup     <$> descArgP <*> optional idenOptP     <*> verbosityFlagP
+exportJSONP = ExportJSON <$> pathArgP
+modifyP     = Modify     <$> targetP  <*> modifyCiphertextFlagP <*> optional idenOptP <*> optional metaOptP
+redescribeP = Redescribe <$> targetP  <*> descArgP
+removeP     = Remove     <$> targetP
+checkP      = pure CheckForMultipleKeys
 
 cmdAdd        :: Mod CommandFields Command
 cmdLookup     :: Mod CommandFields Command

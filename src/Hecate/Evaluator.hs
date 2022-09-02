@@ -170,12 +170,12 @@ checkKey k = do
         _   -> defaultError "Please answer y or n"
 
 add
-  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
+  :: (MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
   => Description
   -> Maybe Identity
   -> Maybe Metadata
   -> m Response
-add description maybeIdentity maybeMeta = checkKey $ do
+add description maybeIdentity maybeMeta = do
   input      <- prompt "Enter text to encrypt: "
   timestamp  <- now
   keyId      <- configKeyId <$> askConfig
@@ -251,20 +251,20 @@ modify target modifyAction maybeIdentity maybeMeta = checkKey $ do
     _       -> ambiguousInputError "There are multiple entries matching your input criteria."
 
 redescribe
-  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
+  :: (MonadAppError m, MonadEncrypt m, MonadInteraction m, MonadStore m)
   => Target
   -> Description
   -> m Response
 redescribe target entryDescription = do
   entries <- runQuery $ queryFromTarget target
   case entries of
-    [entry] -> checkKey $ do entryTimestamp <- now
-                             put $ updateEntry entry{entryTimestamp, entryDescription}
-                             delete entry
-                             return Redescribed
+    [entry] -> do entryTimestamp <- now
+                  put $ updateEntry entry{entryTimestamp, entryDescription}
+                  delete entry
+                  return Redescribed
     _       -> ambiguousInputError "There are multiple entries matching your input criteria."
 
-remove :: (MonadAppError m, MonadConfigReader m, MonadStore m) => Target -> m Response
+remove :: (MonadAppError m, MonadStore m) => Target -> m Response
 remove target = do
   entries <- runQuery $ queryFromTarget target
   case entries of
@@ -284,13 +284,13 @@ eval
   :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
   => Command
   -> m Response
-eval Add{addDescription, addIdentity, addMeta}                          = add addDescription addIdentity addMeta
+eval Add{addDescription, addIdentity, addMeta}                          = checkKey $ add addDescription addIdentity addMeta
 eval Lookup{lookupDescription, lookupIdentity, lookupVerbosity}         = lookup lookupDescription lookupIdentity lookupVerbosity
 #ifdef BACKEND_JSON
 eval Import{importFile}                                                 = importJSON importFile
 eval Export{exportFile}                                                 = exportJSON exportFile
 #endif
-eval Modify{modifyTarget, modifyCiphertext, modifyIdentity, modifyMeta} = modify modifyTarget modifyCiphertext modifyIdentity modifyMeta
-eval Redescribe{redescribeTarget, redescribeDescription}                = redescribe redescribeTarget redescribeDescription
+eval Modify{modifyTarget, modifyCiphertext, modifyIdentity, modifyMeta} = checkKey $ modify modifyTarget modifyCiphertext modifyIdentity modifyMeta
+eval Redescribe{redescribeTarget, redescribeDescription}                = checkKey $ redescribe redescribeTarget redescribeDescription
 eval Remove{removeTarget}                                               = remove removeTarget
 eval CheckForMultipleKeys                                               = check

@@ -33,13 +33,10 @@ newtype JSON a = MkJSON { unJSON :: ReaderT Config (StateT AppState IO) a }
            , MonadIO
            , MonadReader Config
            , MonadState AppState
+           , MonadAppError
            , MonadEncrypt
            , MonadInteraction
-           , MonadAppError
            )
-
-instance MonadThrow JSON where
-  throwM = liftIO . throwM
 
 runJSON :: JSON a -> AppState -> Config -> IO (a, AppState)
 runJSON m state cfg = runStateT (runReaderT (unJSON m) cfg) state
@@ -77,16 +74,19 @@ finalize _ = return ()
 
 -- * Instances
 
+instance MonadThrow JSON where
+  throwM = liftIO . throwM
+
 instance MonadConfigReader JSON where
   askConfig = ask
 
 instance MonadStore JSON where
   put             e     = modify $ AppState.put    e
   delete          e     = modify $ AppState.delete e
-  runQuery        q     = gets (AppState.query  q)
-  selectAll             = gets AppState.selectAll
-  getCount              = gets AppState.getCount
-  getCountOfKeyId kid   = gets (AppState.getCountOfKeyId kid)
+  runQuery        q     = gets   $ AppState.query  q
+  selectAll             = gets     AppState.selectAll
+  getCount              = gets     AppState.getCount
+  getCountOfKeyId kid   = gets   $ AppState.getCountOfKeyId kid
   createTable           = undefined
   migrate         _   _ = undefined
   currentSchemaVersion  = undefined

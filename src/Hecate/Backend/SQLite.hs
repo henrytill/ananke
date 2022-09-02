@@ -29,13 +29,10 @@ newtype SQLite a = MkSQLite { unSQLite :: ReaderT AppContext IO a }
            , Monad
            , MonadIO
            , MonadReader AppContext
+           , MonadAppError
            , MonadEncrypt
            , MonadInteraction
-           , MonadAppError
            )
-
-instance MonadThrow SQLite where
-  throwM = liftIO . throwM
 
 runSQLite :: SQLite a -> AppContext -> IO a
 runSQLite = runReaderT . unSQLite
@@ -56,6 +53,9 @@ finalize = SQLite3.close . appContextDatabase
 
 -- * Instances
 
+instance MonadThrow SQLite where
+  throwM = liftIO . throwM
+
 instance MonadConfigReader SQLite where
   askConfig = asks appContextConfig
 
@@ -63,12 +63,12 @@ withDatabase :: (SQLite3.Database -> SQLite a) -> SQLite a
 withDatabase f = ask >>= f . appContextDatabase
 
 instance MonadStore SQLite where
-  put             e       = withDatabase (\db -> Database.put             db e)
-  delete          e       = withDatabase (\db -> Database.delete          db e)
-  runQuery        q       = withDatabase (\db -> Database.query           db q)
-  selectAll               = withDatabase (\db -> Database.selectAll       db)
-  getCount                = withDatabase (\db -> Database.getCount        db)
-  getCountOfKeyId kid     = withDatabase (\db -> Database.getCountOfKeyId db kid)
-  createTable             = withDatabase (\db -> Database.createTable     db)
-  migrate         sv  kid = withDatabase (\db -> Database.migrate         db sv kid)
+  put             e       = withDatabase $ \db -> Database.put             db e
+  delete          e       = withDatabase $ \db -> Database.delete          db e
+  runQuery        q       = withDatabase $ \db -> Database.query           db q
+  selectAll               = withDatabase $ \db -> Database.selectAll       db
+  getCount                = withDatabase $ \db -> Database.getCount        db
+  getCountOfKeyId kid     = withDatabase $ \db -> Database.getCountOfKeyId db kid
+  createTable             = withDatabase $ \db -> Database.createTable     db
+  migrate         sv  kid = withDatabase $ \db -> Database.migrate         db sv kid
   currentSchemaVersion    = return Database.currentSchemaVersion

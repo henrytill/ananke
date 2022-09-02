@@ -282,14 +282,7 @@ generateId :: KeyId -> UTCTime -> Description -> Maybe Identity -> Id
 generateId (MkKeyId k) ts (MkDescription d) (Just (MkIdentity i)) = mkId (k <> utcTimeToText ts <> d <> i)
 generateId (MkKeyId k) ts (MkDescription d) Nothing               = mkId (k <> utcTimeToText ts <> d)
 
-mkEntry
-  :: KeyId
-  -> UTCTime
-  -> Description
-  -> Maybe Identity
-  -> Ciphertext
-  -> Maybe Metadata
-  -> Entry
+mkEntry :: KeyId -> UTCTime -> Description -> Maybe Identity -> Ciphertext -> Maybe Metadata -> Entry
 mkEntry keyId timestamp description identity ciphertext meta =
   let entryId = generateId keyId timestamp description identity
   in MkEntry entryId keyId timestamp description identity ciphertext meta

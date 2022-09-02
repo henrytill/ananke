@@ -1,9 +1,9 @@
 module Hecate.Interfaces
-  ( MonadConfigReader(..)
-  , MonadStore(..)
+  ( MonadAppError(..)
+  , MonadConfigReader(..)
   , MonadEncrypt(..)
   , MonadInteraction(..)
-  , MonadAppError(..)
+  , MonadStore(..)
   ) where
 
 import           Control.Monad.Catch  (MonadThrow (..))
@@ -24,23 +24,48 @@ import           Hecate.Error         (AppError (..))
 import qualified Hecate.GPG           as GPG
 
 
+-- * MonadAppError
+
+class Monad m => MonadAppError m where
+  configurationError  :: String -> m a
+  gpgError            :: String -> m a
+  databaseError       :: String -> m a
+  fileSystemError     :: String -> m a
+  ambiguousInputError :: String -> m a
+  migrationError      :: String -> m a
+  defaultError        :: String -> m a
+
+instance MonadAppError IO where
+  configurationError  = throwM . Configuration
+  gpgError            = throwM . GPG
+  databaseError       = throwM . Database
+  fileSystemError     = throwM . FileSystem
+  ambiguousInputError = throwM . AmbiguousInput
+  migrationError      = throwM . Migration
+  defaultError        = throwM . Default
+
+instance MonadAppError m => MonadAppError (ReaderT r m) where
+  configurationError  = lift . configurationError
+  gpgError            = lift . gpgError
+  databaseError       = lift . databaseError
+  fileSystemError     = lift . fileSystemError
+  ambiguousInputError = lift . ambiguousInputError
+  migrationError      = lift . migrationError
+  defaultError        = lift . defaultError
+
+instance MonadAppError m => MonadAppError (StateT s m) where
+  configurationError  = lift . configurationError
+  gpgError            = lift . gpgError
+  databaseError       = lift . databaseError
+  fileSystemError     = lift . fileSystemError
+  ambiguousInputError = lift . ambiguousInputError
+  migrationError      = lift . migrationError
+  defaultError        = lift . defaultError
+
 -- * MonadConfigReader
 
 class Monad m => MonadConfigReader m where
   askConfig :: m Config
-
--- * MonadStore
-
-class Monad m => MonadStore m where
-  put                  :: Entry -> m ()
-  delete               :: Entry -> m ()
-  runQuery             :: Query -> m [Entry]
-  selectAll            :: m [Entry]
-  getCount             :: m Int
-  getCountOfKeyId      :: KeyId -> m Int
-  createTable          :: m ()
-  migrate              :: SchemaVersion -> KeyId -> m ()
-  currentSchemaVersion :: m SchemaVersion
 
 -- * MonadEncrypt
 
@@ -53,12 +78,12 @@ instance MonadEncrypt IO where
   decrypt = GPG.decrypt
 
 instance MonadEncrypt m => MonadEncrypt (ReaderT r m) where
-  encrypt kid pt = lift (encrypt kid pt)
-  decrypt     ct = lift (decrypt ct)
+  encrypt kid pt = lift $ encrypt kid pt
+  decrypt     ct = lift $ decrypt ct
 
 instance MonadEncrypt m => MonadEncrypt (StateT s m) where
-  encrypt kid pt = lift (encrypt kid pt)
-  decrypt     ct = lift (decrypt ct)
+  encrypt kid pt = lift $ encrypt kid pt
+  decrypt     ct = lift $ decrypt ct
 
 -- * MonadInteraction
 
@@ -118,40 +143,15 @@ instance MonadInteraction m => MonadInteraction (StateT s m)  where
   message                        = lift . message
   prompt                         = lift . prompt
 
--- * MonadAppError
+-- * MonadStore
 
-class Monad m => MonadAppError m where
-  configurationError  :: String -> m a
-  gpgError            :: String -> m a
-  databaseError       :: String -> m a
-  fileSystemError     :: String -> m a
-  ambiguousInputError :: String -> m a
-  migrationError      :: String -> m a
-  defaultError        :: String -> m a
-
-instance MonadAppError IO where
-  configurationError  = throwM . Configuration
-  gpgError            = throwM . GPG
-  databaseError       = throwM . Database
-  fileSystemError     = throwM . FileSystem
-  ambiguousInputError = throwM . AmbiguousInput
-  migrationError      = throwM . Migration
-  defaultError        = throwM . Default
-
-instance MonadAppError m => MonadAppError (ReaderT r m) where
-  configurationError  = lift . configurationError
-  gpgError            = lift . gpgError
-  databaseError       = lift . databaseError
-  fileSystemError     = lift . fileSystemError
-  ambiguousInputError = lift . ambiguousInputError
-  migrationError      = lift . migrationError
-  defaultError        = lift . defaultError
-
-instance MonadAppError m => MonadAppError (StateT s m) where
-  configurationError  = lift . configurationError
-  gpgError            = lift . gpgError
-  databaseError       = lift . databaseError
-  fileSystemError     = lift . fileSystemError
-  ambiguousInputError = lift . ambiguousInputError
-  migrationError      = lift . migrationError
-  defaultError        = lift . defaultError
+class Monad m => MonadStore m where
+  put                  :: Entry -> m ()
+  delete               :: Entry -> m ()
+  runQuery             :: Query -> m [Entry]
+  selectAll            :: m [Entry]
+  getCount             :: m Int
+  getCountOfKeyId      :: KeyId -> m Int
+  createTable          :: m ()
+  migrate              :: SchemaVersion -> KeyId -> m ()
+  currentSchemaVersion :: m SchemaVersion

@@ -18,8 +18,8 @@ import           Foreign.C.Error         (Errno (..), ePIPE)
 import           GHC.IO.Exception        (IOErrorType (..), IOException (..))
 import           GHC.IO.Handle           (hClose, hSetBinaryMode)
 import           System.Exit             (ExitCode (..))
-import qualified System.Process          as Process
 import           System.Process          (CreateProcess (..), StdStream (..))
+import qualified System.Process          as Process
 
 import           Hecate.Data             (Ciphertext, KeyId (..), Plaintext (..), mkCiphertext, unCiphertext)
 import           Hecate.Error            (AppError (..))
@@ -79,20 +79,13 @@ lifter
   -> m BS.ByteString
 lifter x = liftIO x >>= convertResult
 
-encrypt
-  :: forall m. (MonadThrow m, MonadIO m)
-  => KeyId
-  -> Plaintext
-  -> m Ciphertext
+encrypt :: forall m. (MonadThrow m, MonadIO m) => KeyId -> Plaintext -> m Ciphertext
 encrypt (MkKeyId keyid) (MkPlaintext pt) = w (gpgEncrypt (T.unpack keyid)) pt
   where
     w :: (BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)) -> T.Text -> m Ciphertext
     w f = (mkCiphertext <$>) . lifter . f . Encoding.encodeUtf8
 
-decrypt
-  :: forall m. (MonadThrow m, MonadIO m)
-  => Ciphertext
-  -> m Plaintext
+decrypt :: forall m. (MonadThrow m, MonadIO m) => Ciphertext -> m Plaintext
 decrypt = w gpgDecrypt
   where
     w ::  (BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)) -> Ciphertext -> m Plaintext

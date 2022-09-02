@@ -70,20 +70,20 @@ getEntry stmt =
     getMeta        s = columnMaybeText s 6 MkMetadata
 
 executeQuery :: SQLite3.Statement -> IO [Entry]
-executeQuery = go []
+executeQuery = flip go []
   where
-    go acc stmt = SQLite3.stepNoCB stmt >>= \case
+    go stmt acc = SQLite3.stepNoCB stmt >>= \case
       SQLite3.Done -> return acc
       SQLite3.Row  -> do entry <- getEntry stmt
-                         go (entry : acc) stmt
+                         go stmt (entry : acc)
 
 executeCount :: SQLite3.Statement -> IO Int
-executeCount = go 0
+executeCount = flip go 0
   where
-    go acc stmt = SQLite3.stepNoCB stmt >>= \case
+    go stmt acc = SQLite3.stepNoCB stmt >>= \case
       SQLite3.Done -> return . fromIntegral $ acc
       SQLite3.Row  -> do count <- SQLite3.columnInt64 stmt 0
-                         go (acc + count) stmt
+                         go stmt (acc + count)
 
 createTable :: (MonadThrow m, MonadIO m) => SQLite3.Database -> m ()
 createTable db = catchLift $ Exception.bracket (SQLite3.prepare db s) SQLite3.finalize executeStatement

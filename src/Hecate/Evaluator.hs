@@ -8,8 +8,8 @@ module Hecate.Evaluator
   , Target(..)
   , Command(..)
   , Response(..)
-  , eval
   , setup
+  , eval
   ) where
 
 #ifdef BACKEND_JSON
@@ -88,6 +88,24 @@ getSchemaVersion path = do
     then getSchemaVersionFromFile path
     else currentSchemaVersion >>= createSchemaFile path
 
+reencryptAll :: (MonadEncrypt m, MonadStore m) => KeyId -> m ()
+reencryptAll keyId = do
+  entries        <- selectAll
+  updatedEntries <- mapM reencrypt entries
+  mapM_ put    updatedEntries
+  mapM_ delete entries
+  where
+    reencrypt :: MonadEncrypt m => Entry -> m Entry
+    reencrypt entry = do
+      plaintext  <- decrypt $ entryCiphertext entry
+      ciphertext <- encrypt keyId plaintext
+      return $ mkEntry keyId
+                       (entryTimestamp entry)
+                       (entryDescription entry)
+                       (entryIdentity entry)
+                       ciphertext
+                       (entryMeta entry)
+
 initDatabase
   :: (MonadEncrypt m, MonadInteraction m, MonadStore m)
   => FilePath
@@ -116,38 +134,6 @@ setup = do
   schemaVersion <- getSchemaVersion schemaFile
   initDatabase schemaFile schemaVersion keyId
 
-reencryptAll :: (MonadEncrypt m, MonadStore m) => KeyId -> m ()
-reencryptAll keyId = do
-  entries        <- selectAll
-  updatedEntries <- mapM reencrypt entries
-  mapM_ put    updatedEntries
-  mapM_ delete entries
-  where
-    reencrypt :: MonadEncrypt m => Entry -> m Entry
-    reencrypt entry = do
-      plaintext  <- decrypt $ entryCiphertext entry
-      ciphertext <- encrypt keyId plaintext
-      return $ mkEntry keyId
-                       (entryTimestamp entry)
-                       (entryDescription entry)
-                       (entryIdentity entry)
-                       ciphertext
-                       (entryMeta entry)
-
-noYes
-  :: (MonadAppError m, MonadInteraction m)
-  => String
-  -> m a
-  -> m a
-  -> m a
-noYes promptString kYes kNo = do
-  input <- prompt (promptString ++ " [N/y] ")
-  case map toLower input of
-    ""  -> kNo
-    "n" -> kNo
-    "y" -> kYes
-    _   -> defaultError "Please answer y or n"
-
 checkKey
   :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
   => m Response
@@ -163,10 +149,19 @@ checkKey k = do
                 err           = defaultError "You have set allow_multiple_keys to false"
             keyCount <- getCountOfKeyId keyId
             case (keyCount, allowMultKeys) of
-              (0, False)                   -> noYes question (reencryptAll keyId >> k) err
+              (0, False)                   -> yesNo question (reencryptAll keyId >> k) err
               (x, _    ) | x == totalCount -> k
-              (_, True )                   -> noYes question (reencryptAll keyId >> k) k
+              (_, True )                   -> yesNo question (reencryptAll keyId >> k) k
               (_, False)                   -> defaultError "All entries do not have the same keyid"
+  where
+    yesNo :: (MonadAppError m, MonadInteraction m) => String -> m a -> m a -> m a
+    yesNo promptString kYes kNo = do
+      input <- prompt (promptString ++ " [N/y] ")
+      case map toLower input of
+        ""  -> kNo
+        "n" -> kNo
+        "y" -> kYes
+        _   -> defaultError "Please answer y or n"
 
 add
   :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
@@ -259,19 +254,14 @@ redescribe target entryDescription = do
                              return Redescribed
     _       -> ambiguousInputError "There are multiple entries matching your input criteria."
 
-remove
-  :: (MonadAppError m, MonadConfigReader m, MonadStore m)
-  => Target
-  -> m Response
+remove :: (MonadAppError m, MonadConfigReader m, MonadStore m) => Target -> m Response
 remove target = do
   entries <- runQuery $ queryFromTarget target
   case entries of
     [entry] -> delete entry >> return Removed
     _       -> ambiguousInputError "There are multiple entries matching your input criteria."
 
-check
-  :: (MonadAppError m, MonadConfigReader m, MonadStore m)
-  => m Response
+check :: (MonadAppError m, MonadConfigReader m, MonadStore m) => m Response
 check = do
   keyId      <- configKeyId <$> askConfig
   totalCount <- getCount

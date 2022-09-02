@@ -111,7 +111,7 @@ instance Show SchemaVersion where
 
 -- | A 'KeyId' represents a GPG Key Id
 newtype KeyId = MkKeyId { unKeyId :: T.Text }
-  deriving (Eq, Ord, Generic)
+  deriving (Eq, Ord)
 
 instance Show KeyId where
   show (MkKeyId a) = show a
@@ -212,7 +212,7 @@ instance ToJSON Entry where
 
 -- | A 'Id' identifies a given 'Entry'.
 newtype Id = MkId { unId :: T.Text }
-  deriving (Eq, Ord, Generic)
+  deriving (Eq, Ord)
 
 instance Show Id where
   show (MkId d) = show d
@@ -228,7 +228,7 @@ instance FromJSON Id where
 -- | A 'Description' identifies a given 'Entry'.  It could be a URI or a
 -- descriptive name.
 newtype Description = MkDescription { unDescription ::  T.Text }
-  deriving (Eq, Ord, Generic)
+  deriving (Eq, Ord)
 
 instance Show Description where
   show (MkDescription d) = show d
@@ -244,7 +244,7 @@ instance FromJSON Description where
 -- | An 'Identity' represents an identifying value.  It could be the username in
 -- a username/password pair
 newtype Identity = MkIdentity { unIdentity :: T.Text }
-  deriving (Eq, Ord, Generic)
+  deriving (Eq, Ord)
 
 instance Show Identity where
   show (MkIdentity i) = show i
@@ -260,7 +260,7 @@ instance FromJSON Identity where
 -- | A 'Metadata' value contains additional non-specific information for a given
 -- 'Entry'
 newtype Metadata = MkMetadata { unMetadata :: T.Text }
-  deriving (Eq, Ord, Generic)
+  deriving (Eq, Ord)
 
 instance Show Metadata where
   show (MkMetadata m) = show m

@@ -8,7 +8,6 @@ module Hecate
 import qualified Control.Exception     as Exception
 import           System.Exit           (ExitCode (..))
 import qualified System.IO             as IO
-import           Text.PrettyPrint      (Doc, Mode (..), Style (..), empty, renderStyle, style)
 
 #ifdef BACKEND_JSON
 import qualified Hecate.Backend.JSON   as JSON
@@ -22,22 +21,19 @@ import           Hecate.Configuration  (Backend (..), Config (..), configure)
 import           Hecate.Evaluator      (Response (..))
 import qualified Hecate.Evaluator      as Evaluator
 import qualified Hecate.Parser         as Parser
-import qualified Hecate.Printing       as Printing
+import           Hecate.Printing       (prettyError, prettyResponse, render)
 
-
-render :: Doc -> String
-render = renderStyle style{mode = LeftMode}
 
 handleError :: AppError -> IO ExitCode
 handleError err =
-  let pr = IO.hPutStrLn IO.stderr . render . Printing.prettyError
+  let pr = IO.hPutStrLn IO.stderr . render . prettyError
   in pr err >> return (ExitFailure 1)
 
 handleResponse :: Response -> IO ExitCode
 handleResponse res =
-  let pr r = case Printing.prettyResponse r of
-        doc | doc == empty -> return ()
-            | otherwise    -> putStrLn . render $ doc
+  let pr r = case prettyResponse r of
+        doc | doc == mempty -> return ()
+            | otherwise     -> putStrLn . render $ doc
   in case res of
     (MultipleEntries [] _) -> pr res >> return (ExitFailure 1)
     _                      -> pr res >> return ExitSuccess

@@ -1,12 +1,13 @@
 module Hecate.Printing
   ( prettyResponse
   , prettyError
+  , render
   ) where
 
 import qualified Data.Text                as T
 import           Data.Time.Clock          (UTCTime)
 import           Data.Time.Format.ISO8601 (iso8601Show)
-import           Text.PrettyPrint         (Doc, empty, text, ($$), (<+>))
+import           Text.PrettyPrint         (Doc, Mode (..), Style (..), empty, renderStyle, style, text, ($$), (<+>))
 
 import           Hecate.Data
 import           Hecate.Error             (AppError (..))
@@ -66,3 +67,6 @@ prettyResponse _                            = empty
 
 prettyError :: AppError -> Doc
 prettyError = text . show
+
+render :: Doc -> String
+render = renderStyle style{mode = LeftMode}

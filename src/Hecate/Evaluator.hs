@@ -207,9 +207,9 @@ importJSON jsonFile = do
 exportJSON :: (MonadInteraction m, MonadStore m) => FilePath -> m Response
 exportJSON jsonFile = do
   entries <- selectAll
-  let cfg  = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
-      json = AesonPretty.encodePretty' cfg (List.sort entries)
-  writeFileFromLazyByteString jsonFile json
+  let cfg    = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
+      output = AesonPretty.encodePretty' cfg (List.sort entries)
+  writeFileFromLazyByteString jsonFile output
   return Exported
 #endif
 

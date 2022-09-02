@@ -64,8 +64,8 @@ createState cfg = do
       dataFile = configDataFile cfg
   dataDirExists <- doesDirectoryExist dataDir
   Except.unless dataDirExists (createDirectory dataDir)
-  dataBS <- readFileAsLazyByteString dataFile
-  maybe (databaseError "unable to decode data.json") (return . AppState.mkAppState) (Aeson.decode dataBS)
+  input <- readFileAsLazyByteString dataFile
+  maybe (databaseError "unable to decode data.json") (return . AppState.mkAppState) (Aeson.decode input)
 
 initialize :: (MonadAppError m, MonadInteraction m) => Config -> m (Config, AppState)
 initialize cfg = do

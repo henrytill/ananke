@@ -49,8 +49,8 @@ data Command
            , lookupVerbosity   :: Verbosity
            }
 #ifdef BACKEND_JSON
-  | ImportJSON { importJSONFile :: FilePath }
-  | ExportJSON { exportJSONFile :: FilePath }
+  | Import { importFile :: FilePath }
+  | Export { exportFile :: FilePath }
 #endif
   | Modify { modifyTarget     :: Target
            , modifyCiphertext :: ModifyAction
@@ -287,8 +287,8 @@ eval
 eval Add{addDescription, addIdentity, addMeta}                          = add addDescription addIdentity addMeta
 eval Lookup{lookupDescription, lookupIdentity, lookupVerbosity}         = lookup lookupDescription lookupIdentity lookupVerbosity
 #ifdef BACKEND_JSON
-eval ImportJSON{importJSONFile}                                         = importJSON importJSONFile
-eval ExportJSON{exportJSONFile}                                         = exportJSON exportJSONFile
+eval Import{importFile}                                                 = importJSON importFile
+eval Export{exportFile}                                                 = exportJSON exportFile
 #endif
 eval Modify{modifyTarget, modifyCiphertext, modifyIdentity, modifyMeta} = modify modifyTarget modifyCiphertext modifyIdentity modifyMeta
 eval Redescribe{redescribeTarget, redescribeDescription}                = redescribe redescribeTarget redescribeDescription

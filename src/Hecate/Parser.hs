@@ -75,14 +75,19 @@ cmdCheck      = command "check"       $ info checkP      (progDesc "Check if all
 pathArgP :: Parser FilePath
 pathArgP = argument str $ metavar "PATH" <> help "Path of JSON file"
 
+importJSONP :: Parser Command
+importJSONP = ImportJSON <$> pathArgP
+
 exportJSONP :: Parser Command
 exportJSONP = ExportJSON <$> pathArgP
 
+cmdImportJSON :: Mod CommandFields Command
 cmdExportJSON :: Mod CommandFields Command
+cmdImportJSON = command "import-json" $ info importJSONP (progDesc "Import a JSON file")
 cmdExportJSON = command "export-json" $ info exportJSONP (progDesc "Export a JSON file")
 
 master :: Parser Command
-master = hsubparser (cmdAdd <> cmdLookup <> cmdExportJSON <> cmdModify <> cmdRedescribe <> cmdRemove <> cmdCheck)
+master = hsubparser (cmdAdd <> cmdLookup <> cmdImportJSON <> cmdExportJSON <> cmdModify <> cmdRedescribe <> cmdRemove <> cmdCheck)
 #else
 master :: Parser Command
 master = hsubparser (cmdAdd <> cmdLookup <> cmdModify <> cmdRedescribe <> cmdRemove <> cmdCheck)

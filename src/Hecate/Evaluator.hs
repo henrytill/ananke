@@ -14,7 +14,8 @@ module Hecate.Evaluator
   ) where
 
 #ifdef BACKEND_JSON
-import qualified Data.Aeson.Encode.Pretty as Aeson
+import qualified Data.Aeson               as Aeson
+import qualified Data.Aeson.Encode.Pretty as AesonPretty
 import qualified Data.List                as List
 #endif
 
@@ -48,6 +49,7 @@ data Command
            , lookupVerbosity   :: Verbosity
            }
 #ifdef BACKEND_JSON
+  | ImportJSON { importFile :: FilePath }
   | ExportJSON { exportFile :: FilePath }
 #endif
   | Modify { modifyTarget     :: Target
@@ -67,6 +69,7 @@ data Response
   = SingleEntry DisplayEntry Verbosity
   | MultipleEntries [DisplayEntry] Verbosity
   | Added
+  | Imported
   | Exported
   | Modified
   | Redescribed
@@ -194,11 +197,18 @@ lookup description maybeIdentity verbosity = do
          return $ MkDisplayEntry entryId entryTimestamp entryDescription entryIdentity plaintext entryMeta
 
 #ifdef BACKEND_JSON
+importJSON :: (MonadAppError m, MonadInteraction m, MonadStore m) => FilePath -> m Response
+importJSON jsonFile = do
+  input   <- readFileAsLazyByteString jsonFile
+  entries <- maybe (defaultError ("unable to decode " ++ jsonFile)) return (Aeson.decode input :: Maybe [Entry])
+  mapM_ put entries
+  return Imported
+
 exportJSON :: (MonadInteraction m, MonadStore m) => FilePath -> m Response
 exportJSON jsonFile = do
   entries <- selectAll
-  let cfg  = Aeson.defConfig{Aeson.confCompare = Aeson.keyOrder entryKeyOrder}
-      json = Aeson.encodePretty' cfg (List.sort entries)
+  let cfg  = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
+      json = AesonPretty.encodePretty' cfg (List.sort entries)
   writeFileFromLazyByteString jsonFile json
   return Exported
 #endif
@@ -277,6 +287,7 @@ eval
 eval Add{addDescription, addIdentity, addMeta}                          = add addDescription addIdentity addMeta
 eval Lookup{lookupDescription, lookupIdentity, lookupVerbosity}         = lookup lookupDescription lookupIdentity lookupVerbosity
 #ifdef BACKEND_JSON
+eval ImportJSON{importFile}                                             = importJSON importFile
 eval ExportJSON{exportFile}                                             = exportJSON exportFile
 #endif
 eval Modify{modifyTarget, modifyCiphertext, modifyIdentity, modifyMeta} = modify modifyTarget modifyCiphertext modifyIdentity modifyMeta

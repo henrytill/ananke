@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module Hecate.Parser
   ( runCLIParser
   ) where
@@ -10,9 +12,6 @@ import           Hecate.Evaluator
 
 descArgP :: Parser Description
 descArgP = MkDescription <$> argument str (metavar "DESC" <> help "Description of ciphertext")
-
-pathArgP :: Parser FilePath
-pathArgP = argument str $ metavar "PATH" <> help "Path of JSON file"
 
 hashOptP :: Parser Id
 hashOptP = MkId <$> strOption (long "hash"
@@ -48,14 +47,12 @@ verbosityFlagP        = flag Normal Verbose $ long "verbose"    <> short 'v' <> 
 
 addP        :: Parser Command
 lookupP     :: Parser Command
-exportJSONP :: Parser Command
 modifyP     :: Parser Command
 redescribeP :: Parser Command
 removeP     :: Parser Command
 checkP      :: Parser Command
 addP        = Add        <$> descArgP <*> optional idenOptP     <*> optional metaOptP
 lookupP     = Lookup     <$> descArgP <*> optional idenOptP     <*> verbosityFlagP
-exportJSONP = ExportJSON <$> pathArgP
 modifyP     = Modify     <$> targetP  <*> modifyCiphertextFlagP <*> optional idenOptP <*> optional metaOptP
 redescribeP = Redescribe <$> targetP  <*> descArgP
 removeP     = Remove     <$> targetP
@@ -63,21 +60,33 @@ checkP      = pure CheckForMultipleKeys
 
 cmdAdd        :: Mod CommandFields Command
 cmdLookup     :: Mod CommandFields Command
-cmdExportJSON :: Mod CommandFields Command
 cmdModify     :: Mod CommandFields Command
 cmdRedescribe :: Mod CommandFields Command
 cmdRemove     :: Mod CommandFields Command
 cmdCheck      :: Mod CommandFields Command
 cmdAdd        = command "add"         $ info addP        (progDesc "Encrypt a piece of text and add it to the store")
 cmdLookup     = command "lookup"      $ info lookupP     (progDesc "Lookup a piece of ciphertext in the store")
-cmdExportJSON = command "export-json" $ info exportJSONP (progDesc "Export a JSON file")
 cmdModify     = command "modify"      $ info modifyP     (progDesc "Modify a piece of ciphertext in the store")
 cmdRedescribe = command "redescribe"  $ info redescribeP (progDesc "Modify the description of a piece of ciphertext in the store")
 cmdRemove     = command "remove"      $ info removeP     (progDesc "Remove a piece of ciphertext from the store")
 cmdCheck      = command "check"       $ info checkP      (progDesc "Check if all entries have the same keyid")
 
+#ifdef BACKEND_JSON
+pathArgP :: Parser FilePath
+pathArgP = argument str $ metavar "PATH" <> help "Path of JSON file"
+
+exportJSONP :: Parser Command
+exportJSONP = ExportJSON <$> pathArgP
+
+cmdExportJSON :: Mod CommandFields Command
+cmdExportJSON = command "export-json" $ info exportJSONP (progDesc "Export a JSON file")
+
 master :: Parser Command
 master = hsubparser (cmdAdd <> cmdLookup <> cmdExportJSON <> cmdModify <> cmdRedescribe <> cmdRemove <> cmdCheck)
+#else
+master :: Parser Command
+master = hsubparser (cmdAdd <> cmdLookup <> cmdModify <> cmdRedescribe <> cmdRemove <> cmdCheck)
+#endif
 
 opts :: ParserInfo Command
 opts = info (master <**> helper) (fullDesc <> progDesc "A minimal password manager")

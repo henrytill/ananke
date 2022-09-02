@@ -47,7 +47,9 @@ data Command
            , lookupIdentity    :: Maybe Identity
            , lookupVerbosity   :: Verbosity
            }
+#ifdef BACKEND_JSON
   | ExportJSON { exportFile :: FilePath }
+#endif
   | Modify { modifyTarget     :: Target
            , modifyCiphertext :: ModifyAction
            , modifyIdentity   :: Maybe Identity
@@ -199,9 +201,6 @@ exportJSON jsonFile = do
       json = Aeson.encodePretty' cfg (List.sort entries)
   writeFileFromLazyByteString jsonFile json
   return Exported
-#else
-exportJSON :: (MonadAppError m) => FilePath -> m Response
-exportJSON _ = defaultError "No JSON support.  Please rebuild with backend-json flag enabled."
 #endif
 
 update :: Maybe Identity -> Maybe Metadata -> Entry -> UTCTime -> Entry
@@ -277,7 +276,9 @@ eval
   -> m Response
 eval Add{addDescription, addIdentity, addMeta}                          = add addDescription addIdentity addMeta
 eval Lookup{lookupDescription, lookupIdentity, lookupVerbosity}         = lookup lookupDescription lookupIdentity lookupVerbosity
+#ifdef BACKEND_JSON
 eval ExportJSON{exportFile}                                             = exportJSON exportFile
+#endif
 eval Modify{modifyTarget, modifyCiphertext, modifyIdentity, modifyMeta} = modify modifyTarget modifyCiphertext modifyIdentity modifyMeta
 eval Redescribe{redescribeTarget, redescribeDescription}                = redescribe redescribeTarget redescribeDescription
 eval Remove{removeTarget}                                               = remove removeTarget

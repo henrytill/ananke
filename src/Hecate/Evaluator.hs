@@ -1,6 +1,7 @@
-{-# LANGUAGE CPP               #-}
-{-# LANGUAGE NamedFieldPuns    #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP                 #-}
+{-# LANGUAGE NamedFieldPuns      #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Hecate.Evaluator
   ( ModifyAction(..)
@@ -88,14 +89,14 @@ getSchemaVersion path = do
     then getSchemaVersionFromFile path
     else currentSchemaVersion >>= createSchemaFile path
 
-reencryptAll :: (MonadEncrypt m, MonadStore m) => KeyId -> m ()
+reencryptAll :: forall m. (MonadEncrypt m, MonadStore m) => KeyId -> m ()
 reencryptAll keyId = do
   entries        <- selectAll
   updatedEntries <- mapM reencrypt entries
   mapM_ put    updatedEntries
   mapM_ delete entries
   where
-    reencrypt :: MonadEncrypt m => Entry -> m Entry
+    reencrypt :: Entry -> m Entry
     reencrypt entry = do
       plaintext  <- decrypt $ entryCiphertext entry
       ciphertext <- encrypt keyId plaintext
@@ -135,7 +136,7 @@ setup = do
   initDatabase schemaFile schemaVersion keyId
 
 checkKey
-  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
+  :: forall m. (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
   => m Response
   -> m Response
 checkKey k = do
@@ -154,7 +155,7 @@ checkKey k = do
               (_, True )                   -> yesNo question (reencryptAll keyId >> k) k
               (_, False)                   -> defaultError "All entries do not have the same keyid"
   where
-    yesNo :: (MonadAppError m, MonadInteraction m) => String -> m a -> m a -> m a
+    yesNo :: String -> m a -> m a -> m a
     yesNo promptString kYes kNo = do
       input <- prompt (promptString ++ " [N/y] ")
       case map toLower input of
@@ -177,7 +178,7 @@ add description maybeIdentity maybeMeta = checkKey $ do
   put $ mkEntry keyId timestamp description maybeIdentity ciphertext maybeMeta
   return Added
 
-lookup :: (MonadEncrypt m, MonadStore m) => Description -> Maybe Identity -> Verbosity -> m Response
+lookup :: forall m. (MonadEncrypt m, MonadStore m) => Description -> Maybe Identity -> Verbosity -> m Response
 lookup description maybeIdentity verbosity = do
   entries <- runQuery $ MkQuery Nothing (Just description) maybeIdentity Nothing
   case entries of
@@ -185,7 +186,7 @@ lookup description maybeIdentity verbosity = do
     [entry] -> SingleEntry     <$> f entry        <*> pure verbosity
     _       -> MultipleEntries <$> mapM f entries <*> pure verbosity
   where
-    f :: MonadEncrypt m => Entry -> m DisplayEntry
+    f :: Entry -> m DisplayEntry
     f MkEntry{entryId, entryTimestamp, entryDescription, entryIdentity, entryCiphertext, entryMeta} =
       do plaintext <- decrypt entryCiphertext
          return $ MkDisplayEntry entryId entryTimestamp entryDescription entryIdentity plaintext entryMeta

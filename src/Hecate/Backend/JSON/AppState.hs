@@ -6,11 +6,13 @@ module Hecate.Backend.JSON.AppState
   , mkAppState
   , put
   , delete
-  , query
+  , runQuery
   , selectAll
   , getCount
   , getCountOfKeyId
   ) where
+
+import           Prelude       hiding (id)
 
 import qualified Data.Maybe    as Maybe
 import           Data.Multimap (Multimap)
@@ -35,7 +37,7 @@ mkAppState entries = MkAppState
   , appStateData  = Multimap.fromList (tupler <$> entries)
   }
   where
-    tupler ent = (entryDescription ent, ent)
+    tupler entry = (entryDescription entry, entry)
 
 update :: (EntriesMap -> EntriesMap) -> AppState -> AppState
 update f state = state{appStateDirty = True, appStateData = updated}
@@ -44,37 +46,37 @@ update f state = state{appStateDirty = True, appStateData = updated}
 
 put    :: Entry -> AppState -> AppState
 delete :: Entry -> AppState -> AppState
-put    ent = update (Multimap.insert (entryDescription ent) ent)
-delete ent = update (Multimap.delete (entryDescription ent) ent)
+put    entry = update (Multimap.insert (entryDescription entry) entry)
+delete entry = update (Multimap.delete (entryDescription entry) entry)
 
 idenIsInfixOf :: Identity    -> Identity    -> Bool
 descIsInfixOf :: Description -> Description -> Bool
 idenIsInfixOf (MkIdentity    needle) (MkIdentity    haystack) = Text.isInfixOf needle haystack
 descIsInfixOf (MkDescription needle) (MkDescription haystack) = Text.isInfixOf needle haystack
 
-idenMatcher :: Maybe Identity    -> Maybe Identity -> Bool
+idenMatcher :: Maybe Identity -> Maybe Identity -> Bool
 idenMatcher queryIden entryIden = Maybe.fromMaybe True (idenIsInfixOf <$> queryIden <*> entryIden)
 
 filterEntries :: (Maybe Identity -> Bool) -> Set Entry -> [Entry]
 filterEntries predicate = Set.foldr f []
   where
-    f e acc | predicate $ entryIdentity e = e : acc
-            | otherwise                   = acc
+    f entry acc | predicate $ entryIdentity entry = entry : acc
+                | otherwise                       = acc
 
 queryFolder :: Query -> Description -> Set Entry -> [Entry] -> [Entry]
-queryFolder (MkQuery (Just eid) Nothing Nothing Nothing) _ es acc =
+queryFolder (MkQuery (Just id) Nothing Nothing Nothing) _ entries acc =
   Set.toList matches ++ acc
   where
-    matches = Set.filter (\e -> entryId e == eid) es
-queryFolder q d es acc
-  | Just True <- descMatches = filterEntries idenMatches es ++ acc
+    matches = Set.filter (\entry -> entryId entry == id) entries
+queryFolder query description entries acc
+  | Just True <- descMatches = filterEntries idenMatches entries ++ acc
   | otherwise                = acc
   where
-    descMatches = descIsInfixOf <$> queryDescription q <*> pure d
-    idenMatches = idenMatcher $ queryIdentity q
+    descMatches = descIsInfixOf <$> queryDescription query <*> pure description
+    idenMatches = idenMatcher $ queryIdentity query
 
-query :: Query -> AppState -> [Entry]
-query q MkAppState{appStateData} = Multimap.foldrWithKey (queryFolder q) [] appStateData
+runQuery :: Query -> AppState -> [Entry]
+runQuery query MkAppState{appStateData} = Multimap.foldrWithKey (queryFolder query) [] appStateData
 
 selectAll :: AppState -> [Entry]
 selectAll = Multimap.elems . appStateData
@@ -83,4 +85,4 @@ getCount :: AppState -> Int
 getCount = Multimap.size . appStateData
 
 getCountOfKeyId :: KeyId -> AppState -> Int
-getCountOfKeyId keyid = length . filter (\e -> entryKeyId e == keyid) . selectAll
+getCountOfKeyId keyId = length . filter (\entry -> entryKeyId entry == keyId) . selectAll

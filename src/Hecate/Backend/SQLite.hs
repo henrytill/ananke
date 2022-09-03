@@ -65,10 +65,10 @@ withDatabase f = ask >>= f . appContextDatabase
 instance MonadStore SQLite where
   put             e       = withDatabase $ \db -> Database.put             db e
   delete          e       = withDatabase $ \db -> Database.delete          db e
-  runQuery        q       = withDatabase $ \db -> Database.query           db q
+  runQuery        q       = withDatabase $ \db -> Database.runQuery        db q
   selectAll               = withDatabase $ \db -> Database.selectAll       db
   getCount                = withDatabase $ \db -> Database.getCount        db
   getCountOfKeyId kid     = withDatabase $ \db -> Database.getCountOfKeyId db kid
   createTable             = withDatabase $ \db -> Database.createTable     db
-  migrate         sv  kid = withDatabase $ \db -> Database.migrate         db sv kid
+  migrate         sv  kid = withDatabase $ \db -> Database.migrate         db sv  kid
   currentSchemaVersion    = return Database.currentSchemaVersion

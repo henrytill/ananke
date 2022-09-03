@@ -43,6 +43,8 @@ module Hecate.Data
   , utcTimeFromText
   ) where
 
+import           Prelude                  hiding (id)
+
 #ifdef BACKEND_JSON
 import           Data.Aeson               (FromJSON (..), Options, ToJSON (..))
 import qualified Data.Aeson               as Aeson
@@ -284,8 +286,8 @@ generateId (MkKeyId k) ts (MkDescription d) Nothing               = mkId $ k <> 
 
 mkEntry :: KeyId -> UTCTime -> Description -> Maybe Identity -> Ciphertext -> Maybe Metadata -> Entry
 mkEntry keyId timestamp description identity ciphertext meta =
-  let entryId = generateId keyId timestamp description identity
-  in MkEntry entryId keyId timestamp description identity ciphertext meta
+  let id = generateId keyId timestamp description identity
+  in MkEntry id keyId timestamp description identity ciphertext meta
 
 updateEntry :: Entry -> Entry
 updateEntry entry@(MkEntry _ keyId timestamp description identity _ _) =

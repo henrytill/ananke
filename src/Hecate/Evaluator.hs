@@ -13,6 +13,8 @@ module Hecate.Evaluator
   , eval
   ) where
 
+import           Prelude                  hiding (lookup)
+
 #ifdef BACKEND_JSON
 import qualified Data.Aeson               as Aeson
 import qualified Data.Aeson.Encode.Pretty as AesonPretty
@@ -21,7 +23,6 @@ import qualified Data.List                as List
 
 import           Data.Char                (toLower)
 import           Data.Time.Clock          (UTCTime)
-import           Prelude                  hiding (lookup)
 
 import           Hecate.Data
 import           Hecate.Interfaces

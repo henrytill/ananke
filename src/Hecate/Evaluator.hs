@@ -97,20 +97,15 @@ getSchemaVersion path = do
 reencryptAll :: forall m. (MonadEncrypt m, MonadStore m) => KeyId -> m ()
 reencryptAll keyId = do
   entries        <- selectAll
-  updatedEntries <- mapM reencrypt entries
+  updatedEntries <- mapM (reencrypt keyId) entries
   mapM_ put    updatedEntries
   mapM_ delete entries
   where
-    reencrypt :: Entry -> m Entry
-    reencrypt entry = do
-      plaintext  <- decrypt $ entryCiphertext entry
-      ciphertext <- encrypt keyId plaintext
-      return $ mkEntry keyId
-                       (entryTimestamp entry)
-                       (entryDescription entry)
-                       (entryIdentity entry)
-                       ciphertext
-                       (entryMeta entry)
+    reencrypt :: KeyId -> Entry -> m Entry
+    reencrypt entryKeyId entry = do
+      plaintext       <- decrypt $ entryCiphertext entry
+      entryCiphertext <- encrypt entryKeyId plaintext
+      return $ updateEntry entry{entryKeyId, entryCiphertext}
 
 initDatabase
   :: (MonadEncrypt m, MonadInteraction m, MonadStore m)

@@ -197,7 +197,7 @@ customOptions :: Options
 customOptions = Aeson.defaultOptions{Aeson.fieldLabelModifier = strip}
   where
     strip :: String -> String
-    strip str = Maybe.fromMaybe str (List.stripPrefix prefix str)
+    strip str = Maybe.fromMaybe str $ List.stripPrefix prefix str
     prefix :: String
     prefix = "entry"
 
@@ -279,8 +279,8 @@ mkId :: T.Text -> Id
 mkId = MkId . T.pack . SHA.showDigest . SHA.sha1 . BSL.fromStrict . Encoding.encodeUtf8
 
 generateId :: KeyId -> UTCTime -> Description -> Maybe Identity -> Id
-generateId (MkKeyId k) ts (MkDescription d) (Just (MkIdentity i)) = mkId (k <> utcTimeToText ts <> d <> i)
-generateId (MkKeyId k) ts (MkDescription d) Nothing               = mkId (k <> utcTimeToText ts <> d)
+generateId (MkKeyId k) ts (MkDescription d) (Just (MkIdentity i)) = mkId $ k <> utcTimeToText ts <> d <> i
+generateId (MkKeyId k) ts (MkDescription d) Nothing               = mkId $ k <> utcTimeToText ts <> d
 
 mkEntry :: KeyId -> UTCTime -> Description -> Maybe Identity -> Ciphertext -> Maybe Metadata -> Entry
 mkEntry keyId timestamp description identity ciphertext meta =

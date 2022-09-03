@@ -187,7 +187,7 @@ lookup :: forall m. (MonadEncrypt m, MonadStore m) => Description -> Maybe Ident
 lookup description maybeIdentity verbosity = do
   entries <- runQuery $ MkQuery Nothing (Just description) maybeIdentity Nothing
   case entries of
-    []      -> return (MultipleEntries [] verbosity)
+    []      -> return $ MultipleEntries [] verbosity
     [entry] -> SingleEntry     <$> f entry        <*> pure verbosity
     _       -> MultipleEntries <$> mapM f entries <*> pure verbosity
   where
@@ -207,8 +207,8 @@ importJSON jsonFile = do
 exportJSON :: (MonadInteraction m, MonadStore m) => FilePath -> m Response
 exportJSON jsonFile = do
   entries <- selectAll
-  let cfg    = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
-      output = AesonPretty.encodePretty' cfg (List.sort entries)
+  let aesonCfg = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
+      output   = AesonPretty.encodePretty' aesonCfg $ List.sort entries
   writeFileFromLazyByteString jsonFile output
   return Exported
 #endif
@@ -231,7 +231,7 @@ updateCiphertext Change entry = do
   input           <- prompt "Enter text to encrypt: "
   entryTimestamp  <- now
   keyId           <- configKeyId <$> askConfig
-  entryCiphertext <- encrypt keyId (mkPlaintext input)
+  entryCiphertext <- encrypt keyId $ mkPlaintext input
   return $ updateEntry entry{entryTimestamp, entryCiphertext}
 updateCiphertext Keep entry =
   return entry

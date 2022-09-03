@@ -75,7 +75,7 @@ executeQuery = flip go []
     go stmt acc = SQLite3.stepNoCB stmt >>= \case
       SQLite3.Done -> return acc
       SQLite3.Row  -> do entry <- getEntry stmt
-                         go stmt (entry : acc)
+                         go stmt $ entry : acc
 
 executeCount :: SQLite3.Statement -> IO Int
 executeCount = flip go 0
@@ -83,7 +83,7 @@ executeCount = flip go 0
     go stmt acc = SQLite3.stepNoCB stmt >>= \case
       SQLite3.Done -> return . fromIntegral $ acc
       SQLite3.Row  -> do count <- SQLite3.columnInt64 stmt 0
-                         go stmt (acc + count)
+                         go stmt $ count + acc
 
 createTable :: (MonadThrow m, MonadIO m) => SQLite3.Database -> m ()
 createTable db = catchLift $ Exception.bracket (SQLite3.prepare db s) SQLite3.finalize executeStatement

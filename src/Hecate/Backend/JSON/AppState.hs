@@ -40,7 +40,7 @@ mkAppState entries = MkAppState
 update :: (EntriesMap -> EntriesMap) -> AppState -> AppState
 update f state = state{appStateDirty = True, appStateData = updated}
   where
-    updated = f (appStateData state)
+    updated = f $ appStateData state
 
 put    :: Entry -> AppState -> AppState
 delete :: Entry -> AppState -> AppState
@@ -58,7 +58,7 @@ idenMatcher queryIden entryIden = Maybe.fromMaybe True (idenIsInfixOf <$> queryI
 filterEntries :: (Maybe Identity -> Bool) -> Set Entry -> [Entry]
 filterEntries predicate = Set.foldr f []
   where
-    f e acc | predicate (entryIdentity e) = e : acc
+    f e acc | predicate $ entryIdentity e = e : acc
             | otherwise                   = acc
 
 queryFolder :: Query -> Description -> Set Entry -> [Entry] -> [Entry]
@@ -71,7 +71,7 @@ queryFolder q d es acc
   | otherwise                = acc
   where
     descMatches = descIsInfixOf <$> queryDescription q <*> pure d
-    idenMatches = idenMatcher (queryIdentity q)
+    idenMatches = idenMatcher $ queryIdentity q
 
 query :: Query -> AppState -> [Entry]
 query q MkAppState{appStateData} = Multimap.foldrWithKey (queryFolder q) [] appStateData

@@ -43,11 +43,11 @@ runJSON m state cfg = runStateT (runReaderT (unJSON m) cfg) state
 
 writeState :: (MonadAppError m, MonadInteraction m) => AppState -> Config -> m ()
 writeState state cfg = when (appStateDirty state) $ do
-  let dataFile = configDataFile cfg
+  let jsonFile = configDataFile cfg
       entries  = AppState.selectAll state
       aesonCfg = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
-      dataBS   = AesonPretty.encodePretty' aesonCfg (List.sort entries)
-  writeFileFromLazyByteString dataFile dataBS
+      output   = AesonPretty.encodePretty' aesonCfg $ List.sort entries
+  writeFileFromLazyByteString jsonFile output
 
 run :: JSON a -> AppState -> Config -> IO a
 run m state cfg = do
@@ -60,7 +60,7 @@ createState cfg = do
   let dataDir  = configDataDirectory cfg
       dataFile = configDataFile cfg
   dataDirExists <- doesDirectoryExist dataDir
-  Except.unless dataDirExists (createDirectory dataDir)
+  Except.unless dataDirExists $ createDirectory dataDir
   input <- readFileAsLazyByteString dataFile
   maybe (databaseError "unable to decode data.json") (return . AppState.mkAppState) (Aeson.decode input)
 

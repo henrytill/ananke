@@ -42,12 +42,12 @@ runJSON :: JSON a -> AppState -> Config -> IO (a, AppState)
 runJSON m state cfg = runStateT (runReaderT (unJSON m) cfg) state
 
 writeState :: (MonadAppError m, MonadInteraction m) => AppState -> Config -> m ()
-writeState state cfg = when (appStateDirty state) $ do
+writeState state cfg = when (appStateDirty state) $
   let jsonFile = configDataFile cfg
       entries  = AppState.selectAll state
       aesonCfg = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
       output   = AesonPretty.encodePretty' aesonCfg $ List.sort entries
-  writeFileFromLazyByteString jsonFile output
+  in writeFileFromLazyByteString jsonFile output
 
 run :: JSON a -> AppState -> Config -> IO a
 run m state cfg = do

@@ -239,7 +239,7 @@ modify
   -> Maybe Identity
   -> Maybe Metadata
   -> m Response
-modify target modifyAction maybeIdentity maybeMeta = checkKey $ do
+modify target modifyAction maybeIdentity maybeMeta = do
   entries <- runQuery $ queryFromTarget target
   case entries of
     [entry] -> now >>= updateCiphertext modifyAction . update maybeIdentity maybeMeta entry >>= put >> delete entry >> return Modified

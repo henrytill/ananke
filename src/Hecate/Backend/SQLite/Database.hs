@@ -88,15 +88,15 @@ executeCount = flip go 0
 createTable :: (MonadThrow m, MonadIO m) => SQLite3.Database -> m ()
 createTable db = catchLift $ Exception.bracket (SQLite3.prepare db s) SQLite3.finalize executeStatement
   where
-    s  = "CREATE TABLE IF NOT EXISTS entries (\
-         \  id          TEXT UNIQUE NOT NULL, \
-         \  keyid       TEXT NOT NULL,        \
-         \  timestamp   TEXT NOT NULL,        \
-         \  description TEXT NOT NULL,        \
-         \  identity    TEXT,                 \
-         \  ciphertext  TEXT NOT NULL,        \
-         \  meta        TEXT                  \
-         \)"
+    s = "CREATE TABLE IF NOT EXISTS entries (\
+        \  id          TEXT UNIQUE NOT NULL, \
+        \  keyid       TEXT NOT NULL,        \
+        \  timestamp   TEXT NOT NULL,        \
+        \  description TEXT NOT NULL,        \
+        \  identity    TEXT,                 \
+        \  ciphertext  TEXT NOT NULL,        \
+        \  meta        TEXT                  \
+        \)"
 
 addKeyId :: (MonadThrow m, MonadIO m) => SQLite3.Database -> KeyId -> m ()
 addKeyId db (MkKeyId keyId) = catchLift $ Exception.bracket

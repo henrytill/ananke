@@ -204,7 +204,7 @@ exportJSON :: (MonadInteraction m, MonadStore m) => FilePath -> m Response
 exportJSON jsonFile = do
   entries <- selectAll
   let aesonCfg = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
-      output   = AesonPretty.encodePretty' aesonCfg $ List.sort entries
+      output   = AesonPretty.encodePretty' aesonCfg . List.sort $ entries
   writeFileFromLazyByteString jsonFile output
   return Exported
 #endif

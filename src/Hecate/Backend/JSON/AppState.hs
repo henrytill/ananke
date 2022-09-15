@@ -1,5 +1,3 @@
-{-# LANGUAGE NamedFieldPuns #-}
-
 module Hecate.Backend.JSON.AppState
   ( EntriesMap
   , AppState (..)
@@ -76,7 +74,7 @@ queryFolder query description entries acc
     idenMatches = idenMatcher $ queryIdentity query
 
 runQuery :: Query -> AppState -> [Entry]
-runQuery query MkAppState{appStateData} = Multimap.foldrWithKey (queryFolder query) [] appStateData
+runQuery query appState = Multimap.foldrWithKey (queryFolder query) [] (appStateData appState)
 
 selectAll :: AppState -> [Entry]
 selectAll = Multimap.elems . appStateData

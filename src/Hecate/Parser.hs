@@ -64,12 +64,12 @@ cmdModify     :: Mod CommandFields Command
 cmdRedescribe :: Mod CommandFields Command
 cmdRemove     :: Mod CommandFields Command
 cmdCheck      :: Mod CommandFields Command
-cmdAdd        = command "add"        $ info addP        (progDesc "Encrypt a piece of text and add it to the store")
-cmdLookup     = command "lookup"     $ info lookupP     (progDesc "Lookup a piece of ciphertext in the store")
-cmdModify     = command "modify"     $ info modifyP     (progDesc "Modify a piece of ciphertext in the store")
-cmdRedescribe = command "redescribe" $ info redescribeP (progDesc "Modify the description of a piece of ciphertext in the store")
-cmdRemove     = command "remove"     $ info removeP     (progDesc "Remove a piece of ciphertext from the store")
-cmdCheck      = command "check"      $ info checkP      (progDesc "Check if all entries have the same keyid")
+cmdAdd        = command "add"        . info addP        $ progDesc "Encrypt a piece of text and add it to the store"
+cmdLookup     = command "lookup"     . info lookupP     $ progDesc "Lookup a piece of ciphertext in the store"
+cmdModify     = command "modify"     . info modifyP     $ progDesc "Modify a piece of ciphertext in the store"
+cmdRedescribe = command "redescribe" . info redescribeP $ progDesc "Modify the description of a piece of ciphertext in the store"
+cmdRemove     = command "remove"     . info removeP     $ progDesc "Remove a piece of ciphertext from the store"
+cmdCheck      = command "check"      . info checkP      $ progDesc "Check if all entries have the same keyid"
 
 #ifdef BACKEND_JSON
 pathArgP :: Parser FilePath
@@ -83,8 +83,8 @@ exportP = Export <$> pathArgP
 
 cmdImport :: Mod CommandFields Command
 cmdExport :: Mod CommandFields Command
-cmdImport = command "import" $ info importP (progDesc "Import a JSON file")
-cmdExport = command "export" $ info exportP (progDesc "Export a JSON file")
+cmdImport = command "import" . info importP $ progDesc "Import a JSON file"
+cmdExport = command "export" . info exportP $ progDesc "Export a JSON file"
 
 master :: Parser Command
 master = hsubparser (cmdAdd <> cmdLookup <> cmdImport <> cmdExport <> cmdModify <> cmdRedescribe <> cmdRemove <> cmdCheck)

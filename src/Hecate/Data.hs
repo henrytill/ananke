@@ -1,6 +1,5 @@
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Hecate.Data
@@ -286,13 +285,15 @@ generateId (MkKeyId k) ts (MkDescription d) Nothing               = mkId $ k <> 
 
 mkEntry :: KeyId -> UTCTime -> Description -> Maybe Identity -> Ciphertext -> Maybe Metadata -> Entry
 mkEntry keyId timestamp description identity ciphertext meta =
-  let id = generateId keyId timestamp description identity
-  in MkEntry id keyId timestamp description identity ciphertext meta
+  MkEntry id keyId timestamp description identity ciphertext meta
+  where
+    id = generateId keyId timestamp description identity
 
 updateEntry :: Entry -> Entry
 updateEntry entry@(MkEntry _ keyId timestamp description identity _ _) =
-  let entryId = generateId keyId timestamp description identity
-  in entry{entryId}
+  entry{entryId = id}
+  where
+    id = generateId keyId timestamp description identity
 
 -- * Display Entry
 

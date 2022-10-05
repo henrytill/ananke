@@ -41,7 +41,7 @@ createEntryFromTestData td = do
   cfg       <- askConfig
   timestamp <- now
   let keyId = configKeyId cfg
-  ciphertext <- encrypt keyId (testPlaintext td)
+  ciphertext <- encrypt keyId $ testPlaintext td
   return $ mkEntry keyId
                    timestamp
                    (testDescription td)
@@ -50,12 +50,7 @@ createEntryFromTestData td = do
                    (testMetadata td)
 
 addEntryToDatabase
-  :: ( MonadAppError m
-     , MonadInteraction m
-     , MonadEncrypt m
-     , MonadStore m
-     , MonadConfigReader m
-     )
+  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
   => [TestData]
   -> m [Entry]
 addEntryToDatabase tds = do
@@ -65,10 +60,10 @@ addEntryToDatabase tds = do
 
 prop_roundTripEntriesToDatabase :: AppContext -> Property
 prop_roundTripEntriesToDatabase ctx = Monadic.monadicIO $ do
-  tds <- Monadic.pick (QuickCheck.listOf1 arbitrary)
-  es  <- Monadic.run (SQLite.run (addEntryToDatabase tds) ctx)
-  res <- Monadic.run (SQLite.run selectAll ctx)
-  Monadic.assert (null (es \\ res))
+  tds <- Monadic.pick $ QuickCheck.listOf1 arbitrary
+  es  <- Monadic.run  $ SQLite.run (addEntryToDatabase tds) ctx
+  res <- Monadic.run  $ SQLite.run selectAll ctx
+  Monadic.assert . null $ es \\ res
 
 tests :: [AppContext -> Property]
 tests =

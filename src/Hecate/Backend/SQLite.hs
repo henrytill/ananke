@@ -8,8 +8,8 @@ module Hecate.Backend.SQLite
   , AppContext (..)
   ) where
 
+import           Control.Monad                    (unless)
 import           Control.Monad.Catch              (MonadThrow (..))
-import qualified Control.Monad.Except             as Except
 import           Control.Monad.IO.Class           (MonadIO (..))
 import           Control.Monad.Reader             (MonadReader, ReaderT, ask, asks, runReaderT)
 import qualified Data.Text                        as T
@@ -45,7 +45,7 @@ initialize cfg = do
   let dbDir  = configDatabaseDirectory cfg
       dbFile = configDatabaseFile cfg
   dbDirExists <- doesDirectoryExist dbDir
-  Except.unless dbDirExists (createDirectory dbDir)
+  unless dbDirExists (createDirectory dbDir)
   MkAppContext cfg <$> SQLite3.open (T.pack dbFile)
 
 finalize :: AppContext -> IO ()

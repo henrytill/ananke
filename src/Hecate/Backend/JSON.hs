@@ -8,9 +8,8 @@ module Hecate.Backend.JSON
   , AppState
   ) where
 
-import           Control.Monad                (when)
+import           Control.Monad                (unless, when)
 import           Control.Monad.Catch          (MonadThrow (..))
-import qualified Control.Monad.Except         as Except
 import           Control.Monad.IO.Class       (MonadIO (..))
 import           Control.Monad.Reader         (MonadReader, ReaderT, ask, runReaderT)
 import           Control.Monad.State          (MonadState, StateT, gets, modify, runStateT)
@@ -60,7 +59,7 @@ createState cfg = do
   let dataDir  = configDataDirectory cfg
       dataFile = configDataFile cfg
   dataDirExists <- doesDirectoryExist dataDir
-  Except.unless dataDirExists $ createDirectory dataDir
+  unless dataDirExists $ createDirectory dataDir
   input <- readFileAsLazyByteString dataFile
   maybe (databaseError "unable to decode data.json") (return . AppState.mkAppState) (Aeson.decode input)
 

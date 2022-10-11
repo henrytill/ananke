@@ -1,6 +1,6 @@
 module Main (main) where
 
-import qualified Control.Monad       as Monad
+import           Control.Monad       (unless)
 import qualified System.Exit         as Exit
 import qualified Test.Dwergaz        as Dwergaz
 import qualified Test.QuickCheck     as QC
@@ -15,7 +15,7 @@ isSuccess QC.Success{} = True
 isSuccess _            = False
 
 exitOnFalse :: Bool -> IO ()
-exitOnFalse = flip Monad.unless Exit.exitFailure
+exitOnFalse = flip unless Exit.exitFailure
 
 main :: IO ()
 main = do

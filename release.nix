@@ -2,7 +2,7 @@ let
   pkgs = import <nixpkgs> {};
 in {
   hecate =
-    { compiler ? "ghc924"
+    { compiler ? "ghc942"
     , doCheck ? ! pkgs.stdenv.isDarwin
     }:
     let

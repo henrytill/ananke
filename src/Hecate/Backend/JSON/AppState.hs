@@ -66,9 +66,10 @@ queryFolder (MkQuery (Just id) Nothing Nothing Nothing) _ entries acc =
   Set.toList matches ++ acc
   where
     matches = Set.filter (\entry -> entryId entry == id) entries
-queryFolder query description entries acc
-  | Just True <- descMatches = filterEntries idenMatches entries ++ acc
-  | otherwise                = acc
+queryFolder query description entries acc =
+  case descMatches of
+    Just True -> filterEntries idenMatches entries ++ acc
+    _         -> acc
   where
     descMatches = descIsInfixOf <$> queryDescription query <*> pure description
     idenMatches = idenMatcher $ queryIdentity query

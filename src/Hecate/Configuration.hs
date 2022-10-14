@@ -23,40 +23,33 @@ mkBackend txt = case toLower <$> txt of
   "json"   -> JSON
   _        -> SQLite
 
+mkKeyId :: String -> KeyId
+mkKeyId = MkKeyId . T.pack
+
 mkBool :: String -> Bool
 mkBool "True" = True
 mkBool "true" = True
 mkBool "TRUE" = True
 mkBool "t"    = True
+mkBool "T"    = True
 mkBool "1"    = True
 mkBool _      = False
 
-getDefaultDataDirectory :: MonadInteraction m => m (Maybe FilePath)
-getDefaultDataDirectory = case Info.os of
-  "mingw32" -> fmap (++ "/hecate")  <$> getEnv "APPDATA"
-  _         -> fmap (++ "/.hecate") <$> getEnv "HOME"
-
-getDataDirectoryFromEnv :: MonadInteraction m => m (Maybe FilePath)
-getDataDirectoryFromEnv
-  = getEnv "HECATE_DATA_DIR"
-
-getBackendFromEnv :: MonadInteraction m => m (Maybe Backend)
-getBackendFromEnv = fmap mkBackend <$> getEnv "HECATE_BACKEND"
-
-getKeyIdFromEnv :: MonadInteraction m => m (Maybe KeyId)
-getKeyIdFromEnv = fmap (MkKeyId . T.pack) <$> getEnv "HECATE_KEYID"
-
+getDataDirectoryFromEnv     :: MonadInteraction m => m (Maybe FilePath)
+getBackendFromEnv           :: MonadInteraction m => m (Maybe Backend)
+getKeyIdFromEnv             :: MonadInteraction m => m (Maybe KeyId)
 getAllowMultipleKeysFromEnv :: MonadInteraction m => m (Maybe Bool)
-getAllowMultipleKeysFromEnv = fmap mkBool <$> getEnv "HECATE_ALLOW_MULTIPLE_KEYS"
+getDataDirectoryFromEnv     = getEnv "HECATE_DATA_DIR"
+getBackendFromEnv           = fmap mkBackend <$> getEnv "HECATE_BACKEND"
+getKeyIdFromEnv             = fmap mkKeyId   <$> getEnv "HECATE_KEYID"
+getAllowMultipleKeysFromEnv = fmap mkBool    <$> getEnv "HECATE_ALLOW_MULTIPLE_KEYS"
 
-getBackend :: Pairs -> Maybe Backend
-getBackend = fmap mkBackend . lookup "backend"
-
-getKeyId :: Pairs -> Maybe KeyId
-getKeyId = fmap (MkKeyId . T.pack) . lookup "keyid"
-
+getBackend           :: Pairs -> Maybe Backend
+getKeyId             :: Pairs -> Maybe KeyId
 getAllowMultipleKeys :: Pairs -> Maybe Bool
-getAllowMultipleKeys = fmap mkBool . lookup "allow_multiple_keys"
+getBackend           = fmap mkBackend . lookup "backend"
+getKeyId             = fmap mkKeyId   . lookup "keyid"
+getAllowMultipleKeys = fmap mkBool    . lookup "allow_multiple_keys"
 
 createPreConfig :: MonadInteraction m => m PreConfig
 createPreConfig = do
@@ -73,6 +66,9 @@ createPreConfig = do
 addDefaultConfig :: MonadInteraction m => PreConfig -> m PreConfig
 addDefaultConfig preConfig = mappend preConfig <$> defaultConfig
   where
+    getDefaultDataDirectory = case Info.os of
+      "mingw32" -> fmap (++ "/hecate")  <$> getEnv "APPDATA"
+      _         -> fmap (++ "/.hecate") <$> getEnv "HOME"
     defaultConfig = do
       dir <- First <$> getDefaultDataDirectory
       return MkPreConfig { preConfigDataDirectory     = dir

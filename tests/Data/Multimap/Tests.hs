@@ -2,9 +2,10 @@ module Data.Multimap.Tests
   ( runTests
   ) where
 
-import qualified Data.Multimap as Multimap
 import qualified Data.Set      as Set
 import           Test.Dwergaz
+
+import qualified Data.Multimap as Multimap
 
 
 testKey1 :: String

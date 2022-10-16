@@ -5,6 +5,7 @@ module Hecate.Configuration
   , configure
   ) where
 
+import           Control.Monad               (liftM)
 import           Data.Char                   (toLower)
 import qualified Data.Maybe                  as Maybe
 import           Data.Monoid                 (First (..))
@@ -35,28 +36,18 @@ mkBool "T"    = True
 mkBool "1"    = True
 mkBool _      = False
 
-getDataDirectoryFromEnv     :: MonadInteraction m => m (Maybe FilePath)
-getBackendFromEnv           :: MonadInteraction m => m (Maybe Backend)
-getKeyIdFromEnv             :: MonadInteraction m => m (Maybe KeyId)
-getAllowMultipleKeysFromEnv :: MonadInteraction m => m (Maybe Bool)
-getDataDirectoryFromEnv     = getEnv "HECATE_DATA_DIR"
-getBackendFromEnv           = fmap mkBackend <$> getEnv "HECATE_BACKEND"
-getKeyIdFromEnv             = fmap mkKeyId   <$> getEnv "HECATE_KEYID"
-getAllowMultipleKeysFromEnv = fmap mkBool    <$> getEnv "HECATE_ALLOW_MULTIPLE_KEYS"
+fromEnv :: MonadInteraction m => (String -> a) -> String -> m (Maybe a)
+fromEnv f name = liftM (fmap f) (getEnv name)
 
-getBackend           :: Pairs -> Maybe Backend
-getKeyId             :: Pairs -> Maybe KeyId
-getAllowMultipleKeys :: Pairs -> Maybe Bool
-getBackend           = fmap mkBackend . lookup "backend"
-getKeyId             = fmap mkKeyId   . lookup "keyid"
-getAllowMultipleKeys = fmap mkBool    . lookup "allow_multiple_keys"
+fromPairs :: (String -> a) -> String -> Pairs -> Maybe a
+fromPairs f name = fmap f . lookup name
 
 createPreConfig :: MonadInteraction m => m PreConfig
 createPreConfig = do
-  dir     <- First <$> getDataDirectoryFromEnv
-  backend <- First <$> getBackendFromEnv
-  keyId   <- First <$> getKeyIdFromEnv
-  mult    <- First <$> getAllowMultipleKeysFromEnv
+  dir     <- First <$> getEnv "HECATE_DATA_DIR"
+  backend <- First <$> fromEnv mkBackend "HECATE_BACKEND"
+  keyId   <- First <$> fromEnv mkKeyId   "HECATE_KEYID"
+  mult    <- First <$> fromEnv mkBool    "HECATE_ALLOW_MULTIPLE_KEYS"
   return MkPreConfig { preConfigDataDirectory     = dir
                      , preConfigBackend           = backend
                      , preConfigKeyId             = keyId
@@ -67,8 +58,8 @@ addDefaultConfig :: MonadInteraction m => PreConfig -> m PreConfig
 addDefaultConfig preConfig = mappend preConfig <$> defaultConfig
   where
     getDefaultDataDirectory = case Info.os of
-      "mingw32" -> fmap (++ "/hecate")  <$> getEnv "APPDATA"
-      _         -> fmap (++ "/.hecate") <$> getEnv "HOME"
+      "mingw32" -> fromEnv (++ "/hecate")  "APPDATA"
+      _         -> fromEnv (++ "/.hecate") "HOME"
     defaultConfig = do
       dir <- First <$> getDefaultDataDirectory
       return MkPreConfig { preConfigDataDirectory     = dir
@@ -82,11 +73,11 @@ addFileConfig preConfig = mappend preConfig <$> fileConfig
   where
     fileConfig = do
       let dataDir = Maybe.fromJust (getFirst (preConfigDataDirectory preConfig))
-      txt <- readFileAsString (dataDir ++ "/hecate.conf")
-      tbl <- maybe (configurationError "Unable to parse hecate.conf") return (Parser.parse txt)
-      let backend = First (getBackend tbl)
-          keyId   = First (getKeyId tbl)
-          mult    = First (getAllowMultipleKeys tbl)
+      txt   <- readFileAsString (dataDir ++ "/hecate.conf")
+      pairs <- maybe (configurationError "Unable to parse hecate.conf") return (Parser.parse txt)
+      let backend = First $ fromPairs mkBackend "backend"             pairs
+          keyId   = First $ fromPairs mkKeyId   "keyid"               pairs
+          mult    = First $ fromPairs mkBool    "allow_multiple_keys" pairs
       return MkPreConfig { preConfigDataDirectory     = mempty
                          , preConfigBackend           = backend
                          , preConfigKeyId             = keyId

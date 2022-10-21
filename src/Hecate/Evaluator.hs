@@ -49,10 +49,6 @@ data Command
            , lookupIdentity    :: Maybe Identity
            , lookupVerbosity   :: Verbosity
            }
-#ifdef BACKEND_JSON
-  | Import { importFile :: FilePath }
-  | Export { exportFile :: FilePath }
-#endif
   | Modify { modifyTarget     :: Target
            , modifyCiphertext :: ModifyAction
            , modifyIdentity   :: Maybe Identity
@@ -63,6 +59,10 @@ data Command
                }
   | Remove { removeTarget :: Target }
   | CheckForMultipleKeys
+#ifdef BACKEND_JSON
+  | Import { importFile :: FilePath }
+  | Export { exportFile :: FilePath }
+#endif
   deriving Show
 
 -- | 'Response' represents the response to a 'Command'
@@ -282,11 +282,11 @@ eval
   -> m Response
 eval Add{addDescription, addIdentity, addMeta}                          = checkKey $ add addDescription addIdentity addMeta
 eval Lookup{lookupDescription, lookupIdentity, lookupVerbosity}         = lookup lookupDescription lookupIdentity lookupVerbosity
-#ifdef BACKEND_JSON
-eval Import{importFile}                                                 = importJSON importFile
-eval Export{exportFile}                                                 = exportJSON exportFile
-#endif
 eval Modify{modifyTarget, modifyCiphertext, modifyIdentity, modifyMeta} = checkKey $ modify modifyTarget modifyCiphertext modifyIdentity modifyMeta
 eval Redescribe{redescribeTarget, redescribeDescription}                = checkKey $ redescribe redescribeTarget redescribeDescription
 eval Remove{removeTarget}                                               = remove removeTarget
 eval CheckForMultipleKeys                                               = check
+#ifdef BACKEND_JSON
+eval Import{importFile}                                                 = importJSON importFile
+eval Export{exportFile}                                                 = exportJSON exportFile
+#endif

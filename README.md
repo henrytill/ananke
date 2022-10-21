@@ -2,7 +2,7 @@
 
 [![builds.sr.ht status](https://builds.sr.ht/~henrytill/hecate/commits/master.svg)](https://builds.sr.ht/~henrytill/hecate/commits/master?)
 
-`hecate` is a minimal password manager with a command-line interface.  Like [`pass`](https://www.passwordstore.org/) and its derivatives, it uses [GnuPG](https://gnupg.org/) for asymmetric encryption of passwords.  Unlike `pass`, it stores all information in an [SQLite](https://sqlite.org) database.  It is also written in Haskell, rather than Bash.
+`hecate` is a minimal password manager with a command-line interface.  Like [`pass`](https://www.passwordstore.org/), it uses [GnuPG](https://gnupg.org/) for asymmetric encryption of passwords.  Unlike `pass`, it stores all information in an [SQLite](https://sqlite.org) database.
 
 ## Status
 
@@ -74,7 +74,7 @@ Enter text to encrypt: notarealpassword
 # Retrieve an entry from the database and display its ciphertext as plaintext (see NOTE below)
 # In most cases, this command will cause pinentry to appear.
 $ hecate lookup http://notarealwebsite.com
-http://notarealwebsite.com alice@notarealserver.com notarealpassword This is some metadata
+notarealpassword
 
 # Modify the ciphertext of a given entry
 $ hecate modify -d http://notarealwebsite.com -c
@@ -88,7 +88,7 @@ $ hecate modify -d http://notarealwebsite.com -m "My alternate account"
 
 # Retrieve the modified entry
 $ hecate lookup http://notarealwebsite.com
-http://notarealwebsite.com alice_alt@notarealserver.com anotherfakepassword My alternate account
+anotherfakepassword
 
 # Change the description of an entry
 $ hecate redescribe -d http://notarealwebsite.com http://notarealwebsite.net
@@ -98,12 +98,11 @@ $ hecate lookup http://notarealwebsite.com
 
 # Retrieve the newly-redescribed entry
 $ hecate lookup http://notarealwebsite.net
-http://notarealwebsite.net alice_alt@notarealserver.com anotherfakepassword My alternate account
+anotherfakepassword
 
-# Retrieve the newly-redescribed entry using SQLite pattern matching comparison
-# For more info, see https://sqlite.org/lang_expr.html
-$ hecate lookup %notarealwebsite%
-http://notarealwebsite.net alice_alt@notarealserver.com anotherfakepassword My alternate account
+# Retrieve the newly-redescribed entry using fuzzy input
+$ hecate lookup notarealwebsite
+anotherfakepassword
 
 # Remove an entry from the database
 $ hecate remove -d http://notarealwebsite.net

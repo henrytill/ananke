@@ -44,8 +44,7 @@ printOne :: DisplayEntry -> Doc
 printOne ent =
   prettyDescription (displayDescription ent) <+>
   prettyIdentity    (displayIdentity    ent) <+>
-  prettyPlaintext   (displayPlaintext   ent) <+>
-  prettyMeta        (displayMeta        ent)
+  prettyPlaintext   (displayPlaintext   ent)
 
 printOneVerbose :: DisplayEntry -> Doc
 printOneVerbose ent =

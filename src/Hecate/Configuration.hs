@@ -5,7 +5,6 @@ module Hecate.Configuration
   , configure
   ) where
 
-import           Control.Monad               (liftM)
 import           Data.Char                   (toLower)
 import qualified Data.Maybe                  as Maybe
 import           Data.Monoid                 (First (..))
@@ -37,7 +36,7 @@ mkBool "1"    = True
 mkBool _      = False
 
 fromEnv :: MonadInteraction m => (String -> a) -> String -> m (Maybe a)
-fromEnv f name = liftM (fmap f) (getEnv name)
+fromEnv f name = fmap (fmap f) (getEnv name)
 
 fromPairs :: (String -> a) -> String -> Pairs -> Maybe a
 fromPairs f name = fmap f . lookup name

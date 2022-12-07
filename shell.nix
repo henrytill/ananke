@@ -2,4 +2,4 @@
 , doCheck ? true
 }:
 
-((import ./release.nix).hecate { inherit compiler doCheck; }).env
+((import ./release.nix {}).hecate { inherit compiler doCheck; }).env

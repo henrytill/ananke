@@ -1,6 +1,5 @@
-let
-  pkgs = import <nixpkgs> {};
-in {
+{ pkgs ? import <nixpkgs> {} }:
+{
   hecate =
     { compiler ? "ghc942"
     , doCheck ? ! pkgs.stdenv.isDarwin

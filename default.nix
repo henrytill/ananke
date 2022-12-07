@@ -1,1 +1,1 @@
-(import ./release.nix).hecate {}
+(import ./release.nix {}).hecate {}

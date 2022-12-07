@@ -26,8 +26,9 @@ import           Hecate.Error           (AppError (..))
 
 
 catchLift :: (MonadThrow m, MonadIO m) => IO a -> m a
-catchLift a = liftIO . Exception.catch a $ \err ->
-  throwM . Database . T.unpack . SQLite3.sqlErrorDetails $ err
+catchLift a = liftIO $ Exception.catch a f
+  where
+    f = throwM . Database . T.unpack . SQLite3.sqlErrorDetails
 
 currentSchemaVersion :: SchemaVersion
 currentSchemaVersion = MkSchemaVersion 2

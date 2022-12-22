@@ -79,8 +79,8 @@ data Response
   deriving (Show, Eq)
 
 queryFromTarget :: Target -> Query
-queryFromTarget (TargetId targetId)                   = MkQuery (Just targetId) Nothing Nothing Nothing
-queryFromTarget (TargetDescription targetDescription) = MkQuery Nothing (Just targetDescription) Nothing Nothing
+queryFromTarget (TargetId targetId)                   = MkQuery (Just targetId) Nothing                  Nothing Nothing
+queryFromTarget (TargetDescription targetDescription) = MkQuery Nothing         (Just targetDescription) Nothing Nothing
 
 getSchemaVersionFromFile :: MonadInteraction m => FilePath -> m SchemaVersion
 getSchemaVersionFromFile path = MkSchemaVersion . read <$> readFileAsString path

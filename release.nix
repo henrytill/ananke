@@ -1,7 +1,7 @@
 { pkgs ? import <nixpkgs> {} }:
 {
   hecate =
-    { compiler ? "ghc943"
+    { compiler ? "ghc944"
     , doCheck ? true
     }:
     let

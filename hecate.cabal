@@ -50,6 +50,7 @@ library
                      , Hecate.Evaluator
                      , Hecate.Error
                      , Hecate.GPG
+                     , Hecate.GPG.Process
                      , Hecate.Interfaces
                      , Hecate.Parser
                      , Hecate.Printing

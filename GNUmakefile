@@ -35,7 +35,11 @@ nix:
 .PHONY: clean
 clean:
 	cabal v2-clean
-	rm -f cabal.project.local*
 	rm -f modules.png depends.png
+
+.PHONY: distclean
+distclean: clean
+	rm -f cabal.project.local*
+	unlink result
 
 FORCE:

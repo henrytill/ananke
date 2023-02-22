@@ -40,6 +40,6 @@ clean:
 .PHONY: distclean
 distclean: clean
 	rm -f cabal.project.local*
-	unlink result
+	find . -name 'result*' -type l -exec unlink {} \;
 
 FORCE:

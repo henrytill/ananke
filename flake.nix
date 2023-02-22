@@ -21,7 +21,8 @@
           }:
           let
             flags = "-fbackend-json";
-            hecate_ = call compiler "hecate" ./. flags {};
+            src = builtins.path { path = ./.; name = "hecate-src"; };
+            hecate_ = call compiler "hecate" src flags {};
             extDeps = [ pkgs.gnupg ];
           in
           pkgs.haskell.lib.overrideCabal hecate_ (_: {

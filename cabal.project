@@ -11,3 +11,9 @@ package strict
 
 package these
     flags: -assoc
+
+preferences: mtl >=2.3.1
+           , transformers >=0.6.1
+
+allow-newer: *:mtl
+           , *:transformers

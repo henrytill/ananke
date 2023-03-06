@@ -64,14 +64,14 @@ library
                      , directory            >=1.2  && <1.4
                      , exceptions           >=0.8  && <0.11
                      , filepath             >=1.4  && <1.5
-                     , mtl                  >=2.2  && <2.3
+                     , mtl                  >=2.2  && <2.4
                      , optparse-applicative >=0.13 && <0.18
                      , pretty               >=1.1  && <1.2
                      , process              >=1.4  && <2
                      , SHA                  >=1.6  && <1.7
                      , text                 >=1.2  && <2.1
                      , time                 >=1.5  && <2
-                     , transformers         >=0.5  && <0.6
+                     , transformers         >=0.5  && <0.7
   hs-source-dirs:      src
   default-language:    Haskell98
   ghc-options:         -Wall

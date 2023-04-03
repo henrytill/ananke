@@ -23,7 +23,7 @@ extra-source-files:
 
 source-repository head
   type:     git
-  location: https://git.sr.ht/~henrytill/hecate
+  location: https://github.com/henrytill/hecate.git
 
 flag backend-json
   description: Build with experimental JSON backend

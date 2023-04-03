@@ -1,7 +1,5 @@
 # hecate
 
-[![builds.sr.ht status](https://builds.sr.ht/~henrytill/hecate/commits/master.svg)](https://builds.sr.ht/~henrytill/hecate/commits/master?)
-
 `hecate` is a minimal password manager with a command-line interface.  Like [`pass`](https://www.passwordstore.org/), it uses [GnuPG](https://gnupg.org/) for asymmetric encryption of passwords.  Unlike `pass`, it stores all information in an [SQLite](https://sqlite.org) database.
 
 ## Status
@@ -28,11 +26,11 @@ You should have a basic understanding of how to use GnuPG and have a keypair to 
 
 ## Installation
 
-Currently, the recommended way of getting `hecate` is to build and install it from the [latest release](https://git.sr.ht/~henrytill/hecate/refs).
+Currently, the recommended way of getting `hecate` is to build and install it from the [latest release](https://github.com/henrytill/hecate/releases/latest).
 
 ### with `cabal`
 
-After downloading and decompressing the [latest release](https://git.sr.ht/~henrytill/hecate/refs),
+After downloading and decompressing the [latest release](https://github.com/henrytill/hecate/releases/latest),
 
 ```sh
 $ cd hecate-<version>
@@ -44,7 +42,7 @@ This will install the `hecate` executable in `$HOME/.cabal/bin`.
 ### with `nix-env`
 
 ```sh
-$ nix-env -f https://git.sr.ht/~henrytill/hecate/archive/<version>.tar.gz -i hecate
+$ nix-env -f https://github.com/henrytill/hecate/archive/<version>.tar.gz -i hecate
 ```
 
 ## Setup

@@ -1,0 +1,46 @@
+name: Haskell CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-haskell@v1
+      with:
+        ghc-version: '8.10.3'
+        cabal-version: '3.2'
+
+    - name: Cache
+      uses: actions/cache@v3
+      env:
+        cache-name: cache-cabal
+      with:
+        path: ~/.cabal
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/*.cabal') }}-${{ hashFiles('**/cabal.project') }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ env.cache-name }}-
+          ${{ runner.os }}-build-
+          ${{ runner.os }}-
+
+    - name: cabal v2-update
+      run: |
+        cabal v2-update
+    - name: default
+      run: |
+        ./configure
+        make all test
+    - name: backend-json
+      run: |
+        ./configure -fbackend-json
+        make all test

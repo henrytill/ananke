@@ -6,7 +6,7 @@ all:
 
 .PHONY: deps
 deps:
-	cabal v2-build --only-dependencies
+	cabal v2-build --only-dependencies --enable-tests --enable-benchmarks
 
 .PHONY: install
 install:

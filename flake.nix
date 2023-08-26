@@ -11,44 +11,46 @@
   };
 
   outputs = { self, nixpkgs, flake-utils, ... }:
+    let makeHecate = system:
+      { compiler ? "ghc946"
+      , doCheck ? true
+      , static ? false
+      }:
+      let
+        pkgs = if static
+               then nixpkgs.legacyPackages.${system}.pkgsMusl
+               else nixpkgs.legacyPackages.${system};
+        call = compiler: pkgs.haskell.packages.${compiler}.callCabal2nixWithOptions;
+        flags = "-fbackend-json";
+        src = builtins.path { path = ./.; name = "hecate-src"; };
+        hecate_ = call compiler "hecate" src flags {};
+        extDeps = [ nixpkgs.legacyPackages.${system}.gnupg ];
+      in
+      pkgs.haskell.lib.overrideCabal hecate_ (_: {
+        inherit doCheck;
+        isExecutable = true;
+        isLibrary = false;
+        doHaddock = false;
+        enableLibraryProfiling = false;
+        enableSharedExecutables = false;
+        enableSharedLibraries = false;
+        configureFlags = pkgs.lib.optionals (static) [
+          "--enable-executable-static"
+          "--extra-lib-dirs=${pkgs.gmp.override { withStatic = true; }}/lib"
+          "--extra-lib-dirs=${pkgs.zlib.static}/lib"
+          "--extra-lib-dirs=${pkgs.libffi.overrideAttrs (_: { dontDisableStatic = true; })}/lib"
+        ];
+        executableSystemDepends = extDeps;
+        testSystemDepends = extDeps;
+        preCheck = ''
+          export GNUPGHOME="$PWD/example/gnupg"
+        '';
+        postFixup = "rm -rf $out/lib $out/nix-support $out/share/doc";
+      });
+    in
     flake-utils.lib.eachDefaultSystem (system:
       let
-        hecate =
-          { compiler ? "ghc946"
-          , doCheck ? true
-          , static ? false
-          }:
-          let
-            pkgs = if static
-                   then nixpkgs.legacyPackages.${system}.pkgsMusl
-                   else nixpkgs.legacyPackages.${system};
-            call = compiler: pkgs.haskell.packages.${compiler}.callCabal2nixWithOptions;
-            flags = "-fbackend-json";
-            src = builtins.path { path = ./.; name = "hecate-src"; };
-            hecate_ = call compiler "hecate" src flags {};
-            extDeps = [ nixpkgs.legacyPackages.${system}.gnupg ];
-          in
-          pkgs.haskell.lib.overrideCabal hecate_ (_: {
-            inherit doCheck;
-            isExecutable = true;
-            isLibrary = false;
-            doHaddock = false;
-            enableLibraryProfiling = false;
-            enableSharedExecutables = false;
-            enableSharedLibraries = false;
-            configureFlags = pkgs.lib.optionals (static) [
-              "--enable-executable-static"
-              "--extra-lib-dirs=${pkgs.gmp.override { withStatic = true; }}/lib"
-              "--extra-lib-dirs=${pkgs.zlib.static}/lib"
-              "--extra-lib-dirs=${pkgs.libffi.overrideAttrs (_: { dontDisableStatic = true; })}/lib"
-            ];
-            executableSystemDepends = extDeps;
-            testSystemDepends = extDeps;
-            preCheck = ''
-              export GNUPGHOME="$PWD/example/gnupg"
-            '';
-            postFixup = "rm -rf $out/lib $out/nix-support $out/share/doc";
-          });
+        hecate = makeHecate system;
       in {
         packages.hecate = hecate {};
         packages.hecate-static = hecate { static = true; };

@@ -14,7 +14,7 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         hecate =
-          { compiler ? "ghc944"
+          { compiler ? "ghc946"
           , doCheck ? true
           , static ? false
           }:

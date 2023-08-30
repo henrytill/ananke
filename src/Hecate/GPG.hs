@@ -44,5 +44,5 @@ encrypt (MkKeyId keyid) (MkPlaintext pt) = w (gpgEncrypt (T.unpack keyid)) pt
 decrypt :: forall m. (MonadThrow m, MonadIO m) => Ciphertext -> m Plaintext
 decrypt = w gpgDecrypt
   where
-    w ::  (BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)) -> Ciphertext -> m Plaintext
+    w :: (BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)) -> Ciphertext -> m Plaintext
     w f = (MkPlaintext . Encoding.decodeUtf8 <$>) . lifter . f . unCiphertext

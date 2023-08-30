@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards     #-}
 
 module Hecate.Data
   ( -- * Configuration
@@ -23,7 +24,9 @@ module Hecate.Data
   , ciphertextFromText
     -- * Entries
   , Entry(..)
+#ifdef BACKEND_JSON
   , entryKeyOrder
+#endif
     -- ** their constituents
   , Id(..)
   , Description(..)
@@ -47,8 +50,6 @@ import           Prelude                  hiding (id)
 #ifdef BACKEND_JSON
 import           Data.Aeson               (FromJSON (..), Options, ToJSON (..))
 import qualified Data.Aeson               as Aeson
-import qualified Data.List                as List
-import qualified Data.Maybe               as Maybe
 #endif
 
 import qualified Data.ByteString          as BS
@@ -139,7 +140,7 @@ mkPlaintext = MkPlaintext . T.pack
 
 -- | A 'Ciphertext' represents an encrypted value
 newtype Ciphertext = MkCiphertext ByteString64
-  deriving (Show, Eq, Ord, Generic)
+  deriving (Show, Eq, Ord)
 
 mkCiphertext :: BS.ByteString -> Ciphertext
 mkCiphertext = MkCiphertext . MkByteString64
@@ -155,8 +156,10 @@ ciphertextFromText t = MkCiphertext <$> BS64.fromText t
 
 #ifdef BACKEND_JSON
 instance ToJSON Ciphertext where
+  toJSON (MkCiphertext b) = toJSON b
 
 instance FromJSON Ciphertext where
+  parseJSON = fmap MkCiphertext . parseJSON
 #endif
 
 -- * Entries
@@ -173,17 +176,6 @@ data Entry = MkEntry
   , entryMeta        :: Maybe Metadata
   } deriving (Show, Eq, Generic)
 
-entryKeyOrder :: [T.Text]
-entryKeyOrder =
-  [ "Timestamp"
-  , "Id"
-  , "KeyId"
-  , "Description"
-  , "Identity"
-  , "Ciphertext"
-  , "Meta"
-  ]
-
 instance Ord Entry where
   compare x y | entryTimestamp   x /= entryTimestamp   y = Ord.comparing entryTimestamp   x y
               | entryId          x /= entryId          y = Ord.comparing entryId          x y
@@ -194,19 +186,36 @@ instance Ord Entry where
               | otherwise                                = Ord.comparing entryMeta        x y
 
 #ifdef BACKEND_JSON
-customOptions :: Options
-customOptions = Aeson.defaultOptions{Aeson.fieldLabelModifier = strip}
-  where
-    strip :: String -> String
-    strip str = Maybe.fromMaybe str $ List.stripPrefix prefix str
-    prefix :: String
-    prefix = "entry"
+fieldToJSON :: [(String, String)]
+fieldToJSON =
+  [ ("entryTimestamp", "timestamp")
+  , ("entryId", "id")
+  , ("entryKeyId", "keyId")
+  , ("entryDescription", "description")
+  , ("entryIdentity", "identity")
+  , ("entryCiphertext", "ciphertext")
+  , ("entryMeta", "meta")
+  ]
 
-instance FromJSON Entry where
-  parseJSON = Aeson.genericParseJSON customOptions
+entryKeyOrder :: [T.Text]
+entryKeyOrder = map (T.pack . snd) fieldToJSON
+
+remapField :: String -> String
+remapField field
+  | Just mapped <- lookup field fieldToJSON = mapped
+  | otherwise                               = field
+
+options :: Options
+options = Aeson.defaultOptions
+  { Aeson.fieldLabelModifier = remapField
+  , Aeson.omitNothingFields  = True
+  }
 
 instance ToJSON Entry where
-  toJSON = Aeson.genericToJSON customOptions
+  toJSON = Aeson.genericToJSON options
+
+instance FromJSON Entry where
+  parseJSON = Aeson.genericParseJSON options
 #endif
 
 -- ** their constituents

@@ -103,4 +103,8 @@ test-suite tests
   if flag(backend-json)
     cpp-options:       -DBACKEND_JSON
     other-modules:     Data.Multimap.Tests
-    build-depends:     dwergaz >=0.2  && <0.3
+                     , Hecate.Backend.JSON.Tests
+    build-depends:     aeson        >=1.5   && <3
+                     , aeson-pretty >=0.8.7 && <0.9
+                     , bytestring   >=0.10  && <0.12
+                     , dwergaz      >=0.2   && <0.3

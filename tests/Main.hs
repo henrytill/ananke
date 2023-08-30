@@ -2,17 +2,18 @@
 
 module Main (main) where
 
-import           Control.Monad       (unless)
-import qualified System.Exit         as Exit
-import qualified Test.QuickCheck     as QC
+import           Control.Monad             (unless)
+import qualified System.Exit               as Exit
+import qualified Test.QuickCheck           as QC
 
 #ifdef BACKEND_JSON
-import qualified Test.Dwergaz        as Dwergaz
+import qualified Test.Dwergaz              as Dwergaz
 
-import qualified Data.Multimap.Tests as Multimap
+import qualified Data.Multimap.Tests       as Multimap
+import qualified Hecate.Backend.JSON.Tests as JSON
 #endif
 
-import qualified Hecate.Properties   as Properties
+import qualified Hecate.Properties         as Properties
 
 
 -- Included for backwards compatibility
@@ -29,6 +30,9 @@ main = do
   -- Multimap tests
   let multimapResults = Multimap.runTests
   exitOnFalse $ all Dwergaz.isPassed multimapResults
+  -- JSON tests
+  jsonTests <- JSON.runTests
+  exitOnFalse $ all Dwergaz.isPassed jsonTests
 #endif
   -- Property tests
   propertyResults <- Properties.doProperties

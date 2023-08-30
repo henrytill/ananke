@@ -1,7 +1,9 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
 
 module Hecate.Backend.JSON
   ( JSON
+  , encodeJSON
   , run
   , initialize
   , finalize
@@ -15,11 +17,12 @@ import           Control.Monad.Reader         (MonadReader, ReaderT, ask, runRea
 import           Control.Monad.State          (MonadState, StateT, gets, modify, runStateT)
 import qualified Data.Aeson                   as Aeson
 import qualified Data.Aeson.Encode.Pretty     as AesonPretty
+import qualified Data.ByteString.Lazy         as BSL
 import qualified Data.List                    as List
 
 import           Hecate.Backend.JSON.AppState (AppState, appStateDirty)
 import qualified Hecate.Backend.JSON.AppState as AppState
-import           Hecate.Data                  (Config, configDataDirectory, configDataFile, entryKeyOrder)
+import           Hecate.Data                  (Config, Entry, configDataDirectory, configDataFile, entryKeyOrder)
 import           Hecate.Interfaces
 
 
@@ -40,13 +43,17 @@ newtype JSON a = MkJSON { unJSON :: ReaderT Config (StateT AppState IO) a }
 runJSON :: JSON a -> AppState -> Config -> IO (a, AppState)
 runJSON m state cfg = runStateT (runReaderT (unJSON m) cfg) state
 
+encodeJSON :: [Entry] -> BSL.ByteString
+encodeJSON = appendNewline . AesonPretty.encodePretty' config . List.sort
+  where
+    appendNewline = flip (BSL.append) "\n"
+    config = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
+
 writeState :: (MonadAppError m, MonadInteraction m) => AppState -> Config -> m ()
 writeState state cfg = when (appStateDirty state) $ writeFileFromLazyByteString jsonFile output
   where
     jsonFile = configDataFile cfg
-    entries  = AppState.selectAll state
-    aesonCfg = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
-    output   = AesonPretty.encodePretty' aesonCfg $ List.sort entries
+    output = encodeJSON (AppState.selectAll state)
 
 run :: JSON a -> AppState -> Config -> IO a
 run m state cfg = do

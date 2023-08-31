@@ -30,7 +30,11 @@ depends.png: FORCE
 
 .PHONY: nix
 nix:
-	nix-build release.nix -A hecate
+	nix build -vL -j auto .#hecate
+
+.PHONY: static
+static:
+	nix build -vL -j auto .#hecate-static
 
 .PHONY: clean
 clean:

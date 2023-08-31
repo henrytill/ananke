@@ -1,7 +1,10 @@
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
+
+#ifdef BACKEND_JSON
 {-# LANGUAGE PatternGuards     #-}
+#endif
 
 module Hecate.Data
   ( -- * Configuration

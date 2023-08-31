@@ -46,7 +46,7 @@ runJSON m state cfg = runStateT (runReaderT (unJSON m) cfg) state
 encodeJSON :: [Entry] -> BSL.ByteString
 encodeJSON = appendNewline . AesonPretty.encodePretty' config . List.sort
   where
-    appendNewline = flip (BSL.append) "\n"
+    appendNewline = flip BSL.append "\n"
     config = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
 
 writeState :: (MonadAppError m, MonadInteraction m) => AppState -> Config -> m ()

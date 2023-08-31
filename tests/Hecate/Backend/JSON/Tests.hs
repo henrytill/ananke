@@ -3,8 +3,6 @@
 
 module Hecate.Backend.JSON.Tests (runTests) where
 
-import           Control.Monad        (liftM)
-
 import qualified Data.Aeson           as Aeson
 import qualified Data.ByteString.Lazy as BSL
 import           Test.Dwergaz
@@ -24,4 +22,4 @@ tests :: [IO Test]
 tests = [ roundtripJson ]
 
 runTests :: IO [Result]
-runTests =  traverse (liftM runTest) tests
+runTests =  traverse (fmap runTest) tests

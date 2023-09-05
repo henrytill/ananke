@@ -14,28 +14,32 @@ descArgP :: Parser Description
 descArgP = MkDescription <$> argument str (metavar "DESC" <> help "Description of ciphertext")
 
 hashOptP :: Parser Id
-hashOptP = MkId <$> strOption (long "hash"
-                               <> short 'h'
-                               <> metavar "HASH"
-                               <> help "SHA1 Hash of desired entry")
+hashOptP = MkId <$> strOption def
+  where def = long "hash"
+              <> short 'h'
+              <> metavar "HASH"
+              <> help "SHA1 Hash of desired entry"
 
 descOptP :: Parser Description
-descOptP = MkDescription <$> strOption (long "description"
-                                        <> short 'd'
-                                        <> metavar "DESC"
-                                        <> help "Description of desired entry")
+descOptP = MkDescription <$> strOption def
+  where def = long "description"
+              <> short 'd'
+              <> metavar "DESC"
+              <> help "Description of desired entry"
 
 idenOptP :: Parser Identity
-idenOptP = MkIdentity <$> strOption (long "identity"
-                                     <> short 'i'
-                                     <> metavar "ID"
-                                     <> help "Identity associated with ciphertext")
+idenOptP = MkIdentity <$> strOption def
+  where def = long "identity"
+              <> short 'i'
+              <> metavar "ID"
+              <> help "Identity associated with ciphertext"
 
 metaOptP :: Parser Metadata
-metaOptP = MkMetadata <$> strOption (long "metadata"
-                                     <> short 'm'
-                                     <> metavar "META"
-                                     <> help "Metadata associated with ciphertext")
+metaOptP = MkMetadata <$> strOption def
+  where def = long "metadata"
+              <> short 'm'
+              <> metavar "META"
+              <> help "Metadata associated with ciphertext"
 
 targetP :: Parser Target
 targetP = (TargetId <$> hashOptP) <|> (TargetDescription <$> descOptP)

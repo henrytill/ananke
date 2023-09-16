@@ -32,12 +32,12 @@ mkAppState :: [Entry] -> AppState
 mkAppState = MkAppState False . Multimap.fromList . fmap (entryDescription &&& id)
 
 update :: (EntriesMap -> EntriesMap) -> AppState -> AppState
-update f  = MkAppState True . f . appStateData
+update f = MkAppState True . f . appStateData
 
 put    :: Entry -> AppState -> AppState
 delete :: Entry -> AppState -> AppState
-put    entry = update (Multimap.insert (entryDescription entry) entry)
-delete entry = update (Multimap.delete (entryDescription entry) entry)
+put    = update . (Multimap.insert <$> entryDescription <*> id)
+delete = update . (Multimap.delete <$> entryDescription <*> id)
 
 idenIsInfixOf :: Identity    -> Identity    -> Bool
 descIsInfixOf :: Description -> Description -> Bool

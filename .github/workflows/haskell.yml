@@ -37,11 +37,13 @@ jobs:
     - name: cabal v2-update
       run: |
         cabal v2-update
-    - name: default
+
+    - name: Build & Test
       run: |
         ./configure
         make all test
-    - name: backend-json
+
+    - name: Build & Test with JSON Backend
       run: |
         ./configure -fbackend-json
         make all test

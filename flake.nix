@@ -31,9 +31,6 @@
         isExecutable = true;
         isLibrary = false;
         doHaddock = false;
-        enableLibraryProfiling = false;
-        enableSharedExecutables = false;
-        enableSharedLibraries = false;
         configureFlags = pkgs.lib.optionals (static) [
           "--enable-executable-static"
           "--extra-lib-dirs=${pkgs.gmp.override { withStatic = true; }}/lib"
@@ -43,9 +40,9 @@
         executableSystemDepends = extDeps;
         testSystemDepends = extDeps;
         preCheck = ''
-          export GNUPGHOME="$PWD/example/gnupg"
+          export GNUPGHOME="$src/example/gnupg"
         '';
-        postFixup = "rm -rf $out/lib $out/nix-support $out/share/doc";
+        postFixup = "rm -rf $out/lib";
       });
     in
     flake-utils.lib.eachDefaultSystem (system:

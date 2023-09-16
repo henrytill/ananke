@@ -33,7 +33,7 @@ readProcessWithExitCode :: FilePath -> [String] -> BS.ByteString -> IO (ExitCode
 readProcessWithExitCode cmd args input =
   let cp = (Process.proc cmd args){std_in = CreatePipe, std_out = CreatePipe, std_err = CreatePipe}
   in Process.withCreateProcess cp $ \stdin stdout stderr ph ->
-    case (stdin, stdout, stderr)  of
+    case (stdin, stdout, stderr) of
       (Just inh, Just outh, Just errh) ->
         do hSetBinaryMode inh  True
            hSetBinaryMode outh True

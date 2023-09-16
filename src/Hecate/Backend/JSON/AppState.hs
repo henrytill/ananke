@@ -10,8 +10,7 @@ module Hecate.Backend.JSON.AppState
   , getCountOfKeyId
   ) where
 
-import           Prelude       hiding (id)
-
+import           Control.Arrow ((&&&))
 import qualified Data.Maybe    as Maybe
 import           Data.Multimap (Multimap)
 import qualified Data.Multimap as Multimap
@@ -30,17 +29,10 @@ data AppState = MkAppState
   } deriving (Show, Eq)
 
 mkAppState :: [Entry] -> AppState
-mkAppState entries = MkAppState
-  { appStateDirty = False
-  , appStateData  = Multimap.fromList (tupler <$> entries)
-  }
-  where
-    tupler entry = (entryDescription entry, entry)
+mkAppState = MkAppState False . Multimap.fromList . fmap (entryDescription &&& id)
 
 update :: (EntriesMap -> EntriesMap) -> AppState -> AppState
-update f state = state{appStateDirty = True, appStateData = updated}
-  where
-    updated = f $ appStateData state
+update f  = MkAppState True . f . appStateData
 
 put    :: Entry -> AppState -> AppState
 delete :: Entry -> AppState -> AppState
@@ -62,10 +54,10 @@ filterEntries predicate = Set.foldr f []
                 | otherwise                       = acc
 
 queryFolder :: Query -> Description -> Set Entry -> [Entry] -> [Entry]
-queryFolder (MkQuery (Just id) Nothing Nothing Nothing) _ entries acc =
+queryFolder (MkQuery (Just qid) Nothing Nothing Nothing) _ entries acc =
   Set.toList matches ++ acc
   where
-    matches = Set.filter (\entry -> entryId entry == id) entries
+    matches = Set.filter (\entry -> entryId entry == qid) entries
 queryFolder query description entries acc =
   case descMatches of
     Just True -> filterEntries idenMatches entries ++ acc

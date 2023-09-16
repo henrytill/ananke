@@ -17,8 +17,7 @@ import qualified Data.Text              as T
 import           Data.Text.Encoding
 
 
--- | Represents a ByteString which is displayed and stored in its base64-encoded
--- version
+-- | A ByteString which is displayed and serialized in its base64 encoding
 newtype ByteString64 = MkByteString64 { unByteString64 :: BS.ByteString }
   deriving (Eq, Ord)
 

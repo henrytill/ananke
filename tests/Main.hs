@@ -29,10 +29,12 @@ main = do
 #ifdef BACKEND_JSON
   -- Multimap tests
   let multimapResults = Multimap.runTests
+  mapM_ print multimapResults
   exitOnFalse $ all Dwergaz.isPassed multimapResults
   -- JSON tests
-  jsonTests <- JSON.runTests
-  exitOnFalse $ all Dwergaz.isPassed jsonTests
+  jsonResults <- JSON.runTests
+  mapM_ print jsonResults
+  exitOnFalse $ all Dwergaz.isPassed jsonResults
 #endif
   -- Property tests
   propertyResults <- Properties.doProperties

@@ -15,8 +15,8 @@ dataFile = "example" ++ "/db" ++ "/data.json"
 roundtripJson :: IO Test
 roundtripJson = do
   input <- BSL.readFile dataFile
-  let Just output = encodeJSON <$> Aeson.decode input
-  return $ Expect "json to roundtrip" (==) output input
+  let maybeOutput = encodeJSON <$> Aeson.decode input
+  return $ Expect "json to roundtrip" (==) maybeOutput (Just input)
 
 tests :: [IO Test]
 tests = [ roundtripJson ]

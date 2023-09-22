@@ -54,7 +54,7 @@ run :: Config -> IO ExitCode
 run cfg = case configBackend cfg of
   SQLite -> Exception.bracket (SQLite.initialize cfg) SQLite.finalize runSQLiteApp
 #ifdef BACKEND_JSON
-  JSON   -> Exception.bracket (JSON.initialize   cfg) JSON.finalize   runJSONApp
+  JSON -> Exception.bracket (JSON.initialize cfg) JSON.finalize runJSONApp
 #else
-  JSON   -> Exception.throwIO $ Configuration "JSON backend not available.  Please rebuild with backend-json flag enabled."
+  JSON -> Exception.throwIO $ Configuration "JSON backend not available.  Please rebuild with backend-json flag enabled."
 #endif

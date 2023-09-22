@@ -21,6 +21,7 @@ ignoreSIGPIPE = handle $ \e -> case e of
   IOError{ioe_type = ResourceVanished, ioe_errno = Just ioe} | Errno ioe == ePIPE -> return ()
   _                                                                               -> throwIO e
 
+-- | A descendant of ['withForkWait'](https://hackage.haskell.org/package/process/docs/src/System.Process.html#withForkWait).
 forkWait :: IO a -> IO (IO a)
 forkWait a = do
   mres <- newEmptyMVar :: IO (MVar (Either SomeException a))

@@ -18,7 +18,7 @@ import           Hecate.Interfaces
 
 
 mkBackend :: String -> Backend
-mkBackend txt = case toLower <$> txt of
+mkBackend s = case toLower <$> s of
   "sqlite" -> SQLite
   "json"   -> JSON
   _        -> SQLite
@@ -26,14 +26,12 @@ mkBackend txt = case toLower <$> txt of
 mkKeyId :: String -> KeyId
 mkKeyId = MkKeyId . T.pack
 
+trues :: [String]
+trues = ["true", "t", "yes", "y", "1"]
+
 mkBool :: String -> Bool
-mkBool "True" = True
-mkBool "true" = True
-mkBool "TRUE" = True
-mkBool "t"    = True
-mkBool "T"    = True
-mkBool "1"    = True
-mkBool _      = False
+mkBool s | elem (toLower <$> s) trues = True
+         | otherwise                  = False
 
 fromEnv :: MonadInteraction m => (String -> a) -> String -> m (Maybe a)
 fromEnv f name = fmap (fmap f) (getEnv name)

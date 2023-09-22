@@ -63,7 +63,10 @@ queryFolder query description entries acc =
     Just True -> filterEntries idenMatches entries ++ acc
     _         -> acc
   where
+    descMatches :: Maybe Bool
     descMatches = descIsInfixOf <$> queryDescription query <*> pure description
+
+    idenMatches :: Maybe Identity -> Bool
     idenMatches = idenMatcher $ queryIdentity query
 
 runQuery :: Query -> AppState -> [Entry]

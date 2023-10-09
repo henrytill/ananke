@@ -1,11 +1,11 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Hecate.Orphans () where
+module Ananke.Orphans () where
 
 import qualified Data.Text       as T
 import           Test.QuickCheck (Arbitrary (..))
 
-import           Hecate.Data     (Description (..), Identity (..), Metadata (..), Plaintext (..))
+import           Ananke.Data     (Description (..), Identity (..), Metadata (..), Plaintext (..))
 
 
 instance Arbitrary T.Text where

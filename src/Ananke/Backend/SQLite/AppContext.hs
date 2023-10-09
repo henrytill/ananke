@@ -1,10 +1,10 @@
-module Hecate.Backend.SQLite.AppContext
+module Ananke.Backend.SQLite.AppContext
   ( AppContext (..)
   ) where
 
 import qualified Database.SQLite3 as SQLite3
 
-import           Hecate.Data      (Config)
+import           Ananke.Data      (Config)
 
 
 -- | 'AppContext' represents the shared environment for computations which occur

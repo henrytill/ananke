@@ -1,4 +1,4 @@
-module Hecate.Interfaces
+module Ananke.Interfaces
   ( MonadAppError(..)
   , MonadConfigReader(..)
   , MonadEncrypt(..)
@@ -19,9 +19,9 @@ import qualified System.Directory     as Directory
 import qualified System.Environment   as Env
 import qualified System.IO            as IO
 
-import           Hecate.Data
-import           Hecate.Error         (AppError (..))
-import qualified Hecate.GPG           as GPG
+import           Ananke.Data
+import           Ananke.Error         (AppError (..))
+import qualified Ananke.GPG           as GPG
 
 
 -- * MonadAppError

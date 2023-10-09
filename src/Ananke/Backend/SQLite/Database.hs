@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Hecate.Backend.SQLite.Database
+module Ananke.Backend.SQLite.Database
   ( put
   , delete
   , runQuery
@@ -21,8 +21,8 @@ import qualified Data.Text              as T
 import           Data.Time.Clock        (UTCTime)
 import qualified Database.SQLite3       as SQLite3
 
-import           Hecate.Data
-import           Hecate.Error           (AppError (..))
+import           Ananke.Data
+import           Ananke.Error           (AppError (..))
 
 
 rethrowLift :: (MonadThrow m, MonadIO m) => IO a -> m a

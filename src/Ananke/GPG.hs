@@ -1,6 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Hecate.GPG
+module Ananke.GPG
   ( encrypt
   , decrypt
   ) where
@@ -12,9 +12,9 @@ import qualified Data.Text              as T
 import qualified Data.Text.Encoding     as Encoding
 import           System.Exit            (ExitCode (..))
 
-import           Hecate.Data            (Ciphertext, KeyId (..), Plaintext (..), mkCiphertext, unCiphertext)
-import           Hecate.Error           (AppError (..))
-import           Hecate.GPG.Process     (readProcessWithExitCode)
+import           Ananke.Data            (Ciphertext, KeyId (..), Plaintext (..), mkCiphertext, unCiphertext)
+import           Ananke.Error           (AppError (..))
+import           Ananke.GPG.Process     (readProcessWithExitCode)
 
 
 gpgEncrypt :: String -> BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)

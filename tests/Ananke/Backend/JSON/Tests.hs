@@ -1,13 +1,13 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Hecate.Backend.JSON.Tests (runTests) where
+module Ananke.Backend.JSON.Tests (runTests) where
 
 import qualified Data.Aeson           as Aeson
 import qualified Data.ByteString.Lazy as BSL
 import           Test.Dwergaz
 
-import           Hecate.Backend.JSON  (encodeJSON)
+import           Ananke.Backend.JSON  (encodeJSON)
 
 dataFile :: FilePath
 dataFile = "example" ++ "/db" ++ "/data.json"

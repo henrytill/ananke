@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP #-}
 
-module Hecate
-  ( module Hecate.Configuration
+module Ananke
+  ( module Ananke.Configuration
   , run
   ) where
 
@@ -10,16 +10,16 @@ import           System.Exit           (ExitCode (..))
 import qualified System.IO             as IO
 
 #ifdef BACKEND_JSON
-import qualified Hecate.Backend.JSON   as JSON
+import qualified Ananke.Backend.JSON   as JSON
 #endif
 
-import qualified Hecate.Backend.SQLite as SQLite
-import           Hecate.Configuration  (Backend (..), Config (..), configure)
-import           Hecate.Error          (AppError (..))
-import           Hecate.Evaluator      (Response (..))
-import qualified Hecate.Evaluator      as Evaluator
-import qualified Hecate.Parser         as Parser
-import           Hecate.Printing       (prettyError, prettyResponse, render)
+import qualified Ananke.Backend.SQLite as SQLite
+import           Ananke.Configuration  (Backend (..), Config (..), configure)
+import           Ananke.Error          (AppError (..))
+import           Ananke.Evaluator      (Response (..))
+import qualified Ananke.Evaluator      as Evaluator
+import qualified Ananke.Parser         as Parser
+import           Ananke.Printing       (prettyError, prettyResponse, render)
 
 
 handleError :: AppError -> IO ExitCode

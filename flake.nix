@@ -11,7 +11,7 @@
   };
 
   outputs = { self, nixpkgs, flake-utils, ... }:
-    let makeHecate = system:
+    let makeAnanke = system:
       { compiler ? "ghc946"
       , doCheck ? true
       , static ? false
@@ -22,11 +22,11 @@
                else nixpkgs.legacyPackages.${system};
         call = compiler: pkgs.haskell.packages.${compiler}.callCabal2nixWithOptions;
         flags = "-fbackend-json";
-        src = builtins.path { path = ./.; name = "hecate-src"; };
-        hecate_ = call compiler "hecate" src flags {};
+        src = builtins.path { path = ./.; name = "ananke-src"; };
+        ananke_ = call compiler "ananke" src flags {};
         extDeps = [ nixpkgs.legacyPackages.${system}.gnupg ];
       in
-      pkgs.haskell.lib.overrideCabal hecate_ (_: {
+      pkgs.haskell.lib.overrideCabal ananke_ (_: {
         inherit doCheck;
         isExecutable = true;
         isLibrary = false;
@@ -47,10 +47,10 @@
     in
     flake-utils.lib.eachDefaultSystem (system:
       let
-        hecate = makeHecate system;
+        ananke = makeAnanke system;
       in {
-        packages.hecate = hecate {};
-        packages.hecate-static = hecate { static = true; };
-        packages.default = self.packages.${system}.hecate;
+        packages.ananke = ananke {};
+        packages.ananke-static = ananke { static = true; };
+        packages.default = self.packages.${system}.ananke;
       });
 }

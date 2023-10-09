@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
-module Hecate.Configuration.Parser
+module Ananke.Configuration.Parser
   ( Pairs
   , parse
   ) where

@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Hecate.Backend.SQLite
+module Ananke.Backend.SQLite
   ( SQLite
   , run
   , initialize
@@ -15,10 +15,10 @@ import           Control.Monad.Reader             (MonadReader, ReaderT, ask, as
 import qualified Data.Text                        as T
 import qualified Database.SQLite3                 as SQLite3
 
-import           Hecate.Backend.SQLite.AppContext (AppContext (..))
-import qualified Hecate.Backend.SQLite.Database   as Database
-import           Hecate.Data                      (Config, configDatabaseDirectory, configDatabaseFile)
-import           Hecate.Interfaces
+import           Ananke.Backend.SQLite.AppContext (AppContext (..))
+import qualified Ananke.Backend.SQLite.Database   as Database
+import           Ananke.Data                      (Config, configDatabaseDirectory, configDatabaseFile)
+import           Ananke.Interfaces
 
 
 -- * SQLite

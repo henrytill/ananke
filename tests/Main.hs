@@ -10,10 +10,10 @@ import qualified Test.QuickCheck           as QC
 import qualified Test.Dwergaz              as Dwergaz
 
 import qualified Data.Multimap.Tests       as Multimap
-import qualified Hecate.Backend.JSON.Tests as JSON
+import qualified Ananke.Backend.JSON.Tests as JSON
 #endif
 
-import qualified Hecate.Properties         as Properties
+import qualified Ananke.Properties         as Properties
 
 
 -- Included for backwards compatibility

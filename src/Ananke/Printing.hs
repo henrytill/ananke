@@ -1,4 +1,4 @@
-module Hecate.Printing
+module Ananke.Printing
   ( prettyResponse
   , prettyError
   , render
@@ -9,9 +9,9 @@ import           Data.Time.Clock          (UTCTime)
 import           Data.Time.Format.ISO8601 (iso8601Show)
 import           Text.PrettyPrint         (Doc, Mode (..), Style (..), empty, renderStyle, style, text, ($$), (<+>))
 
-import           Hecate.Data
-import           Hecate.Error             (AppError (..))
-import           Hecate.Evaluator         (Response (..), Verbosity (..))
+import           Ananke.Data
+import           Ananke.Error             (AppError (..))
+import           Ananke.Evaluator         (Response (..), Verbosity (..))
 
 
 prettyText :: T.Text -> Doc

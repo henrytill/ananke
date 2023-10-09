@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Hecate.Evaluator
+module Ananke.Evaluator
   ( ModifyAction(..)
   , Verbosity(..)
   , Target(..)
@@ -24,8 +24,8 @@ import qualified Data.List                as List
 import           Data.Char                (toLower)
 import           Data.Time.Clock          (UTCTime)
 
-import           Hecate.Data
-import           Hecate.Interfaces
+import           Ananke.Data
+import           Ananke.Interfaces
 
 
 data ModifyAction = Keep | Change

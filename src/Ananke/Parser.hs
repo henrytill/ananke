@@ -1,13 +1,13 @@
 {-# LANGUAGE CPP #-}
 
-module Hecate.Parser
+module Ananke.Parser
   ( runCLIParser
   ) where
 
 import           Options.Applicative
 
-import           Hecate.Data
-import           Hecate.Evaluator
+import           Ananke.Data
+import           Ananke.Evaluator
 
 
 descArgP :: Parser Description

@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 
-module Hecate.Backend.JSON
+module Ananke.Backend.JSON
   ( JSON
   , encodeJSON
   , run
@@ -20,10 +20,10 @@ import qualified Data.Aeson.Encode.Pretty     as AesonPretty
 import qualified Data.ByteString.Lazy         as BSL
 import qualified Data.List                    as List
 
-import           Hecate.Backend.JSON.AppState (AppState, appStateDirty)
-import qualified Hecate.Backend.JSON.AppState as AppState
-import           Hecate.Data                  (Config, Entry, configDataDirectory, configDataFile, entryKeyOrder)
-import           Hecate.Interfaces
+import           Ananke.Backend.JSON.AppState (AppState, appStateDirty)
+import qualified Ananke.Backend.JSON.AppState as AppState
+import           Ananke.Data                  (Config, Entry, configDataDirectory, configDataFile, entryKeyOrder)
+import           Ananke.Interfaces
 
 
 -- * JSON

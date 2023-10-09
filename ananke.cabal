@@ -1,7 +1,7 @@
-name:                hecate
-version:             0.9.0.0
+name:                ananke
+version:             0.10.0.0
 synopsis:            A minimal password manager
-description:         hecate is a minimal password manager.
+description:         ananke is a minimal password manager.
 license:             ISC
 license-file:        LICENSE
 author:              Henry Till
@@ -16,44 +16,44 @@ extra-source-files:
   .hlint.yaml
   .stylish-haskell.yaml
   README.md
-  example/hecate.conf
+  example/ananke.conf
   example/gnupg/pubring.gpg
   example/gnupg/secring.gpg
   example/gnupg/trustdb.gpg
 
 source-repository head
   type:     git
-  location: https://github.com/henrytill/hecate.git
+  location: https://github.com/henrytill/ananke.git
 
 flag backend-json
   description: Build with experimental JSON backend
   default: False
 
-executable hecate
+executable ananke
   main-is:             Main.hs
   -- other-modules:
   -- other-extensions:
   build-depends:       base   >=4.9  && <5
-                     , hecate
+                     , ananke
   hs-source-dirs:      executables
   default-language:    Haskell98
   ghc-options:         -Wall
 
 library
-  exposed-modules:     Hecate
-                     , Hecate.Backend.SQLite
-                     , Hecate.Backend.SQLite.AppContext
-                     , Hecate.Backend.SQLite.Database
-                     , Hecate.Configuration
-                     , Hecate.Configuration.Parser
-                     , Hecate.Data
-                     , Hecate.Evaluator
-                     , Hecate.Error
-                     , Hecate.GPG
-                     , Hecate.GPG.Process
-                     , Hecate.Interfaces
-                     , Hecate.Parser
-                     , Hecate.Printing
+  exposed-modules:     Ananke
+                     , Ananke.Backend.SQLite
+                     , Ananke.Backend.SQLite.AppContext
+                     , Ananke.Backend.SQLite.Database
+                     , Ananke.Configuration
+                     , Ananke.Configuration.Parser
+                     , Ananke.Data
+                     , Ananke.Evaluator
+                     , Ananke.Error
+                     , Ananke.GPG
+                     , Ananke.GPG.Process
+                     , Ananke.Interfaces
+                     , Ananke.Parser
+                     , Ananke.Printing
                      , Data.ByteString64
   build-depends:       base                 >=4.9  && <5
                      , base64-bytestring    >=1.0  && <1.3
@@ -77,8 +77,8 @@ library
 
   if flag(backend-json)
     cpp-options:       -DBACKEND_JSON
-    exposed-modules:   Hecate.Backend.JSON
-                     , Hecate.Backend.JSON.AppState
+    exposed-modules:   Ananke.Backend.JSON
+                     , Ananke.Backend.JSON.AppState
                      , Data.Multimap
     build-depends:     aeson        >=1.5   && <3
                      , aeson-pretty >=0.8.7 && <0.9
@@ -86,8 +86,8 @@ library
 test-suite tests
   type:                exitcode-stdio-1.0
   main-is:             Main.hs
-  other-modules:       Hecate.Orphans
-                     , Hecate.Properties
+  other-modules:       Ananke.Orphans
+                     , Ananke.Properties
   build-depends:       base          >=4.9  && <5
                      , QuickCheck    >=2.8  && <2.15
                      , containers    >=0.6  && <0.7
@@ -95,7 +95,7 @@ test-suite tests
                      , directory     >=1.2  && <1.4
                      , temporary     >=1.3  && <1.4
                      , text          >=1.2  && <2.1
-                     , hecate
+                     , ananke
   hs-source-dirs:      tests
   default-language:    Haskell98
   ghc-options:         -Wall
@@ -103,7 +103,7 @@ test-suite tests
   if flag(backend-json)
     cpp-options:       -DBACKEND_JSON
     other-modules:     Data.Multimap.Tests
-                     , Hecate.Backend.JSON.Tests
+                     , Ananke.Backend.JSON.Tests
     build-depends:     aeson        >=1.5   && <3
                      , aeson-pretty >=0.8.7 && <0.9
                      , bytestring   >=0.10  && <0.12

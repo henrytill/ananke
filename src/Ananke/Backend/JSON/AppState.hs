@@ -1,4 +1,4 @@
-module Hecate.Backend.JSON.AppState
+module Ananke.Backend.JSON.AppState
   ( EntriesMap
   , AppState (..)
   , mkAppState
@@ -18,7 +18,7 @@ import           Data.Set      (Set)
 import qualified Data.Set      as Set
 import qualified Data.Text     as Text
 
-import           Hecate.Data
+import           Ananke.Data
 
 
 type EntriesMap = Multimap Description Entry

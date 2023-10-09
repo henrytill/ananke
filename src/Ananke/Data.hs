@@ -6,7 +6,7 @@
 {-# LANGUAGE PatternGuards     #-}
 #endif
 
-module Hecate.Data
+module Ananke.Data
   ( -- * Configuration
     Backend(..)
   , PreConfig(..)

@@ -1,4 +1,4 @@
-module Hecate.Error (module Hecate.Error) where
+module Ananke.Error (module Ananke.Error) where
 
 import           Control.Exception (Exception)
 import           Data.Typeable     (Typeable)

@@ -1,4 +1,4 @@
-module Hecate.Configuration
+module Ananke.Configuration
   ( Config(..)
   , Backend(..)
   , configureWith
@@ -11,10 +11,10 @@ import           Data.Monoid                 (First (..))
 import qualified Data.Text                   as T
 import qualified System.Info                 as Info
 
-import           Hecate.Configuration.Parser (Pairs)
-import qualified Hecate.Configuration.Parser as Parser
-import           Hecate.Data
-import           Hecate.Interfaces
+import           Ananke.Configuration.Parser (Pairs)
+import qualified Ananke.Configuration.Parser as Parser
+import           Ananke.Data
+import           Ananke.Interfaces
 
 
 mkBackend :: String -> Backend
@@ -41,10 +41,10 @@ fromPairs f name = fmap f . lookup name
 
 createPreConfig :: MonadInteraction m => m PreConfig
 createPreConfig = do
-  dir     <- First <$> getEnv "HECATE_DATA_DIR"
-  backend <- First <$> fromEnv mkBackend "HECATE_BACKEND"
-  keyId   <- First <$> fromEnv mkKeyId   "HECATE_KEYID"
-  mult    <- First <$> fromEnv mkBool    "HECATE_ALLOW_MULTIPLE_KEYS"
+  dir     <- First <$> getEnv "ANANKE_DATA_DIR"
+  backend <- First <$> fromEnv mkBackend "ANANKE_BACKEND"
+  keyId   <- First <$> fromEnv mkKeyId   "ANANKE_KEYID"
+  mult    <- First <$> fromEnv mkBool    "ANANKE_ALLOW_MULTIPLE_KEYS"
   return MkPreConfig { preConfigDataDirectory     = dir
                      , preConfigBackend           = backend
                      , preConfigKeyId             = keyId
@@ -55,8 +55,8 @@ addDefaultConfig :: MonadInteraction m => PreConfig -> m PreConfig
 addDefaultConfig preConfig = mappend preConfig <$> defaultConfig
   where
     getDefaultDataDirectory = case Info.os of
-      "mingw32" -> fromEnv (++ "/hecate")  "APPDATA"
-      _         -> fromEnv (++ "/.hecate") "HOME"
+      "mingw32" -> fromEnv (++ "/ananke")  "APPDATA"
+      _         -> fromEnv (++ "/.ananke") "HOME"
     defaultConfig = do
       dir <- First <$> getDefaultDataDirectory
       return MkPreConfig { preConfigDataDirectory     = dir
@@ -70,8 +70,8 @@ addFileConfig preConfig = mappend preConfig <$> fileConfig
   where
     fileConfig = do
       let dataDir = Maybe.fromJust (getFirst (preConfigDataDirectory preConfig))
-      txt   <- readFileAsString (dataDir ++ "/hecate.conf")
-      pairs <- maybe (configurationError "Unable to parse hecate.conf") return (Parser.parse txt)
+      txt   <- readFileAsString (dataDir ++ "/ananke.conf")
+      pairs <- maybe (configurationError "Unable to parse ananke.conf") return (Parser.parse txt)
       let backend = First $ fromPairs mkBackend "backend"             pairs
           keyId   = First $ fromPairs mkKeyId   "keyid"               pairs
           mult    = First $ fromPairs mkBool    "allow_multiple_keys" pairs
@@ -89,10 +89,10 @@ preConfigToConfig preConfig =
            <*> firstOrError mulMsg (preConfigAllowMultipleKeys preConfig)
   where
     firstOrError msg = maybe (configurationError msg) pure . getFirst
-    dirMsg = "Please set HECATE_DATA_DIR"
-    bakMsg = "Please set HECATE_BACKEND or backend in hecate.conf"
-    keyMsg = "Please set HECATE_KEYID or keyid in hecate.conf"
-    mulMsg = "Please set HECATE_ALLOW_MULTIPLE_KEYS or allow_multiple_keys in hecate.conf"
+    dirMsg = "Please set ANANKE_DATA_DIR"
+    bakMsg = "Please set ANANKE_BACKEND or backend in ananke.conf"
+    keyMsg = "Please set ANANKE_KEYID or keyid in ananke.conf"
+    mulMsg = "Please set ANANKE_ALLOW_MULTIPLE_KEYS or allow_multiple_keys in ananke.conf"
 
 configureWith :: (MonadAppError m, MonadInteraction m) => PreConfig -> m Config
 configureWith preConfig = addDefaultConfig preConfig >>= addFileConfig >>= preConfigToConfig

@@ -1,4 +1,4 @@
-module Hecate.GPG.Process
+module Ananke.GPG.Process
   ( readProcessWithExitCode
   ) where
 

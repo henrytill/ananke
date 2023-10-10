@@ -9,7 +9,6 @@ module Ananke.Backend.SQLite.Database
   , getCount
   , getCountOfKeyId
   , addKeyId
-  , currentSchemaVersion
   , createTable
   , migrate
   ) where
@@ -29,9 +28,6 @@ rethrowLift :: (MonadThrow m, MonadIO m) => IO a -> m a
 rethrowLift a = liftIO $ Exception.catch a f
   where
     f = throwM . Database . T.unpack . SQLite3.sqlErrorDetails
-
-currentSchemaVersion :: SchemaVersion
-currentSchemaVersion = MkSchemaVersion 2
 
 executeStatement :: SQLite3.Statement -> IO ()
 executeStatement stmt = SQLite3.stepNoCB stmt >>= \case

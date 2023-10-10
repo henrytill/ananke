@@ -28,6 +28,9 @@ import           Ananke.Data
 import           Ananke.Interfaces
 
 
+currentSchemaVersion :: SchemaVersion
+currentSchemaVersion = MkSchemaVersion 2
+
 data ModifyAction = Keep | Change
   deriving (Show, Eq)
 
@@ -93,7 +96,7 @@ getSchemaVersion path = do
   fileExists <- doesFileExist path
   if fileExists
     then getSchemaVersionFromFile path
-    else currentSchemaVersion >>= createSchemaFile path
+    else createSchemaFile path currentSchemaVersion
 
 reencryptAll :: forall m. (MonadEncrypt m, MonadStore m) => KeyId -> m ()
 reencryptAll keyId = do
@@ -114,19 +117,18 @@ initDatabase
   -> SchemaVersion
   -> KeyId
   -> m ()
-initDatabase path schemaVersion keyId = do
-  current <- currentSchemaVersion
-  if schemaVersion == current
-    then createTable
-    else do message ("Migrating database from schema version "
-                     ++ show schemaVersion
-                     ++ " to version "
-                     ++ show current
-                     ++ "...")
-            migrate schemaVersion keyId
-            reencryptAll keyId
-            _ <- createSchemaFile path current
-            return ()
+initDatabase path schemaVersion keyId =
+  if schemaVersion == currentSchemaVersion
+  then createTable
+  else do message ("Migrating database from schema version "
+                   ++ show schemaVersion
+                   ++ " to version "
+                   ++ show currentSchemaVersion
+                   ++ "...")
+          migrate schemaVersion keyId
+          reencryptAll keyId
+          _ <- createSchemaFile path currentSchemaVersion
+          return ()
 
 setup :: (MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m) => m ()
 setup = do

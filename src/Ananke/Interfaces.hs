@@ -154,4 +154,3 @@ class Monad m => MonadStore m where
   getCountOfKeyId      :: KeyId -> m Int
   createTable          :: m ()
   migrate              :: SchemaVersion -> KeyId -> m ()
-  currentSchemaVersion :: m SchemaVersion

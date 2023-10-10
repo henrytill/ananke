@@ -95,4 +95,3 @@ instance MonadStore JSON where
   getCountOfKeyId kid   = gets   $ AppState.getCountOfKeyId kid
   createTable           = undefined
   migrate         _   _ = undefined
-  currentSchemaVersion  = undefined

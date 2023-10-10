@@ -71,4 +71,3 @@ instance MonadStore SQLite where
   getCountOfKeyId kid     = withDatabase $ \db -> Database.getCountOfKeyId db kid
   createTable             = withDatabase $ \db -> Database.createTable     db
   migrate         sv  kid = withDatabase $ \db -> Database.migrate         db sv  kid
-  currentSchemaVersion    = return Database.currentSchemaVersion

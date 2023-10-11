@@ -11,8 +11,6 @@ import           Control.Monad.Reader (ReaderT)
 import           Control.Monad.State  (StateT)
 import           Control.Monad.Trans  (lift)
 import qualified Data.ByteString.Lazy as BSL
-import qualified Data.Text            as T
-import qualified Data.Text.IO         as TIO
 import           Data.Time.Clock      (UTCTime)
 import qualified Data.Time.Clock      as Clock
 import qualified System.Directory     as Directory
@@ -93,7 +91,6 @@ class Monad m => MonadInteraction m where
   createDirectory             :: FilePath -> m ()
   readFileAsString            :: FilePath -> m String
   readFileAsLazyByteString    :: FilePath -> m BSL.ByteString
-  readFileAsText              :: FilePath -> m T.Text
   writeFileFromLazyByteString :: FilePath -> BSL.ByteString -> m ()
   getEnv                      :: String   -> m (Maybe String)
   message                     :: String   -> m ()
@@ -104,7 +101,6 @@ instance MonadInteraction IO where
   doesDirectoryExist          = Directory.doesDirectoryExist
   createDirectory             = Directory.createDirectory
   readFileAsString            = readFile
-  readFileAsText              = TIO.readFile
   readFileAsLazyByteString    = BSL.readFile
   writeFileFromLazyByteString = BSL.writeFile
   getEnv                      = Env.lookupEnv
@@ -116,7 +112,6 @@ instance MonadInteraction m => MonadInteraction (ReaderT r m)  where
   doesDirectoryExist             = lift . doesDirectoryExist
   createDirectory                = lift . createDirectory
   readFileAsString               = lift . readFileAsString
-  readFileAsText                 = lift . readFileAsText
   readFileAsLazyByteString       = lift . readFileAsLazyByteString
   writeFileFromLazyByteString fp = lift . writeFileFromLazyByteString fp
   getEnv                         = lift . getEnv
@@ -128,7 +123,6 @@ instance MonadInteraction m => MonadInteraction (StateT s m)  where
   doesDirectoryExist             = lift . doesDirectoryExist
   createDirectory                = lift . createDirectory
   readFileAsString               = lift . readFileAsString
-  readFileAsText                 = lift . readFileAsText
   readFileAsLazyByteString       = lift . readFileAsLazyByteString
   writeFileFromLazyByteString fp = lift . writeFileFromLazyByteString fp
   getEnv                         = lift . getEnv

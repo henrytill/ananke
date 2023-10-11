@@ -106,28 +106,28 @@ instance MonadEncrypt m => MonadEncrypt (StateT s m) where
 -- * MonadFilesystem
 
 class Monad m => MonadFilesystem m where
-  doesDirectoryExist          :: FilePath -> m Bool
-  createDirectory             :: FilePath -> m ()
-  readFileAsLazyByteString    :: FilePath -> m BSL.ByteString
-  writeFileFromLazyByteString :: FilePath -> BSL.ByteString -> m ()
+  doesDirectoryExist :: FilePath -> m Bool
+  createDirectory    :: FilePath -> m ()
+  readFileBytes      :: FilePath -> m BSL.ByteString
+  writeFileBytes     :: FilePath -> BSL.ByteString -> m ()
 
 instance MonadFilesystem IO where
-  doesDirectoryExist          = Directory.doesDirectoryExist
-  createDirectory             = Directory.createDirectory
-  readFileAsLazyByteString    = BSL.readFile
-  writeFileFromLazyByteString = BSL.writeFile
+  doesDirectoryExist = Directory.doesDirectoryExist
+  createDirectory    = Directory.createDirectory
+  readFileBytes      = BSL.readFile
+  writeFileBytes     = BSL.writeFile
 
 instance MonadFilesystem m => MonadFilesystem (ReaderT r m) where
-  doesDirectoryExist             = lift . doesDirectoryExist
-  createDirectory                = lift . createDirectory
-  readFileAsLazyByteString       = lift . readFileAsLazyByteString
-  writeFileFromLazyByteString fp = lift . writeFileFromLazyByteString fp
+  doesDirectoryExist = lift . doesDirectoryExist
+  createDirectory    = lift . createDirectory
+  readFileBytes      = lift . readFileBytes
+  writeFileBytes f   = lift . writeFileBytes f
 
 instance MonadFilesystem m => MonadFilesystem (StateT s m) where
-  doesDirectoryExist             = lift . doesDirectoryExist
-  createDirectory                = lift . createDirectory
-  readFileAsLazyByteString       = lift . readFileAsLazyByteString
-  writeFileFromLazyByteString fp = lift . writeFileFromLazyByteString fp
+  doesDirectoryExist = lift . doesDirectoryExist
+  createDirectory    = lift . createDirectory
+  readFileBytes      = lift . readFileBytes
+  writeFileBytes f   = lift . writeFileBytes f
 
 -- * MonadInteraction
 

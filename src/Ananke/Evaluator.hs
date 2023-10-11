@@ -220,7 +220,7 @@ check = do
 #ifdef BACKEND_JSON
 importJSON :: (MonadAppError m, MonadFilesystem m, MonadStore m) => FilePath -> m Response
 importJSON jsonFile = do
-  input   <- readFileAsLazyByteString jsonFile
+  input   <- readFileBytes jsonFile
   entries <- maybe (defaultError ("unable to decode " ++ jsonFile)) return (Aeson.decode input :: Maybe [Entry])
   mapM_ put entries
   return Imported
@@ -230,7 +230,7 @@ exportJSON jsonFile = do
   entries <- selectAll
   let aesonCfg = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
       output   = AesonPretty.encodePretty' aesonCfg . List.sort $ entries
-  writeFileFromLazyByteString jsonFile output
+  writeFileBytes jsonFile output
   return Exported
 #endif
 

@@ -51,7 +51,7 @@ encodeJSON = appendNewline . AesonPretty.encodePretty' config . List.sort
     config = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
 
 writeState :: (MonadAppError m, MonadFilesystem m) => AppState -> Config -> m ()
-writeState state cfg = when (appStateDirty state) $ writeFileFromLazyByteString jsonFile output
+writeState state cfg = when (appStateDirty state) $ writeFileBytes jsonFile output
   where
     jsonFile = configDataFile cfg
     output = encodeJSON (AppState.selectAll state)
@@ -68,7 +68,7 @@ createState cfg = do
       dataFile = configDataFile cfg
   dataDirExists <- doesDirectoryExist dataDir
   unless dataDirExists $ createDirectory dataDir
-  input <- readFileAsLazyByteString dataFile
+  input <- readFileBytes dataFile
   maybe (databaseError "unable to decode data.json") (return . AppState.mkAppState) (Aeson.decode input)
 
 initialize :: (MonadAppError m, MonadFilesystem m) => Config -> m (Config, AppState)

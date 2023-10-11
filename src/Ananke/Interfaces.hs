@@ -8,6 +8,9 @@ module Ananke.Interfaces
   , MonadStore(..)
   ) where
 
+import           Prelude              (Bool, FilePath, IO, Int, Maybe, Monad, String, ($), (.), (>>))
+import qualified Prelude              as Prelude
+
 import           Control.Monad.Catch  (MonadThrow (..))
 import           Control.Monad.Reader (ReaderT)
 import           Control.Monad.State  (StateT)
@@ -74,7 +77,7 @@ class Monad m => MonadConfigure m where
   getEnv         :: String   -> m (Maybe String)
 
 instance MonadConfigure IO where
-  readConfigFile = readFile
+  readConfigFile = Prelude.readFile
   getEnv         = Env.lookupEnv
 
 instance MonadConfigure m => MonadConfigure (ReaderT r m) where
@@ -138,8 +141,8 @@ class Monad m => MonadInteraction m where
 
 instance MonadInteraction IO where
   now      = Clock.getCurrentTime
-  message  = putStrLn
-  prompt s = putStr s >> IO.hFlush IO.stdout >> getLine
+  message  = Prelude.putStrLn
+  prompt s = Prelude.putStr s >> IO.hFlush IO.stdout >> Prelude.getLine
 
 instance MonadInteraction m => MonadInteraction (ReaderT r m)  where
   now     = lift now

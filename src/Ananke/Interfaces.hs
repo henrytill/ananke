@@ -89,13 +89,11 @@ instance MonadEncrypt m => MonadEncrypt (StateT s m) where
 
 class Monad m => MonadInteraction m where
   now                         :: m UTCTime
-  doesFileExist               :: FilePath -> m Bool
   doesDirectoryExist          :: FilePath -> m Bool
   createDirectory             :: FilePath -> m ()
   readFileAsString            :: FilePath -> m String
   readFileAsLazyByteString    :: FilePath -> m BSL.ByteString
   readFileAsText              :: FilePath -> m T.Text
-  writeFileFromString         :: FilePath -> String         -> m ()
   writeFileFromLazyByteString :: FilePath -> BSL.ByteString -> m ()
   getEnv                      :: String   -> m (Maybe String)
   message                     :: String   -> m ()
@@ -103,13 +101,11 @@ class Monad m => MonadInteraction m where
 
 instance MonadInteraction IO where
   now                         = Clock.getCurrentTime
-  doesFileExist               = Directory.doesFileExist
   doesDirectoryExist          = Directory.doesDirectoryExist
   createDirectory             = Directory.createDirectory
   readFileAsString            = readFile
   readFileAsText              = TIO.readFile
   readFileAsLazyByteString    = BSL.readFile
-  writeFileFromString         = writeFile
   writeFileFromLazyByteString = BSL.writeFile
   getEnv                      = Env.lookupEnv
   message                     = putStrLn
@@ -117,13 +113,11 @@ instance MonadInteraction IO where
 
 instance MonadInteraction m => MonadInteraction (ReaderT r m)  where
   now                            = lift now
-  doesFileExist                  = lift . doesFileExist
   doesDirectoryExist             = lift . doesDirectoryExist
   createDirectory                = lift . createDirectory
   readFileAsString               = lift . readFileAsString
   readFileAsText                 = lift . readFileAsText
   readFileAsLazyByteString       = lift . readFileAsLazyByteString
-  writeFileFromString fp         = lift . writeFileFromString fp
   writeFileFromLazyByteString fp = lift . writeFileFromLazyByteString fp
   getEnv                         = lift . getEnv
   message                        = lift . message
@@ -131,13 +125,11 @@ instance MonadInteraction m => MonadInteraction (ReaderT r m)  where
 
 instance MonadInteraction m => MonadInteraction (StateT s m)  where
   now                            = lift now
-  doesFileExist                  = lift . doesFileExist
   doesDirectoryExist             = lift . doesDirectoryExist
   createDirectory                = lift . createDirectory
   readFileAsString               = lift . readFileAsString
   readFileAsText                 = lift . readFileAsText
   readFileAsLazyByteString       = lift . readFileAsLazyByteString
-  writeFileFromString fp         = lift . writeFileFromString fp
   writeFileFromLazyByteString fp = lift . writeFileFromLazyByteString fp
   getEnv                         = lift . getEnv
   message                        = lift . message

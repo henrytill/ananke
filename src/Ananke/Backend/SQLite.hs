@@ -80,7 +80,7 @@ setup = do
   cfg <- askConfig
   let schemaFile = configSchemaFile cfg
       keyId      = configKeyId cfg
-  schemaVersion <- getSchemaVersion schemaFile
+  schemaVersion <- liftIO $ getSchemaVersion schemaFile
   if schemaVersion == currentSchemaVersion
     then withDatabase $ \db -> Database.createTable db
     else do liftIO $ putStrLn ("Migrating database from schema version "
@@ -89,5 +89,5 @@ setup = do
                                ++ show currentSchemaVersion
                                ++ "...")
             withDatabase $ \db -> Database.migrate db schemaVersion keyId
-            _ <- createSchemaFile schemaFile currentSchemaVersion
+            _ <- liftIO $ createSchemaFile schemaFile currentSchemaVersion
             return ()

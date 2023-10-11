@@ -14,7 +14,7 @@ import qualified System.Info                 as Info
 import           Ananke.Configuration.Parser (Pairs)
 import qualified Ananke.Configuration.Parser as Parser
 import           Ananke.Data
-import           Ananke.Interfaces
+import           Ananke.Interfaces           (MonadAppError (..), MonadConfigure (..))
 
 
 mkBackend :: String -> Backend
@@ -33,13 +33,13 @@ mkBool :: String -> Bool
 mkBool s | elem (toLower <$> s) trues = True
          | otherwise                  = False
 
-fromEnv :: MonadInteraction m => (String -> a) -> String -> m (Maybe a)
+fromEnv :: MonadConfigure m => (String -> a) -> String -> m (Maybe a)
 fromEnv f name = fmap (fmap f) (getEnv name)
 
 fromPairs :: (String -> a) -> String -> Pairs -> Maybe a
 fromPairs f name = fmap f . lookup name
 
-createPreConfig :: MonadInteraction m => m PreConfig
+createPreConfig :: MonadConfigure m => m PreConfig
 createPreConfig = do
   dir     <- First <$> getEnv "ANANKE_DATA_DIR"
   backend <- First <$> fromEnv mkBackend "ANANKE_BACKEND"
@@ -51,7 +51,7 @@ createPreConfig = do
                      , preConfigAllowMultipleKeys = mult
                      }
 
-addDefaultConfig :: MonadInteraction m => PreConfig -> m PreConfig
+addDefaultConfig :: MonadConfigure m => PreConfig -> m PreConfig
 addDefaultConfig preConfig = mappend preConfig <$> defaultConfig
   where
     getDefaultDataDirectory = case Info.os of
@@ -65,12 +65,12 @@ addDefaultConfig preConfig = mappend preConfig <$> defaultConfig
                          , preConfigAllowMultipleKeys = First (Just False)
                          }
 
-addFileConfig :: (MonadAppError m, MonadInteraction m) => PreConfig -> m PreConfig
+addFileConfig :: (MonadAppError m, MonadConfigure m) => PreConfig -> m PreConfig
 addFileConfig preConfig = mappend preConfig <$> fileConfig
   where
     fileConfig = do
       let dataDir = Maybe.fromJust (getFirst (preConfigDataDirectory preConfig))
-      txt   <- readFileAsString (dataDir ++ "/ananke.conf")
+      txt   <- readConfigFile (dataDir ++ "/ananke.conf")
       pairs <- maybe (configurationError "Unable to parse ananke.conf") return (Parser.parse txt)
       let backend = First $ fromPairs mkBackend "backend"             pairs
           keyId   = First $ fromPairs mkKeyId   "keyid"               pairs
@@ -94,8 +94,8 @@ preConfigToConfig preConfig =
     keyMsg = "Please set ANANKE_KEYID or keyid in ananke.conf"
     mulMsg = "Please set ANANKE_ALLOW_MULTIPLE_KEYS or allow_multiple_keys in ananke.conf"
 
-configureWith :: (MonadAppError m, MonadInteraction m) => PreConfig -> m Config
+configureWith :: (MonadAppError m, MonadConfigure m) => PreConfig -> m Config
 configureWith preConfig = addDefaultConfig preConfig >>= addFileConfig >>= preConfigToConfig
 
-configure :: (MonadAppError m, MonadInteraction m) => m Config
+configure :: (MonadAppError m, MonadConfigure m) => m Config
 configure = createPreConfig >>= configureWith

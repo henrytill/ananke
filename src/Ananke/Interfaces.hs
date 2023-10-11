@@ -1,6 +1,7 @@
 module Ananke.Interfaces
   ( MonadAppError(..)
   , MonadConfigReader(..)
+  , MonadConfigure(..)
   , MonadEncrypt(..)
   , MonadInteraction(..)
   , MonadStore(..)
@@ -65,6 +66,24 @@ instance MonadAppError m => MonadAppError (StateT s m) where
 class Monad m => MonadConfigReader m where
   askConfig :: m Config
 
+-- * MonadConfigure
+
+class Monad m => MonadConfigure m where
+  readConfigFile :: FilePath -> m String
+  getEnv         :: String   -> m (Maybe String)
+
+instance MonadConfigure IO where
+  readConfigFile = readFile
+  getEnv         = Env.lookupEnv
+
+instance MonadConfigure m => MonadConfigure (ReaderT r m) where
+  readConfigFile = lift . readConfigFile
+  getEnv         = lift . getEnv
+
+instance MonadConfigure m => MonadConfigure (StateT s m) where
+  readConfigFile = lift . readConfigFile
+  getEnv         = lift . getEnv
+
 -- * MonadEncrypt
 
 class Monad m => MonadEncrypt m where
@@ -89,10 +108,8 @@ class Monad m => MonadInteraction m where
   now                         :: m UTCTime
   doesDirectoryExist          :: FilePath -> m Bool
   createDirectory             :: FilePath -> m ()
-  readFileAsString            :: FilePath -> m String
   readFileAsLazyByteString    :: FilePath -> m BSL.ByteString
   writeFileFromLazyByteString :: FilePath -> BSL.ByteString -> m ()
-  getEnv                      :: String   -> m (Maybe String)
   message                     :: String   -> m ()
   prompt                      :: String   -> m String
 
@@ -100,10 +117,8 @@ instance MonadInteraction IO where
   now                         = Clock.getCurrentTime
   doesDirectoryExist          = Directory.doesDirectoryExist
   createDirectory             = Directory.createDirectory
-  readFileAsString            = readFile
   readFileAsLazyByteString    = BSL.readFile
   writeFileFromLazyByteString = BSL.writeFile
-  getEnv                      = Env.lookupEnv
   message                     = putStrLn
   prompt s                    = putStr s >> IO.hFlush IO.stdout >> getLine
 
@@ -111,10 +126,8 @@ instance MonadInteraction m => MonadInteraction (ReaderT r m)  where
   now                            = lift now
   doesDirectoryExist             = lift . doesDirectoryExist
   createDirectory                = lift . createDirectory
-  readFileAsString               = lift . readFileAsString
   readFileAsLazyByteString       = lift . readFileAsLazyByteString
   writeFileFromLazyByteString fp = lift . writeFileFromLazyByteString fp
-  getEnv                         = lift . getEnv
   message                        = lift . message
   prompt                         = lift . prompt
 
@@ -122,10 +135,8 @@ instance MonadInteraction m => MonadInteraction (StateT s m)  where
   now                            = lift now
   doesDirectoryExist             = lift . doesDirectoryExist
   createDirectory                = lift . createDirectory
-  readFileAsString               = lift . readFileAsString
   readFileAsLazyByteString       = lift . readFileAsLazyByteString
   writeFileFromLazyByteString fp = lift . writeFileFromLazyByteString fp
-  getEnv                         = lift . getEnv
   message                        = lift . message
   prompt                         = lift . prompt
 

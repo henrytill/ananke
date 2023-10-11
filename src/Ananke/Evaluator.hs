@@ -124,7 +124,7 @@ checkKey k = do
         _   -> defaultError "Please answer y or n"
 
 add
-  :: (MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
+  :: (MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m, MonadTime m)
   => Description
   -> Maybe Identity
   -> Maybe Metadata
@@ -160,7 +160,7 @@ update (Just (MkIdentity "")) (Just (MkMetadata "")) entry entryTimestamp = upda
 update entryIdentity          entryMeta              entry entryTimestamp = updateEntry entry{entryTimestamp, entryIdentity, entryMeta}
 
 updateCiphertext
-  :: (MonadConfigReader m, MonadEncrypt m, MonadInteraction m)
+  :: (MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadTime m)
   => ModifyAction
   -> Entry
   -> m Entry
@@ -174,7 +174,7 @@ updateCiphertext Keep entry =
   return entry
 
 modify
-  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
+  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m, MonadTime m)
   => Target
   -> ModifyAction
   -> Maybe Identity
@@ -188,7 +188,7 @@ modify target modifyAction maybeIdentity maybeMeta = do
     _       -> ambiguousInputError "There are multiple entries matching your input criteria."
 
 redescribe
-  :: (MonadAppError m, MonadEncrypt m, MonadInteraction m, MonadStore m)
+  :: (MonadAppError m, MonadEncrypt m, MonadInteraction m, MonadStore m, MonadTime m)
   => Target
   -> Description
   -> m Response
@@ -236,9 +236,9 @@ exportJSON jsonFile = do
 
 eval
 #ifdef BACKEND_JSON
-  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadFilesystem m, MonadInteraction m, MonadStore m)
+  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadFilesystem m, MonadInteraction m, MonadStore m, MonadTime m)
 #else
-  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
+  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m, MonadTime m)
 #endif
   => Command
   -> m Response

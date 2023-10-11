@@ -36,6 +36,7 @@ newtype SQLite a = MkSQLite { unSQLite :: ReaderT AppContext IO a }
            , MonadEncrypt
            , MonadFilesystem
            , MonadInteraction
+           , MonadTime
            )
 
 runSQLite :: SQLite a -> AppContext -> IO a

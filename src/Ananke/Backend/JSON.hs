@@ -39,6 +39,7 @@ newtype JSON a = MkJSON { unJSON :: ReaderT Config (StateT AppState IO) a }
            , MonadEncrypt
            , MonadFilesystem
            , MonadInteraction
+           , MonadTime
            )
 
 runJSON :: JSON a -> AppState -> Config -> IO (a, AppState)

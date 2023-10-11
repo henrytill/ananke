@@ -6,6 +6,7 @@ module Ananke.Interfaces
   , MonadFilesystem(..)
   , MonadInteraction(..)
   , MonadStore(..)
+  , MonadTime(..)
   ) where
 
 import           Prelude              (Bool, FilePath, IO, Int, Maybe, Monad, String, ($), (.), (>>))
@@ -135,22 +136,18 @@ instance MonadFilesystem m => MonadFilesystem (StateT s m) where
 -- * MonadInteraction
 
 class Monad m => MonadInteraction m where
-  now     :: m UTCTime
   message :: String -> m ()
   prompt  :: String -> m String
 
 instance MonadInteraction IO where
-  now      = Clock.getCurrentTime
   message  = Prelude.putStrLn
   prompt s = Prelude.putStr s >> IO.hFlush IO.stdout >> Prelude.getLine
 
-instance MonadInteraction m => MonadInteraction (ReaderT r m)  where
-  now     = lift now
+instance MonadInteraction m => MonadInteraction (ReaderT r m) where
   message = lift . message
   prompt  = lift . prompt
 
-instance MonadInteraction m => MonadInteraction (StateT s m)  where
-  now     = lift now
+instance MonadInteraction m => MonadInteraction (StateT s m) where
   message = lift . message
   prompt  = lift . prompt
 
@@ -163,3 +160,18 @@ class Monad m => MonadStore m where
   selectAll       :: m [Entry]
   getCount        :: m Int
   getCountOfKeyId :: KeyId -> m Int
+
+-- * MonadTime
+
+class Monad m => MonadTime m where
+  now :: m UTCTime
+
+instance MonadTime IO where
+  now = Clock.getCurrentTime
+
+instance MonadTime m => MonadTime (ReaderT r m) where
+  now = lift now
+
+instance MonadTime m => MonadTime (StateT s m) where
+  now = lift now
+

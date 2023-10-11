@@ -33,7 +33,7 @@ instance Arbitrary TestData where
   shrink (MkTestData as bs cs ds) = MkTestData <$> shrink as <*> shrink bs <*> shrink cs <*> shrink ds
 
 createEntryFromTestData
-  :: (MonadAppError m, MonadInteraction m, MonadEncrypt m, MonadConfigReader m)
+  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadTime m)
   => TestData
   -> m Entry
 createEntryFromTestData td = do
@@ -49,7 +49,7 @@ createEntryFromTestData td = do
                    (testMetadata td)
 
 addEntryToDatabase
-  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
+  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m, MonadTime m)
   => [TestData]
   -> m [Entry]
 addEntryToDatabase tds = do

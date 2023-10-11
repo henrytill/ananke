@@ -3,6 +3,7 @@ module Ananke.Interfaces
   , MonadConfigReader(..)
   , MonadConfigure(..)
   , MonadEncrypt(..)
+  , MonadFilesystem(..)
   , MonadInteraction(..)
   , MonadStore(..)
   ) where
@@ -102,43 +103,53 @@ instance MonadEncrypt m => MonadEncrypt (StateT s m) where
   encrypt kid pt = lift $ encrypt kid pt
   decrypt     ct = lift $ decrypt ct
 
--- * MonadInteraction
+-- * MonadFilesystem
 
-class Monad m => MonadInteraction m where
-  now                         :: m UTCTime
+class Monad m => MonadFilesystem m where
   doesDirectoryExist          :: FilePath -> m Bool
   createDirectory             :: FilePath -> m ()
   readFileAsLazyByteString    :: FilePath -> m BSL.ByteString
   writeFileFromLazyByteString :: FilePath -> BSL.ByteString -> m ()
-  message                     :: String   -> m ()
-  prompt                      :: String   -> m String
 
-instance MonadInteraction IO where
-  now                         = Clock.getCurrentTime
+instance MonadFilesystem IO where
   doesDirectoryExist          = Directory.doesDirectoryExist
   createDirectory             = Directory.createDirectory
   readFileAsLazyByteString    = BSL.readFile
   writeFileFromLazyByteString = BSL.writeFile
-  message                     = putStrLn
-  prompt s                    = putStr s >> IO.hFlush IO.stdout >> getLine
+
+instance MonadFilesystem m => MonadFilesystem (ReaderT r m) where
+  doesDirectoryExist             = lift . doesDirectoryExist
+  createDirectory                = lift . createDirectory
+  readFileAsLazyByteString       = lift . readFileAsLazyByteString
+  writeFileFromLazyByteString fp = lift . writeFileFromLazyByteString fp
+
+instance MonadFilesystem m => MonadFilesystem (StateT s m) where
+  doesDirectoryExist             = lift . doesDirectoryExist
+  createDirectory                = lift . createDirectory
+  readFileAsLazyByteString       = lift . readFileAsLazyByteString
+  writeFileFromLazyByteString fp = lift . writeFileFromLazyByteString fp
+
+-- * MonadInteraction
+
+class Monad m => MonadInteraction m where
+  now     :: m UTCTime
+  message :: String -> m ()
+  prompt  :: String -> m String
+
+instance MonadInteraction IO where
+  now      = Clock.getCurrentTime
+  message  = putStrLn
+  prompt s = putStr s >> IO.hFlush IO.stdout >> getLine
 
 instance MonadInteraction m => MonadInteraction (ReaderT r m)  where
-  now                            = lift now
-  doesDirectoryExist             = lift . doesDirectoryExist
-  createDirectory                = lift . createDirectory
-  readFileAsLazyByteString       = lift . readFileAsLazyByteString
-  writeFileFromLazyByteString fp = lift . writeFileFromLazyByteString fp
-  message                        = lift . message
-  prompt                         = lift . prompt
+  now     = lift now
+  message = lift . message
+  prompt  = lift . prompt
 
 instance MonadInteraction m => MonadInteraction (StateT s m)  where
-  now                            = lift now
-  doesDirectoryExist             = lift . doesDirectoryExist
-  createDirectory                = lift . createDirectory
-  readFileAsLazyByteString       = lift . readFileAsLazyByteString
-  writeFileFromLazyByteString fp = lift . writeFileFromLazyByteString fp
-  message                        = lift . message
-  prompt                         = lift . prompt
+  now     = lift now
+  message = lift . message
+  prompt  = lift . prompt
 
 -- * MonadStore
 

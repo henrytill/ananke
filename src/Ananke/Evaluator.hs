@@ -151,14 +151,14 @@ lookup description maybeIdentity verbosity = do
          return $ MkDisplayEntry entryId entryTimestamp entryDescription entryIdentity plaintext entryMeta
 
 #ifdef BACKEND_JSON
-importJSON :: (MonadAppError m, MonadInteraction m, MonadStore m) => FilePath -> m Response
+importJSON :: (MonadAppError m, MonadFilesystem m, MonadStore m) => FilePath -> m Response
 importJSON jsonFile = do
   input   <- readFileAsLazyByteString jsonFile
   entries <- maybe (defaultError ("unable to decode " ++ jsonFile)) return (Aeson.decode input :: Maybe [Entry])
   mapM_ put entries
   return Imported
 
-exportJSON :: (MonadInteraction m, MonadStore m) => FilePath -> m Response
+exportJSON :: (MonadFilesystem m, MonadStore m) => FilePath -> m Response
 exportJSON jsonFile = do
   entries <- selectAll
   let aesonCfg = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
@@ -235,7 +235,11 @@ check = do
     else defaultError "All entries do not have the same keyid"
 
 eval
+#ifdef BACKEND_JSON
+  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadFilesystem m, MonadInteraction m, MonadStore m)
+#else
   :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
+#endif
   => Command
   -> m Response
 eval Add{addDescription, addIdentity, addMeta}                          = checkKey $ add addDescription addIdentity addMeta

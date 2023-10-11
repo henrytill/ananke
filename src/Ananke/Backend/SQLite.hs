@@ -34,6 +34,7 @@ newtype SQLite a = MkSQLite { unSQLite :: ReaderT AppContext IO a }
            , MonadReader AppContext
            , MonadAppError
            , MonadEncrypt
+           , MonadFilesystem
            , MonadInteraction
            )
 

@@ -150,23 +150,6 @@ lookup description maybeIdentity verbosity = do
       do plaintext <- decrypt entryCiphertext
          return $ MkDisplayEntry entryId entryTimestamp entryDescription entryIdentity plaintext entryMeta
 
-#ifdef BACKEND_JSON
-importJSON :: (MonadAppError m, MonadFilesystem m, MonadStore m) => FilePath -> m Response
-importJSON jsonFile = do
-  input   <- readFileAsLazyByteString jsonFile
-  entries <- maybe (defaultError ("unable to decode " ++ jsonFile)) return (Aeson.decode input :: Maybe [Entry])
-  mapM_ put entries
-  return Imported
-
-exportJSON :: (MonadFilesystem m, MonadStore m) => FilePath -> m Response
-exportJSON jsonFile = do
-  entries <- selectAll
-  let aesonCfg = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
-      output   = AesonPretty.encodePretty' aesonCfg . List.sort $ entries
-  writeFileFromLazyByteString jsonFile output
-  return Exported
-#endif
-
 update :: Maybe Identity -> Maybe Metadata -> Entry -> UTCTime -> Entry
 update Nothing                Nothing                entry _              = entry
 update (Just (MkIdentity "")) Nothing                entry entryTimestamp = updateEntry entry{entryTimestamp, entryIdentity = Nothing}
@@ -233,6 +216,23 @@ check = do
   if totalCount == keyCount
     then return CheckedForMultipleKeys
     else defaultError "All entries do not have the same keyid"
+
+#ifdef BACKEND_JSON
+importJSON :: (MonadAppError m, MonadFilesystem m, MonadStore m) => FilePath -> m Response
+importJSON jsonFile = do
+  input   <- readFileAsLazyByteString jsonFile
+  entries <- maybe (defaultError ("unable to decode " ++ jsonFile)) return (Aeson.decode input :: Maybe [Entry])
+  mapM_ put entries
+  return Imported
+
+exportJSON :: (MonadFilesystem m, MonadStore m) => FilePath -> m Response
+exportJSON jsonFile = do
+  entries <- selectAll
+  let aesonCfg = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
+      output   = AesonPretty.encodePretty' aesonCfg . List.sort $ entries
+  writeFileFromLazyByteString jsonFile output
+  return Exported
+#endif
 
 eval
 #ifdef BACKEND_JSON

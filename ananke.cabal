@@ -41,6 +41,7 @@ executable ananke
 
 library
   exposed-modules:     Ananke
+                     , Ananke.Backend
                      , Ananke.Backend.SQLite
                      , Ananke.Backend.SQLite.AppContext
                      , Ananke.Backend.SQLite.Database

@@ -17,7 +17,6 @@ import           Ananke.Backend.SQLite   (AppContext (..))
 import qualified Ananke.Backend.SQLite   as SQLite
 import qualified Ananke.Configuration    as Configuration
 import           Ananke.Data
-import qualified Ananke.Evaluator        as Evaluator
 import           Ananke.Interfaces
 import           Ananke.Orphans          ()
 
@@ -78,7 +77,7 @@ doProperties = do
   let preConfig = MkPreConfig (First (Just dir)) mempty mempty mempty
   _          <- Directory.copyFile "./example/ananke.conf" (dir ++ "/ananke.conf")
   ctx        <- Configuration.configureWith preConfig >>= SQLite.initialize
-  _          <- SQLite.run Evaluator.setup ctx
+  _          <- SQLite.run SQLite.setup ctx
   results    <- mapM (\p -> QuickCheck.quickCheckWithResult QuickCheck.stdArgs (p ctx)) tests
   _          <- SQLite3.close (appContextDatabase ctx)
   return results

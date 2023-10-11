@@ -146,11 +146,9 @@ instance MonadInteraction m => MonadInteraction (StateT s m)  where
 -- * MonadStore
 
 class Monad m => MonadStore m where
-  put                  :: Entry -> m ()
-  delete               :: Entry -> m ()
-  runQuery             :: Query -> m [Entry]
-  selectAll            :: m [Entry]
-  getCount             :: m Int
-  getCountOfKeyId      :: KeyId -> m Int
-  createTable          :: m ()
-  migrate              :: SchemaVersion -> KeyId -> m ()
+  put             :: Entry -> m ()
+  delete          :: Entry -> m ()
+  runQuery        :: Query -> m [Entry]
+  selectAll       :: m [Entry]
+  getCount        :: m Int
+  getCountOfKeyId :: KeyId -> m Int

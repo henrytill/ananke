@@ -9,7 +9,6 @@ module Ananke.Evaluator
   , Target(..)
   , Command(..)
   , Response(..)
-  , setup
   , eval
   ) where
 
@@ -27,9 +26,6 @@ import           Data.Time.Clock          (UTCTime)
 import           Ananke.Data
 import           Ananke.Interfaces
 
-
-currentSchemaVersion :: SchemaVersion
-currentSchemaVersion = MkSchemaVersion 2
 
 data ModifyAction = Keep | Change
   deriving (Show, Eq)
@@ -85,19 +81,6 @@ queryFromTarget :: Target -> Query
 queryFromTarget (TargetId targetId)                   = MkQuery (Just targetId) Nothing                  Nothing Nothing
 queryFromTarget (TargetDescription targetDescription) = MkQuery Nothing         (Just targetDescription) Nothing Nothing
 
-getSchemaVersionFromFile :: MonadInteraction m => FilePath -> m SchemaVersion
-getSchemaVersionFromFile path = MkSchemaVersion . read <$> readFileAsString path
-
-createSchemaFile :: MonadInteraction m => FilePath -> SchemaVersion -> m SchemaVersion
-createSchemaFile path version = writeFileFromString path (show version) >> return version
-
-getSchemaVersion :: (MonadInteraction m, MonadStore m) => FilePath -> m SchemaVersion
-getSchemaVersion path = do
-  fileExists <- doesFileExist path
-  if fileExists
-    then getSchemaVersionFromFile path
-    else createSchemaFile path currentSchemaVersion
-
 reencryptAll :: forall m. (MonadEncrypt m, MonadStore m) => KeyId -> m ()
 reencryptAll keyId = do
   entries        <- selectAll
@@ -110,33 +93,6 @@ reencryptAll keyId = do
       plaintext       <- decrypt $ entryCiphertext entry
       entryCiphertext <- encrypt entryKeyId plaintext
       return $ updateEntry entry{entryKeyId, entryCiphertext}
-
-initDatabase
-  :: (MonadEncrypt m, MonadInteraction m, MonadStore m)
-  => FilePath
-  -> SchemaVersion
-  -> KeyId
-  -> m ()
-initDatabase path schemaVersion keyId =
-  if schemaVersion == currentSchemaVersion
-  then createTable
-  else do message ("Migrating database from schema version "
-                   ++ show schemaVersion
-                   ++ " to version "
-                   ++ show currentSchemaVersion
-                   ++ "...")
-          migrate schemaVersion keyId
-          reencryptAll keyId
-          _ <- createSchemaFile path currentSchemaVersion
-          return ()
-
-setup :: (MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m) => m ()
-setup = do
-  cfg <- askConfig
-  let schemaFile = configSchemaFile cfg
-      keyId      = configKeyId cfg
-  schemaVersion <- getSchemaVersion schemaFile
-  initDatabase schemaFile schemaVersion keyId
 
 checkKey
   :: forall m. (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)

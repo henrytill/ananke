@@ -39,7 +39,7 @@ handleResponse res = case res of
 runSQLiteApp :: SQLite.AppContext -> IO ExitCode
 runSQLiteApp ctx = do
   cmd <- Parser.runCLIParser
-  Exception.catch (SQLite.run (Evaluator.setup >> Evaluator.eval cmd) ctx >>= handleResponse)
+  Exception.catch (SQLite.run (SQLite.setup >> Evaluator.eval cmd) ctx >>= handleResponse)
                   handleError
 
 #ifdef BACKEND_JSON

@@ -2,6 +2,7 @@
 
 module Ananke.Backend.SQLite
   ( SQLite
+  , setup
   , run
   , initialize
   , finalize
@@ -15,9 +16,11 @@ import           Control.Monad.Reader             (MonadReader, ReaderT, ask, as
 import qualified Data.Text                        as T
 import qualified Database.SQLite3                 as SQLite3
 
+import           Ananke.Backend
 import           Ananke.Backend.SQLite.AppContext (AppContext (..))
 import qualified Ananke.Backend.SQLite.Database   as Database
-import           Ananke.Data                      (Config, configDatabaseDirectory, configDatabaseFile)
+import           Ananke.Data                      (Config, configDatabaseDirectory, configDatabaseFile, configKeyId,
+                                                   configSchemaFile)
 import           Ananke.Interfaces
 
 
@@ -63,11 +66,28 @@ withDatabase :: (SQLite3.Database -> SQLite a) -> SQLite a
 withDatabase f = ask >>= f . appContextDatabase
 
 instance MonadStore SQLite where
-  put             e       = withDatabase $ \db -> Database.put             db e
-  delete          e       = withDatabase $ \db -> Database.delete          db e
-  runQuery        q       = withDatabase $ \db -> Database.runQuery        db q
-  selectAll               = withDatabase $ \db -> Database.selectAll       db
-  getCount                = withDatabase $ \db -> Database.getCount        db
-  getCountOfKeyId kid     = withDatabase $ \db -> Database.getCountOfKeyId db kid
-  createTable             = withDatabase $ \db -> Database.createTable     db
-  migrate         sv  kid = withDatabase $ \db -> Database.migrate         db sv  kid
+  put             e = withDatabase $ \db -> Database.put             db e
+  delete          e = withDatabase $ \db -> Database.delete          db e
+  runQuery        q = withDatabase $ \db -> Database.runQuery        db q
+  selectAll         = withDatabase $ \db -> Database.selectAll       db
+  getCount          = withDatabase $ \db -> Database.getCount        db
+  getCountOfKeyId k = withDatabase $ \db -> Database.getCountOfKeyId db k
+
+-- * Setup
+
+setup :: SQLite ()
+setup = do
+  cfg <- askConfig
+  let schemaFile = configSchemaFile cfg
+      keyId      = configKeyId cfg
+  schemaVersion <- getSchemaVersion schemaFile
+  if schemaVersion == currentSchemaVersion
+    then withDatabase $ \db -> Database.createTable db
+    else do liftIO $ putStrLn ("Migrating database from schema version "
+                               ++ show schemaVersion
+                               ++ " to version "
+                               ++ show currentSchemaVersion
+                               ++ "...")
+            withDatabase $ \db -> Database.migrate db schemaVersion keyId
+            _ <- createSchemaFile schemaFile currentSchemaVersion
+            return ()

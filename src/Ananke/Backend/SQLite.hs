@@ -19,9 +19,9 @@ import qualified Database.SQLite3                 as SQLite3
 import           Ananke.Backend
 import           Ananke.Backend.SQLite.AppContext (AppContext (..))
 import qualified Ananke.Backend.SQLite.Database   as Database
+import           Ananke.Class
 import           Ananke.Data                      (Config, configDatabaseDirectory, configDatabaseFile, configKeyId,
                                                    configSchemaFile)
-import           Ananke.Interfaces
 
 
 -- * SQLite

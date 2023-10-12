@@ -15,9 +15,9 @@ import qualified Test.QuickCheck.Monadic as Monadic
 
 import           Ananke.Backend.SQLite   (AppContext (..))
 import qualified Ananke.Backend.SQLite   as SQLite
+import           Ananke.Class
 import qualified Ananke.Configuration    as Configuration
 import           Ananke.Data
-import           Ananke.Interfaces
 import           Ananke.Orphans          ()
 
 

@@ -1,4 +1,4 @@
-module Ananke.Interfaces
+module Ananke.Class
   ( MonadAppError(..)
   , MonadConfigReader(..)
   , MonadConfigure(..)

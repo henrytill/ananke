@@ -11,10 +11,10 @@ import           Data.Monoid                 (First (..))
 import qualified Data.Text                   as T
 import qualified System.Info                 as Info
 
+import           Ananke.Class                (MonadAppError (..), MonadConfigure (..))
 import           Ananke.Configuration.Parser (Pairs)
 import qualified Ananke.Configuration.Parser as Parser
 import           Ananke.Data
-import           Ananke.Interfaces           (MonadAppError (..), MonadConfigure (..))
 
 
 mkBackend :: String -> Backend

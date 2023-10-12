@@ -23,8 +23,8 @@ import qualified Data.List                as List
 import           Data.Char                (toLower)
 import           Data.Time.Clock          (UTCTime)
 
+import           Ananke.Class
 import           Ananke.Data
-import           Ananke.Interfaces
 
 
 data ModifyAction = Keep | Change

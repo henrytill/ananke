@@ -22,8 +22,8 @@ import qualified Data.List                    as List
 
 import           Ananke.Backend.JSON.AppState (AppState, appStateDirty)
 import qualified Ananke.Backend.JSON.AppState as AppState
+import           Ananke.Class
 import           Ananke.Data                  (Config, Entry, configDataDirectory, configDataFile, entryKeyOrder)
-import           Ananke.Interfaces
 
 
 -- * JSON

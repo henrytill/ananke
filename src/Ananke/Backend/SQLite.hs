@@ -56,25 +56,6 @@ initialize cfg = do
 finalize :: AppContext -> IO ()
 finalize = SQLite3.close . appContextDatabase
 
--- * Instances
-
-instance MonadThrow SQLite where
-  throwM = liftIO . throwM
-
-instance MonadConfigReader SQLite where
-  askConfig = asks appContextConfig
-
-withDatabase :: (SQLite3.Database -> SQLite a) -> SQLite a
-withDatabase f = ask >>= f . appContextDatabase
-
-instance MonadStore SQLite where
-  put             e = withDatabase $ \db -> Database.put             db e
-  delete          e = withDatabase $ \db -> Database.delete          db e
-  runQuery        q = withDatabase $ \db -> Database.runQuery        db q
-  selectAll         = withDatabase $ \db -> Database.selectAll       db
-  getCount          = withDatabase $ \db -> Database.getCount        db
-  getCountOfKeyId k = withDatabase $ \db -> Database.getCountOfKeyId db k
-
 -- * Setup
 
 setup :: SQLite ()
@@ -93,3 +74,22 @@ setup = do
             withDatabase $ \db -> Database.migrate db schemaVersion keyId
             _ <- liftIO $ createSchemaFile schemaFile currentSchemaVersion
             return ()
+
+-- * Instances
+
+instance MonadThrow SQLite where
+  throwM = liftIO . throwM
+
+instance MonadConfigReader SQLite where
+  askConfig = asks appContextConfig
+
+withDatabase :: (SQLite3.Database -> SQLite a) -> SQLite a
+withDatabase f = ask >>= f . appContextDatabase
+
+instance MonadStore SQLite where
+  put             e = withDatabase $ \db -> Database.put             db e
+  delete          e = withDatabase $ \db -> Database.delete          db e
+  runQuery        q = withDatabase $ \db -> Database.runQuery        db q
+  selectAll         = withDatabase $ \db -> Database.selectAll       db
+  getCount          = withDatabase $ \db -> Database.getCount        db
+  getCountOfKeyId k = withDatabase $ \db -> Database.getCountOfKeyId db k

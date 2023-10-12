@@ -9,7 +9,7 @@ data AppError
   = Configuration String
   | GPG String
   | Database String
-  | FileSystem String
+  | Filesystem String
   | AmbiguousInput String
   | Migration String
   | Default String
@@ -19,7 +19,7 @@ instance Show AppError where
   show  (Configuration s) = "Configuration Error: " ++ s
   show            (GPG s) =           "GPG Error: " ++ s
   show       (Database s) =      "Database Error: " ++ s
-  show     (FileSystem s) =    "Filesystem Error: " ++ s
+  show     (Filesystem s) =    "Filesystem Error: " ++ s
   show (AmbiguousInput s) =     "Ambiguous Input: " ++ s
   show      (Migration s) =     "Migration Error: " ++ s
   show        (Default s) =               "Error: " ++ s

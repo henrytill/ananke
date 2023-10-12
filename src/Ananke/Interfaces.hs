@@ -34,7 +34,7 @@ class Monad m => MonadAppError m where
   configurationError  :: String -> m a
   gpgError            :: String -> m a
   databaseError       :: String -> m a
-  fileSystemError     :: String -> m a
+  filesystemError     :: String -> m a
   ambiguousInputError :: String -> m a
   migrationError      :: String -> m a
   defaultError        :: String -> m a
@@ -43,7 +43,7 @@ instance MonadAppError IO where
   configurationError  = throwM . Configuration
   gpgError            = throwM . GPG
   databaseError       = throwM . Database
-  fileSystemError     = throwM . FileSystem
+  filesystemError     = throwM . Filesystem
   ambiguousInputError = throwM . AmbiguousInput
   migrationError      = throwM . Migration
   defaultError        = throwM . Default
@@ -52,7 +52,7 @@ instance MonadAppError m => MonadAppError (ReaderT r m) where
   configurationError  = lift . configurationError
   gpgError            = lift . gpgError
   databaseError       = lift . databaseError
-  fileSystemError     = lift . fileSystemError
+  filesystemError     = lift . filesystemError
   ambiguousInputError = lift . ambiguousInputError
   migrationError      = lift . migrationError
   defaultError        = lift . defaultError
@@ -61,7 +61,7 @@ instance MonadAppError m => MonadAppError (StateT s m) where
   configurationError  = lift . configurationError
   gpgError            = lift . gpgError
   databaseError       = lift . databaseError
-  fileSystemError     = lift . fileSystemError
+  filesystemError     = lift . filesystemError
   ambiguousInputError = lift . ambiguousInputError
   migrationError      = lift . migrationError
   defaultError        = lift . defaultError

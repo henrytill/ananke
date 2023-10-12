@@ -92,12 +92,12 @@ instance MonadEncrypt IO where
   decrypt = GPG.decrypt
 
 instance MonadEncrypt m => MonadEncrypt (ReaderT r m) where
-  encrypt kid pt = lift $ encrypt kid pt
-  decrypt     ct = lift $ decrypt ct
+  encrypt k p = lift $ encrypt k p
+  decrypt   c = lift $ decrypt c
 
 instance MonadEncrypt m => MonadEncrypt (StateT s m) where
-  encrypt kid pt = lift $ encrypt kid pt
-  decrypt     ct = lift $ decrypt ct
+  encrypt k p = lift $ encrypt k p
+  decrypt   c = lift $ decrypt c
 
 -- * MonadFilesystem
 
@@ -166,4 +166,3 @@ instance MonadTime m => MonadTime (ReaderT r m) where
 
 instance MonadTime m => MonadTime (StateT s m) where
   now = lift now
-

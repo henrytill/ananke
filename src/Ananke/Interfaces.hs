@@ -10,7 +10,7 @@ module Ananke.Interfaces
   ) where
 
 import           Prelude              (Bool, FilePath, IO, Int, Maybe, Monad, String, ($), (.), (>>))
-import qualified Prelude              as Prelude
+import qualified Prelude
 
 import           Control.Monad.Catch  (MonadThrow (..))
 import           Control.Monad.Reader (ReaderT)

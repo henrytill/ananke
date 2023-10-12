@@ -51,7 +51,7 @@ encodeJSON = appendNewline . AesonPretty.encodePretty' config . List.sort
     appendNewline = flip BSL.append "\n"
     config = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
 
-writeState :: (MonadAppError m, MonadFilesystem m) => AppState -> Config -> m ()
+writeState :: AppState -> Config -> IO ()
 writeState state cfg = when (appStateDirty state) $ writeFileBytes jsonFile output
   where
     jsonFile = configDataFile cfg
@@ -63,7 +63,7 @@ run m state cfg = do
   writeState state' cfg
   return res
 
-createState :: (MonadAppError m, MonadFilesystem m) => Config -> m AppState
+createState :: Config -> IO AppState
 createState cfg = do
   let dataDir  = configDataDirectory cfg
       dataFile = configDataFile cfg
@@ -72,12 +72,12 @@ createState cfg = do
   input <- readFileBytes dataFile
   maybe (databaseError "unable to decode data.json") (return . AppState.mkAppState) (Aeson.decode input)
 
-initialize :: (MonadAppError m, MonadFilesystem m) => Config -> m (Config, AppState)
+initialize :: Config -> IO (Config, AppState)
 initialize cfg = do
   state <- createState cfg
   return (cfg, state)
 
-finalize :: (MonadAppError m, MonadInteraction m) => (Config, AppState) -> m ()
+finalize :: (Config, AppState) -> IO ()
 finalize _ = return ()
 
 -- * Instances

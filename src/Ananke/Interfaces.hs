@@ -81,14 +81,6 @@ instance MonadConfigure IO where
   readConfigFile = Prelude.readFile
   getEnv         = Env.lookupEnv
 
-instance MonadConfigure m => MonadConfigure (ReaderT r m) where
-  readConfigFile = lift . readConfigFile
-  getEnv         = lift . getEnv
-
-instance MonadConfigure m => MonadConfigure (StateT s m) where
-  readConfigFile = lift . readConfigFile
-  getEnv         = lift . getEnv
-
 -- * MonadEncrypt
 
 class Monad m => MonadEncrypt m where

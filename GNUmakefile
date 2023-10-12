@@ -10,7 +10,7 @@ deps:
 
 .PHONY: install
 install:
-	cabal v2-install --overwrite-policy=always
+	cabal v2-install exe:ananke --overwrite-policy=always
 
 .PHONY: check test
 check test: export GNUPGHOME = $(PROJECT_DIR)/example/gnupg

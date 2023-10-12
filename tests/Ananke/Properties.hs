@@ -9,8 +9,8 @@ import           Data.Monoid             (First (..))
 import qualified Database.SQLite3        as SQLite3
 import qualified System.Directory        as Directory
 import qualified System.IO.Temp          as Temp
-import           Test.QuickCheck         (Arbitrary (..), Property, Result)
 import qualified Test.QuickCheck         as QuickCheck
+import           Test.QuickCheck         (Arbitrary (..), Property, Result)
 import qualified Test.QuickCheck.Monadic as Monadic
 
 import           Ananke.Backend.SQLite   (AppContext (..))

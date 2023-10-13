@@ -4,22 +4,24 @@ module Ananke.Backend
   , getSchemaVersion
   ) where
 
-import qualified System.Directory as Directory
+import qualified Data.ByteString.Lazy.Char8 as Char8
 
+import           Ananke.Class               (MonadFilesystem (..))
 import           Ananke.Data
+
 
 currentSchemaVersion :: SchemaVersion
 currentSchemaVersion = MkSchemaVersion 2
 
-getSchemaVersionFromFile :: FilePath -> IO SchemaVersion
-getSchemaVersionFromFile path = MkSchemaVersion . read <$> readFile path
+getSchemaVersionFromFile :: MonadFilesystem m => FilePath -> m SchemaVersion
+getSchemaVersionFromFile path = MkSchemaVersion . read . Char8.unpack <$> readFileBytes path
 
-createSchemaFile :: FilePath -> SchemaVersion -> IO SchemaVersion
-createSchemaFile path version = writeFile path (show version) >> return version
+createSchemaFile :: MonadFilesystem m => FilePath -> SchemaVersion -> m SchemaVersion
+createSchemaFile path version = writeFileBytes path (Char8.pack . show $ version) >> return version
 
-getSchemaVersion :: FilePath -> IO SchemaVersion
+getSchemaVersion :: MonadFilesystem m => FilePath -> m SchemaVersion
 getSchemaVersion path = do
-  fileExists <- Directory.doesFileExist path
+  fileExists <- doesFileExist path
   if fileExists
     then getSchemaVersionFromFile path
     else createSchemaFile path currentSchemaVersion

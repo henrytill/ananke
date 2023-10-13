@@ -102,24 +102,28 @@ instance MonadEncrypt m => MonadEncrypt (StateT s m) where
 -- * MonadFilesystem
 
 class Monad m => MonadFilesystem m where
+  doesFileExist      :: FilePath -> m Bool
   doesDirectoryExist :: FilePath -> m Bool
   createDirectory    :: FilePath -> m ()
   readFileBytes      :: FilePath -> m BSL.ByteString
   writeFileBytes     :: FilePath -> BSL.ByteString -> m ()
 
 instance MonadFilesystem IO where
+  doesFileExist      = Directory.doesFileExist
   doesDirectoryExist = Directory.doesDirectoryExist
   createDirectory    = Directory.createDirectory
   readFileBytes      = BSL.readFile
   writeFileBytes     = BSL.writeFile
 
 instance MonadFilesystem m => MonadFilesystem (ReaderT r m) where
+  doesFileExist      = lift . doesFileExist
   doesDirectoryExist = lift . doesDirectoryExist
   createDirectory    = lift . createDirectory
   readFileBytes      = lift . readFileBytes
   writeFileBytes f   = lift . writeFileBytes f
 
 instance MonadFilesystem m => MonadFilesystem (StateT s m) where
+  doesFileExist      = lift . doesFileExist
   doesDirectoryExist = lift . doesDirectoryExist
   createDirectory    = lift . createDirectory
   readFileBytes      = lift . readFileBytes

@@ -124,17 +124,17 @@ migrate cfg (MkSchemaVersion 2) = do
 migrate _ (MkSchemaVersion v) =
   migrationError $ "no supported migration path for schema version " ++ show v
 
-preInitialize :: Config -> IO ()
+preInitialize :: (MonadAppError m, MonadFilesystem m, MonadInteraction m) => Config -> m ()
 preInitialize cfg = do
   let schemaFile = configSchemaFile cfg
   schemaVersion <- getSchemaVersion schemaFile
   if schemaVersion == currentSchemaVersion
     then return ()
-    else do putStrLn ("Migrating data file from schema version "
-                      ++ show schemaVersion
-                      ++ " to version "
-                      ++ show currentSchemaVersion
-                      ++ "...")
+    else do message ("Migrating data file from schema version "
+                     ++ show schemaVersion
+                     ++ " to version "
+                     ++ show currentSchemaVersion
+                     ++ "...")
             migrate cfg schemaVersion
             _ <- createSchemaFile schemaFile currentSchemaVersion
             return ()

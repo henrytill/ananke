@@ -35,7 +35,7 @@ executable ananke
   -- other-extensions:
   build-depends:       base   >=4.9  && <5
                      , ananke
-  hs-source-dirs:      executables
+  hs-source-dirs:      exe
   default-language:    Haskell98
   ghc-options:         -Wall
 
@@ -97,7 +97,7 @@ test-suite tests
                      , temporary     >=1.3  && <1.4
                      , text          >=1.2  && <2.1
                      , ananke
-  hs-source-dirs:      tests
+  hs-source-dirs:      test
   default-language:    Haskell98
   ghc-options:         -Wall
 

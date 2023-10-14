@@ -191,13 +191,13 @@ instance Ord Entry where
 #ifdef BACKEND_JSON
 fieldToJSON :: [(String, String)]
 fieldToJSON =
-  [ ("entryTimestamp", "Timestamp")
-  , ("entryId", "Id")
-  , ("entryKeyId", "KeyId")
-  , ("entryDescription", "Description")
-  , ("entryIdentity", "Identity")
-  , ("entryCiphertext", "Ciphertext")
-  , ("entryMeta", "Meta")
+  [ ("entryTimestamp", "timestamp")
+  , ("entryId", "id")
+  , ("entryKeyId", "keyId")
+  , ("entryDescription", "description")
+  , ("entryIdentity", "identity")
+  , ("entryCiphertext", "ciphertext")
+  , ("entryMeta", "meta")
   ]
 
 entryKeyOrder :: [T.Text]

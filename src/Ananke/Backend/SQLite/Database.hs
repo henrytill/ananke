@@ -119,6 +119,8 @@ migrate db (MkSchemaVersion 1) keyId =
     createTable db
     addKeyId db keyId
     SQLite3.exec db "DROP TABLE entries_v1"
+migrate _ (MkSchemaVersion 2) _ =
+  return ()
 migrate _ (MkSchemaVersion v) _ =
   throwM . Migration $ "no supported migration path for schema version " ++ show v
 

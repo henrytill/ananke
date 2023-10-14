@@ -11,7 +11,7 @@ import           Ananke.Data
 
 
 currentSchemaVersion :: SchemaVersion
-currentSchemaVersion = MkSchemaVersion 2
+currentSchemaVersion = MkSchemaVersion 3
 
 getSchemaVersionFromFile :: MonadFilesystem m => FilePath -> m SchemaVersion
 getSchemaVersionFromFile path = MkSchemaVersion . read . Char8.unpack <$> readFileBytes path

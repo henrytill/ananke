@@ -84,11 +84,11 @@ library
     build-depends:     aeson        >=1.5   && <3
                      , aeson-pretty >=0.8.7 && <0.9
 
-test-suite tests
+test-suite test
   type:                exitcode-stdio-1.0
   main-is:             Main.hs
-  other-modules:       Ananke.Orphans
-                     , Ananke.Properties
+  other-modules:       Test.Ananke.Orphans
+                     , Test.Ananke.Properties
   build-depends:       base          >=4.9  && <5
                      , QuickCheck    >=2.8  && <2.15
                      , containers    >=0.6  && <0.7
@@ -103,8 +103,8 @@ test-suite tests
 
   if flag(backend-json)
     cpp-options:       -DBACKEND_JSON
-    other-modules:     Data.Multimap.Tests
-                     , Ananke.Backend.JSON.Tests
+    other-modules:     Test.Data.Multimap
+                     , Test.Ananke.Backend.JSON
     build-depends:     aeson        >=1.5   && <3
                      , aeson-pretty >=0.8.7 && <0.9
                      , bytestring   >=0.10  && <0.12

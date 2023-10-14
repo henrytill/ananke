@@ -1,4 +1,4 @@
-module Data.Multimap.Tests
+module Test.Data.Multimap
   ( runTests
   ) where
 

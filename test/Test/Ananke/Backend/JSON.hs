@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Ananke.Backend.JSON.Tests (runTests) where
+module Test.Ananke.Backend.JSON (runTests) where
 
 import qualified Data.Aeson           as Aeson
 import qualified Data.ByteString.Lazy as BSL

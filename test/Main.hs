@@ -2,18 +2,18 @@
 
 module Main (main) where
 
-import           Control.Monad             (unless)
-import qualified System.Exit               as Exit
-import qualified Test.QuickCheck           as QC
+import           Control.Monad            (unless)
+import qualified System.Exit              as Exit
+import qualified Test.QuickCheck          as QC
 
 #ifdef BACKEND_JSON
-import qualified Test.Dwergaz              as Dwergaz
+import qualified Test.Dwergaz             as Dwergaz
 
-import qualified Data.Multimap.Tests       as Multimap
-import qualified Ananke.Backend.JSON.Tests as JSON
+import qualified Test.Ananke.Backend.JSON as JSON
+import qualified Test.Data.Multimap       as Multimap
 #endif
 
-import qualified Ananke.Properties         as Properties
+import qualified Test.Ananke.Properties   as Properties
 
 
 -- Included for backwards compatibility

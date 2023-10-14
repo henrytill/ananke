@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Ananke.Orphans () where
+module Test.Ananke.Orphans () where
 
 import qualified Data.Text       as T
 import           Test.QuickCheck (Arbitrary (..))

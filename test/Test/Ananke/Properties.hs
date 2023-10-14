@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Ananke.Properties
+module Test.Ananke.Properties
   ( doProperties
   ) where
 
@@ -18,7 +18,8 @@ import qualified Ananke.Backend.SQLite   as SQLite
 import           Ananke.Class
 import qualified Ananke.Configuration    as Configuration
 import           Ananke.Data
-import           Ananke.Orphans          ()
+
+import           Test.Ananke.Orphans     ()
 
 
 data TestData = MkTestData

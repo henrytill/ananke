@@ -25,7 +25,7 @@ import qualified Data.Aeson.KeyMap            as KeyMap
 import qualified Data.ByteString.Lazy         as BSL
 import qualified Data.List                    as List
 
-import           Ananke.Backend
+import           Ananke.Backend               (createSchemaFile, getSchemaVersion)
 import           Ananke.Backend.JSON.AppState (AppState, appStateDirty)
 import qualified Ananke.Backend.JSON.AppState as AppState
 import           Ananke.Class
@@ -124,8 +124,8 @@ migrate cfg (MkSchemaVersion 2) = do
 migrate _ (MkSchemaVersion v) =
   migrationError $ "no supported migration path for schema version " ++ show v
 
-preInitialize :: (MonadAppError m, MonadFilesystem m, MonadInteraction m) => Config -> m ()
-preInitialize cfg = do
+preInitialize :: (MonadAppError m, MonadFilesystem m, MonadInteraction m) => Config -> SchemaVersion -> m ()
+preInitialize cfg currentSchemaVersion = do
   let schemaFile = configSchemaFile cfg
   schemaVersion <- getSchemaVersion schemaFile
   if schemaVersion == currentSchemaVersion

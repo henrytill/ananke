@@ -13,6 +13,7 @@ import qualified System.IO             as IO
 import qualified Ananke.Backend.JSON   as JSON
 #endif
 
+import           Ananke.Backend        (currentSchemaVersion)
 import qualified Ananke.Backend.SQLite as SQLite
 import           Ananke.Configuration  (Backend (..), Config (..), configure)
 import           Ananke.Error          (AppError (..))
@@ -54,7 +55,7 @@ run :: Config -> IO ExitCode
 run cfg = case configBackend cfg of
   SQLite -> Exception.bracket (SQLite.initialize cfg) SQLite.finalize runSQLiteApp
 #ifdef BACKEND_JSON
-  JSON -> Exception.bracket (JSON.preInitialize cfg >> JSON.initialize cfg) JSON.finalize runJSONApp
+  JSON -> Exception.bracket (JSON.preInitialize cfg currentSchemaVersion >> JSON.initialize cfg) JSON.finalize runJSONApp
 #else
   JSON -> Exception.throwIO $ Configuration "JSON backend not available.  Please rebuild with backend-json flag enabled."
 #endif

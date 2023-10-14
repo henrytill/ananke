@@ -109,3 +109,4 @@ test-suite test
                      , aeson-pretty >=0.8.7 && <0.9
                      , bytestring   >=0.10  && <0.12
                      , dwergaz      >=0.2   && <0.3
+                     , mtl          >=2.2   && <2.4

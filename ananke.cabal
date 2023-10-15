@@ -27,7 +27,7 @@ source-repository head
 
 flag backend-json
   description: Build with experimental JSON backend
-  default: False
+  default: True
 
 executable ananke
   main-is:             Main.hs

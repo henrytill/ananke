@@ -42,8 +42,3 @@ jobs:
       run: |
         ./configure
         make all test
-
-    - name: Build & Test with JSON Backend
-      run: |
-        ./configure -fbackend-json
-        make all test

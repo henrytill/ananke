@@ -20,7 +20,7 @@ check test:
 
 .PHONY: lint
 lint:
-	hlint -XHaskell98 executables src tests
+	hlint -XHaskell98 exe src test
 
 modules.png: FORCE
 	find executables src -name '*.hs' | xargs graphmod -q | dot -Tpng -o $@

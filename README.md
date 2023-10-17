@@ -49,11 +49,11 @@ $ nix-env -f https://github.com/henrytill/ananke/archive/<version>.tar.gz -i ana
 
 ## Setup
 
-Before using `ananke`, **you must create a configuration file** at `$HOME/.ananke/ananke.conf`.
+Before using `ananke`, **you must create a configuration file** at `$HOME/.ananke/ananke.ini`.
 
-Your configuration file should look like the example given [here](example/ananke.conf).
+Your configuration file should look like the example given [here](example/ananke.ini).
 
-`keyid` is used to specify the public key of the GnuPG keypair with which you will encrypt and decrypt passwords.
+`key_id` in the `gpg` section is used to specify the public key of the GnuPG keypair with which you will encrypt and decrypt passwords.
 
 You can find the keyid of your public key with the following command:
 

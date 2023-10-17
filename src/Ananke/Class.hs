@@ -17,6 +17,8 @@ import           Control.Monad.Reader (ReaderT)
 import           Control.Monad.State  (StateT)
 import           Control.Monad.Trans  (lift)
 import qualified Data.ByteString.Lazy as BSL
+import           Data.Text            (Text)
+import qualified Data.Text.IO         as TIO
 import           Data.Time.Clock      (UTCTime)
 import qualified Data.Time.Clock      as Clock
 import qualified System.Directory     as Directory
@@ -74,11 +76,11 @@ class Monad m => MonadConfigReader m where
 -- * MonadConfigure
 
 class Monad m => MonadConfigure m where
-  readConfigFile :: FilePath -> m String
+  readConfigFile :: FilePath -> m Text
   getEnv         :: String   -> m (Maybe String)
 
 instance MonadConfigure IO where
-  readConfigFile = Prelude.readFile
+  readConfigFile = TIO.readFile
   getEnv         = Env.lookupEnv
 
 -- * MonadEncrypt

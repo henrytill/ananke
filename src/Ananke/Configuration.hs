@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Ananke.Configuration
   ( Config(..)
   , Backend(..)
@@ -5,46 +7,46 @@ module Ananke.Configuration
   , configure
   ) where
 
-import           Data.Char                   (toLower)
-import qualified Data.Maybe                  as Maybe
-import           Data.Monoid                 (First (..))
-import qualified Data.Text                   as T
-import qualified System.Info                 as Info
+import           Data.Ini     (Ini)
+import qualified Data.Ini     as Ini
+import qualified Data.Maybe   as Maybe
+import           Data.Monoid  (First (..))
+import           Data.Text    (Text)
+import qualified Data.Text    as T
+import qualified System.Info  as Info
 
-import           Ananke.Class                (MonadAppError (..), MonadConfigure (..))
-import           Ananke.Configuration.Parser (Pairs)
-import qualified Ananke.Configuration.Parser as Parser
+import           Ananke.Class (MonadAppError (..), MonadConfigure (..))
 import           Ananke.Data
 
 
-mkBackend :: String -> Backend
-mkBackend s = case toLower <$> s of
+mkBackend :: Text -> Backend
+mkBackend t = case T.toLower t of
   "sqlite" -> SQLite
   "json"   -> JSON
   _        -> SQLite
 
-mkKeyId :: String -> KeyId
-mkKeyId = MkKeyId . T.pack
+mkKeyId :: Text -> KeyId
+mkKeyId = MkKeyId
 
-trues :: [String]
+trues :: [Text]
 trues = ["true", "t", "yes", "y", "1"]
 
-mkBool :: String -> Bool
-mkBool s | elem (toLower <$> s) trues = True
-         | otherwise                  = False
+mkBool :: Text -> Bool
+mkBool t | elem (T.toLower t) trues = True
+         | otherwise                = False
 
 fromEnv :: MonadConfigure m => (String -> a) -> String -> m (Maybe a)
 fromEnv f name = fmap (fmap f) (getEnv name)
 
-fromPairs :: (String -> a) -> String -> Pairs -> Maybe a
-fromPairs f name = fmap f . lookup name
+fromIni :: (Text -> a) -> Text -> Text -> Ini -> Maybe a
+fromIni f section key = either (const Nothing) (Just . f) . Ini.lookupValue section key
 
 createPreConfig :: MonadConfigure m => m PreConfig
 createPreConfig = do
   dir     <- First <$> getEnv "ANANKE_DATA_DIR"
-  backend <- First <$> fromEnv mkBackend "ANANKE_BACKEND"
-  keyId   <- First <$> fromEnv mkKeyId   "ANANKE_KEYID"
-  mult    <- First <$> fromEnv mkBool    "ANANKE_ALLOW_MULTIPLE_KEYS"
+  backend <- First <$> fromEnv (mkBackend . T.pack) "ANANKE_BACKEND"
+  keyId   <- First <$> fromEnv (mkKeyId   . T.pack) "ANANKE_KEYID"
+  mult    <- First <$> fromEnv (mkBool    . T.pack) "ANANKE_ALLOW_MULTIPLE_KEYS"
   return MkPreConfig { preConfigDataDirectory     = dir
                      , preConfigBackend           = backend
                      , preConfigKeyId             = keyId
@@ -70,11 +72,11 @@ addFileConfig preConfig = mappend preConfig <$> fileConfig
   where
     fileConfig = do
       let dataDir = Maybe.fromJust (getFirst (preConfigDataDirectory preConfig))
-      txt   <- readConfigFile (dataDir ++ "/ananke.conf")
-      pairs <- maybe (configurationError "Unable to parse ananke.conf") return (Parser.parse txt)
-      let backend = First $ fromPairs mkBackend "backend"             pairs
-          keyId   = First $ fromPairs mkKeyId   "keyid"               pairs
-          mult    = First $ fromPairs mkBool    "allow_multiple_keys" pairs
+      txt <- readConfigFile (dataDir ++ "/ananke.ini")
+      ini <- either (const . configurationError $ "Unable to parse ananke.ini") return (Ini.parseIni txt)
+      let backend = First $ fromIni mkBackend "data" "backend"             ini
+          mult    = First $ fromIni mkBool    "data" "allow_multiple_keys" ini
+          keyId   = First $ fromIni mkKeyId   "gpg"  "key_id"              ini
       return MkPreConfig { preConfigDataDirectory     = mempty
                          , preConfigBackend           = backend
                          , preConfigKeyId             = keyId

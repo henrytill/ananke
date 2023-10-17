@@ -10,10 +10,10 @@ import           System.Exit           (ExitCode (..))
 import qualified System.IO             as IO
 
 #ifdef BACKEND_JSON
+import           Ananke.Backend        (currentSchemaVersion)
 import qualified Ananke.Backend.JSON   as JSON
 #endif
 
-import           Ananke.Backend        (currentSchemaVersion)
 import qualified Ananke.Backend.SQLite as SQLite
 import           Ananke.Configuration  (Backend (..), Config (..), configure)
 import           Ananke.Error          (AppError (..))

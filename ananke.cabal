@@ -27,7 +27,7 @@ source-repository head
 
 flag backend-json
   description: Build with experimental JSON backend
-  default: True
+  default:     True
 
 executable ananke
   main-is:             Main.hs
@@ -103,8 +103,8 @@ test-suite test
 
   if flag(backend-json)
     cpp-options:       -DBACKEND_JSON
-    other-modules:     Test.Data.Multimap
-                     , Test.Ananke.Backend.JSON
+    other-modules:     Test.Ananke.Backend.JSON
+                     , Test.Data.Multimap
     build-depends:     aeson        >=1.5   && <3
                      , aeson-pretty >=0.8.7 && <0.9
                      , bytestring   >=0.10  && <0.12

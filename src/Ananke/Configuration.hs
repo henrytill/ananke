@@ -29,7 +29,7 @@ mkKeyId :: Text -> KeyId
 mkKeyId = MkKeyId
 
 trues :: [Text]
-trues = ["true", "t", "yes", "y", "1"]
+trues = [ "true", "t", "yes", "y", "1" ]
 
 mkBool :: Text -> Bool
 mkBool t | elem (T.toLower t) trues = True

@@ -9,7 +9,7 @@ module Ananke.Class
   , MonadTime(..)
   ) where
 
-import           Prelude              (Bool, FilePath, IO, Int, Maybe, Monad, String, ($), (.), (>>))
+import           Prelude              (Bool, FilePath, IO, Int, Maybe, Monad, Monoid (..), String, ($), (.), (>>))
 import qualified Prelude
 
 import           Control.Monad.Catch  (MonadThrow (..))
@@ -22,6 +22,7 @@ import qualified Data.Text.IO         as TIO
 import           Data.Time.Clock      (UTCTime)
 import qualified Data.Time.Clock      as Clock
 import qualified System.Directory     as Directory
+import           System.Directory     (XdgDirectory (..))
 import qualified System.Environment   as Env
 import qualified System.IO            as IO
 
@@ -76,12 +77,16 @@ class Monad m => MonadConfigReader m where
 -- * MonadConfigure
 
 class Monad m => MonadConfigure m where
-  readConfigFile :: FilePath -> m Text
-  getEnv         :: String   -> m (Maybe String)
+  getHomeDirectory   :: m FilePath
+  getConfigDirectory :: m FilePath
+  getDataDirectory   :: m FilePath
+  getEnv             :: String   -> m (Maybe String)
 
 instance MonadConfigure IO where
-  readConfigFile = TIO.readFile
-  getEnv         = Env.lookupEnv
+  getHomeDirectory   = Directory.getHomeDirectory
+  getConfigDirectory = Directory.getXdgDirectory XdgConfig mempty
+  getDataDirectory   = Directory.getXdgDirectory XdgData mempty
+  getEnv             = Env.lookupEnv
 
 -- * MonadEncrypt
 
@@ -107,6 +112,7 @@ class Monad m => MonadFilesystem m where
   doesFileExist      :: FilePath -> m Bool
   doesDirectoryExist :: FilePath -> m Bool
   createDirectory    :: FilePath -> m ()
+  readFileText       :: FilePath -> m Text
   readFileBytes      :: FilePath -> m BSL.ByteString
   writeFileBytes     :: FilePath -> BSL.ByteString -> m ()
 
@@ -114,6 +120,7 @@ instance MonadFilesystem IO where
   doesFileExist      = Directory.doesFileExist
   doesDirectoryExist = Directory.doesDirectoryExist
   createDirectory    = Directory.createDirectory
+  readFileText       = TIO.readFile
   readFileBytes      = BSL.readFile
   writeFileBytes     = BSL.writeFile
 
@@ -121,6 +128,7 @@ instance MonadFilesystem m => MonadFilesystem (ReaderT r m) where
   doesFileExist      = lift . doesFileExist
   doesDirectoryExist = lift . doesDirectoryExist
   createDirectory    = lift . createDirectory
+  readFileText       = lift . readFileText
   readFileBytes      = lift . readFileBytes
   writeFileBytes f   = lift . writeFileBytes f
 
@@ -128,6 +136,7 @@ instance MonadFilesystem m => MonadFilesystem (StateT s m) where
   doesFileExist      = lift . doesFileExist
   doesDirectoryExist = lift . doesDirectoryExist
   createDirectory    = lift . createDirectory
+  readFileText       = lift . readFileText
   readFileBytes      = lift . readFileBytes
   writeFileBytes f   = lift . writeFileBytes f
 

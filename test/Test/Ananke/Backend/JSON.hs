@@ -67,6 +67,8 @@ instance MonadFilesystem TestMigrate where
 
   createDirectory _ = ok ()
 
+  readFileText _ = err . Default $ "readFileText not implemented"
+
   readFileBytes "data/db/data.json" = gets testStateInput
   readFileBytes "data/db/schema"    = gets testSchemaInput
   readFileBytes path                = err . Filesystem $ path ++ " does not exist"
@@ -81,7 +83,8 @@ instance MonadInteraction TestMigrate where
 
 config :: Config
 config = MkConfig
-  { configDataDirectory     = "data"
+  { configDirectory         = "data"
+  , configDataDirectory     = "data"
   , configBackend           = JSON
   , configKeyId             = MkKeyId "371C136C"
   , configAllowMultipleKeys = False

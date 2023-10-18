@@ -1,4 +1,6 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NamedFieldPuns      #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Ananke.Configuration
   ( Config(..)
@@ -7,29 +9,62 @@ module Ananke.Configuration
   , configure
   ) where
 
-import           Data.Ini     (Ini)
-import qualified Data.Ini     as Ini
-import qualified Data.Maybe   as Maybe
-import           Data.Monoid  (First (..))
-import           Data.Text    (Text)
-import qualified Data.Text    as T
-import qualified System.Info  as Info
+import           Control.Monad (foldM)
+import           Data.Bool     (bool)
+import           Data.Ini      (Ini)
+import qualified Data.Ini      as Ini
+import           Data.Monoid   (First (..))
+import           Data.String   (IsString)
+import           Data.Text     (Text)
+import qualified Data.Text     as T
 
-import           Ananke.Class (MonadAppError (..), MonadConfigure (..))
-import           Ananke.Data
+import           Ananke.Class  (MonadAppError (..), MonadConfigure (..), MonadFilesystem (..))
+import           Ananke.Data   (Backend (..), Config (..), KeyId (MkKeyId), PreConfig (..))
 
+
+envConfigDirectory, envDataDirectory, envBackend, envKeyId, envAllowMultipleKeys :: String
+envConfigDirectory   = "ANANKE_CONFIG_DIR"
+envDataDirectory     = "ANANKE_DATA_DIR"
+envBackend           = "ANANKE_BACKEND"
+envKeyId             = "ANANKE_KEY_ID"
+envAllowMultipleKeys = "ANANKE_ALLOW_MULTIPLE_KEYS"
+
+errMsgConfigDirectory, errMsgDataDirectory, errMsgBackend, errMsgKeyId, errMsgAllowMultipleKeys :: String
+errMsgConfigDirectory   = "Please set ANANKE_CONFIG_DIR"
+errMsgDataDirectory     = "Please set ANANKE_DATA_DIR or data.dir in ananke.ini"
+errMsgBackend           = "Please set ANANKE_BACKEND or data.backend in ananke.ini"
+errMsgKeyId             = "Please set ANANKE_KEY_ID or gpg.key_id in ananke.ini"
+errMsgAllowMultipleKeys = "Please set ANANKE_ALLOW_MULTIPLE_KEYS or data.allow_multiple_keys in ananke.ini"
+
+errMsgConfigDirectoryDoesNotExist, errMsgUnableToParseIni :: String
+errMsgConfigDirectoryDoesNotExist = "Configuration directory does not exist"
+errMsgUnableToParseIni            = "Unable to parse ananke.ini"
+
+iniSectionData, iniSectionGPG :: IsString a => a
+iniSectionData = "data"
+iniSectionGPG  = "gpg"
+
+iniKeyDataDirectory, iniKeyBackend, iniKeyKeyId, iniKeyAllowMultipleKeys :: IsString a => a
+iniKeyDataDirectory     = "dir"
+iniKeyBackend           = "backend"
+iniKeyKeyId             = "key_id"
+iniKeyAllowMultipleKeys = "allow_multiple_keys"
+
+anankeDirectory, dotAnankeDirectory :: FilePath
+anankeDirectory    = "/ananke"
+dotAnankeDirectory = "/.ananke"
+
+anankeIniFile :: FilePath
+anankeIniFile = "/ananke.ini"
+
+trues :: [Text]
+trues = [ "true", "t", "yes", "y", "1" ]
 
 mkBackend :: Text -> Backend
 mkBackend t = case T.toLower t of
   "sqlite" -> SQLite
   "json"   -> JSON
   _        -> SQLite
-
-mkKeyId :: Text -> KeyId
-mkKeyId = MkKeyId
-
-trues :: [Text]
-trues = [ "true", "t", "yes", "y", "1" ]
 
 mkBool :: Text -> Bool
 mkBool t | elem (T.toLower t) trues = True
@@ -41,63 +76,78 @@ fromEnv f name = fmap (fmap f) (getEnv name)
 fromIni :: (Text -> a) -> Text -> Text -> Ini -> Maybe a
 fromIni f section key = either (const Nothing) (Just . f) . Ini.lookupValue section key
 
-createPreConfig :: MonadConfigure m => m PreConfig
-createPreConfig = do
-  dir     <- First <$> getEnv "ANANKE_DATA_DIR"
-  backend <- First <$> fromEnv (mkBackend . T.pack) "ANANKE_BACKEND"
-  keyId   <- First <$> fromEnv (mkKeyId   . T.pack) "ANANKE_KEYID"
-  mult    <- First <$> fromEnv (mkBool    . T.pack) "ANANKE_ALLOW_MULTIPLE_KEYS"
-  return MkPreConfig { preConfigDataDirectory     = dir
-                     , preConfigBackend           = backend
-                     , preConfigKeyId             = keyId
-                     , preConfigAllowMultipleKeys = mult
-                     }
+-- | A configurator mappends a monadic action producing a PreConfig to the given PreConfig.
+--
+-- The action may also depend on the given PreConfig.
+type Configurator m = PreConfig -> m PreConfig
 
-addDefaultConfig :: MonadConfigure m => PreConfig -> m PreConfig
-addDefaultConfig preConfig = mappend preConfig <$> defaultConfig
+configureFromEnvironment :: MonadConfigure m => Configurator m
+configureFromEnvironment a = mappend a <$> b
   where
-    getDefaultDataDirectory = case Info.os of
-      "mingw32" -> fromEnv (++ "/ananke")  "APPDATA"
-      _         -> fromEnv (++ "/.ananke") "HOME"
-    defaultConfig = do
-      dir <- First <$> getDefaultDataDirectory
-      return MkPreConfig { preConfigDataDirectory     = dir
-                         , preConfigBackend           = mempty
-                         , preConfigKeyId             = mempty
-                         , preConfigAllowMultipleKeys = First (Just False)
-                         }
+    b = do
+      preConfigDirectory         <- First <$> getEnv envConfigDirectory
+      preConfigDataDirectory     <- First <$> getEnv envDataDirectory
+      preConfigBackend           <- First <$> fromEnv (mkBackend . T.pack) envBackend
+      preConfigKeyId             <- First <$> fromEnv (MkKeyId   . T.pack) envKeyId
+      preConfigAllowMultipleKeys <- First <$> fromEnv (mkBool    . T.pack) envAllowMultipleKeys
+      return MkPreConfig { preConfigDirectory, preConfigDataDirectory, preConfigBackend, preConfigKeyId, preConfigAllowMultipleKeys }
 
-addFileConfig :: (MonadAppError m, MonadConfigure m) => PreConfig -> m PreConfig
-addFileConfig preConfig = mappend preConfig <$> fileConfig
+configureConfigDirectory :: (MonadConfigure m, MonadFilesystem m) => Configurator m
+configureConfigDirectory a = mappend a <$> b
   where
-    fileConfig = do
-      let dataDir = Maybe.fromJust (getFirst (preConfigDataDirectory preConfig))
-      txt <- readConfigFile (dataDir ++ "/ananke.ini")
-      ini <- either (const . configurationError $ "Unable to parse ananke.ini") return (Ini.parseIni txt)
-      let backend = First $ fromIni mkBackend "data" "backend"             ini
-          mult    = First $ fromIni mkBool    "data" "allow_multiple_keys" ini
-          keyId   = First $ fromIni mkKeyId   "gpg"  "key_id"              ini
-      return MkPreConfig { preConfigDataDirectory     = mempty
-                         , preConfigBackend           = backend
-                         , preConfigKeyId             = keyId
-                         , preConfigAllowMultipleKeys = mult
-                         }
+    b = do
+      homeDirectory   <- getHomeDirectory
+      configDirectory <- getConfigDirectory
+      let homeDotAnankeDirectory = homeDirectory ++ dotAnankeDirectory
+      preConfigDirectory <- First . Just . bool homeDotAnankeDirectory (configDirectory ++ anankeDirectory) <$> doesDirectoryExist configDirectory
+      return mempty{preConfigDirectory}
 
-preConfigToConfig :: MonadAppError m => PreConfig -> m Config
-preConfigToConfig preConfig =
-  MkConfig <$> firstOrError dirMsg (preConfigDataDirectory     preConfig)
-           <*> firstOrError bakMsg (preConfigBackend           preConfig)
-           <*> firstOrError keyMsg (preConfigKeyId             preConfig)
-           <*> firstOrError mulMsg (preConfigAllowMultipleKeys preConfig)
+configureFromFile :: (MonadAppError m, MonadConfigure m, MonadFilesystem m) => Configurator m
+configureFromFile a = mappend a <$> b a
+  where
+    b pre = do
+      configDirectory <- maybe (configurationError errMsgConfigDirectoryDoesNotExist) return . getFirst $ preConfigDirectory pre
+      configText      <- readFileText $ configDirectory ++ anankeIniFile
+      configIni       <- either (\s -> configurationError $ errMsgUnableToParseIni ++ ": " ++ s) return $ Ini.parseIni configText
+      let preConfigDataDirectory     = First $ fromIni T.unpack  iniSectionData iniKeyDataDirectory     configIni
+          preConfigBackend           = First $ fromIni mkBackend iniSectionData iniKeyBackend           configIni
+          preConfigKeyId             = First $ fromIni MkKeyId   iniSectionGPG  iniKeyKeyId             configIni
+          preConfigAllowMultipleKeys = First $ fromIni mkBool    iniSectionData iniKeyAllowMultipleKeys configIni
+      return mempty{preConfigDataDirectory, preConfigBackend, preConfigKeyId, preConfigAllowMultipleKeys}
+
+configureFromDefaults :: (MonadConfigure m, MonadFilesystem m) => Configurator m
+configureFromDefaults a = mappend a <$> b
+  where
+    b = do
+      homeDirectory <- getHomeDirectory
+      dataDirectory <- getDataDirectory
+      let homeDotAnankeDirectory = homeDirectory ++ dotAnankeDirectory
+      preConfigDataDirectory <- First . Just . bool homeDotAnankeDirectory (dataDirectory ++ anankeDirectory) <$> doesDirectoryExist dataDirectory
+      let preConfigAllowMultipleKeys = First . Just $ False
+      return mempty{preConfigDataDirectory, preConfigAllowMultipleKeys}
+
+mkConfig :: MonadAppError m => PreConfig -> m Config
+mkConfig preConfig =
+  MkConfig <$> firstOrError errMsgConfigDirectory   (preConfigDirectory         preConfig)
+           <*> firstOrError errMsgDataDirectory     (preConfigDataDirectory     preConfig)
+           <*> firstOrError errMsgBackend           (preConfigBackend           preConfig)
+           <*> firstOrError errMsgKeyId             (preConfigKeyId             preConfig)
+           <*> firstOrError errMsgAllowMultipleKeys (preConfigAllowMultipleKeys preConfig)
   where
     firstOrError msg = maybe (configurationError msg) pure . getFirst
-    dirMsg = "Please set ANANKE_DATA_DIR"
-    bakMsg = "Please set ANANKE_BACKEND or data.backend in ananke.ini"
-    keyMsg = "Please set ANANKE_KEYID or gpg.key_id in ananke.ini"
-    mulMsg = "Please set ANANKE_ALLOW_MULTIPLE_KEYS or data.allow_multiple_keys in ananke.ini"
 
-configureWith :: (MonadAppError m, MonadConfigure m) => PreConfig -> m Config
-configureWith preConfig = addDefaultConfig preConfig >>= addFileConfig >>= preConfigToConfig
+configureWith :: forall m. (MonadAppError m, MonadConfigure m, MonadFilesystem m) => PreConfig -> m Config
+configureWith overrides = foldM f overrides configurators >>= mkConfig
+  where
+    configurators :: [Configurator m]
+    configurators = [ configureFromEnvironment
+                    , configureConfigDirectory
+                    , configureFromFile
+                    , configureFromDefaults
+                    ]
 
-configure :: (MonadAppError m, MonadConfigure m) => m Config
-configure = createPreConfig >>= configureWith
+    f :: PreConfig -> Configurator m -> m PreConfig
+    f acc configurator = configurator acc
+
+configure :: (MonadAppError m, MonadConfigure m, MonadFilesystem m) => m Config
+configure = configureWith mempty

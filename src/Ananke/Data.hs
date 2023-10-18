@@ -77,21 +77,23 @@ data Backend = SQLite | JSON
 
 -- | A 'PreConfig' is used in the creation of a 'Config'
 data PreConfig = MkPreConfig
-  { preConfigDataDirectory     :: First FilePath
+  { preConfigDirectory         :: First FilePath
+  , preConfigDataDirectory     :: First FilePath
   , preConfigBackend           :: First Backend
   , preConfigKeyId             :: First KeyId
   , preConfigAllowMultipleKeys :: First Bool
   } deriving (Show, Eq)
 
 instance Sem.Semigroup PreConfig where
-  MkPreConfig a b c d <> MkPreConfig e f g h = MkPreConfig (a <> e) (b <> f) (c <> g) (d <> h)
+  MkPreConfig a b c d e <> MkPreConfig f g h i j = MkPreConfig (a <> f) (b <> g) (c <> h) (d <> i) (e <> j)
 
 instance Monoid PreConfig where
-  mempty = MkPreConfig mempty mempty mempty mempty
+  mempty = MkPreConfig mempty mempty mempty mempty mempty
 
 -- | A 'Config' represents our application's configuration
 data Config = MkConfig
-  { configDataDirectory     :: FilePath
+  { configDirectory         :: FilePath
+  , configDataDirectory     :: FilePath
   , configBackend           :: Backend
   , configKeyId             :: KeyId
   , configAllowMultipleKeys :: Bool

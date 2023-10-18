@@ -92,9 +92,9 @@ preConfigToConfig preConfig =
   where
     firstOrError msg = maybe (configurationError msg) pure . getFirst
     dirMsg = "Please set ANANKE_DATA_DIR"
-    bakMsg = "Please set ANANKE_BACKEND or backend in ananke.conf"
-    keyMsg = "Please set ANANKE_KEYID or keyid in ananke.conf"
-    mulMsg = "Please set ANANKE_ALLOW_MULTIPLE_KEYS or allow_multiple_keys in ananke.conf"
+    bakMsg = "Please set ANANKE_BACKEND or data.backend in ananke.ini"
+    keyMsg = "Please set ANANKE_KEYID or gpg.key_id in ananke.ini"
+    mulMsg = "Please set ANANKE_ALLOW_MULTIPLE_KEYS or data.allow_multiple_keys in ananke.ini"
 
 configureWith :: (MonadAppError m, MonadConfigure m) => PreConfig -> m Config
 configureWith preConfig = addDefaultConfig preConfig >>= addFileConfig >>= preConfigToConfig

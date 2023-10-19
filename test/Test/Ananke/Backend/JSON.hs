@@ -48,13 +48,13 @@ err = MkTestMigrate . lift . Left
 ok  = MkTestMigrate . lift . Right
 
 instance MonadAppError TestMigrate where
-  configurationError  = err . Configuration
-  gpgError            = err . GPG
-  databaseError       = err . Database
-  filesystemError     = err . Filesystem
-  ambiguousInputError = err . AmbiguousInput
-  migrationError      = err . Migration
-  defaultError        = err . Default
+  throwConfiguration  = err . Configuration
+  throwGPG            = err . GPG
+  throwDatabase       = err . Database
+  throwFilesystem     = err . Filesystem
+  throwAmbiguousInput = err . AmbiguousInput
+  throwMigration      = err . Migration
+  throwDefault        = err . Default
 
 instance MonadFilesystem TestMigrate where
   doesFileExist "data/db/data.json" = ok True

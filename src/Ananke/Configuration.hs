@@ -106,9 +106,9 @@ configureFromFile :: (MonadAppError m, MonadConfigure m, MonadFilesystem m) => C
 configureFromFile a = mappend a <$> b a
   where
     b pre = do
-      configDir  <- maybe (configurationError errConfigDirDoesNotExist) return . getFirst $ preConfigDir pre
+      configDir  <- maybe (throwConfiguration errConfigDirDoesNotExist) return . getFirst $ preConfigDir pre
       configText <- readFileText $ configDir ++ anankeIniFile
-      configIni  <- either (\s -> configurationError $ errUnableToParseIni ++ ": " ++ s) return $ Ini.parseIni configText
+      configIni  <- either (\s -> throwConfiguration $ errUnableToParseIni ++ ": " ++ s) return $ Ini.parseIni configText
       let preConfigDataDir  = First $ fromIni T.unpack  iniSectionData iniKeyDataDir  configIni
           preConfigBackend  = First $ fromIni mkBackend iniSectionData iniKeyBackend  configIni
           preConfigKeyId    = First $ fromIni MkKeyId   iniSectionGPG  iniKeyKeyId    configIni
@@ -134,7 +134,7 @@ mkConfig preConfig =
            <*> firstOrError errKeyId     (preConfigKeyId    preConfig)
            <*> firstOrError errMultKeys  (preConfigMultKeys preConfig)
   where
-    firstOrError msg = maybe (configurationError msg) pure . getFirst
+    firstOrError msg = maybe (throwConfiguration msg) pure . getFirst
 
 configureWith
   :: forall m. (MonadAppError m, MonadConfigure m, MonadFilesystem m)

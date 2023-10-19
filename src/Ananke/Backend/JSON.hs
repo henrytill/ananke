@@ -80,7 +80,7 @@ createState cfg = do
   dataDirExists <- doesDirExist dataDir
   unless dataDirExists $ createDir dataDir
   input <- readFileBytes dataFile
-  maybe (databaseError "unable to decode data.json") (return . AppState.mkAppState) (Aeson.decode input)
+  maybe (throwDatabase "unable to decode data.json") (return . AppState.mkAppState) (Aeson.decode input)
 
 initialize :: Config -> IO (Config, AppState)
 initialize cfg = do
@@ -117,12 +117,12 @@ migrate :: (MonadAppError m, MonadFilesystem m) => Config -> SchemaVersion -> m 
 migrate cfg (MkSchemaVersion 2) = do
   let dataFile = configDataFile cfg
   jsonData    <- readFileBytes dataFile
-  decodedData <- maybe (migrationError "unable to decode data.json") return (Aeson.decode jsonData)
+  decodedData <- maybe (throwMigration "unable to decode data.json") return (Aeson.decode jsonData)
   let remappedData = remapJSON decodedData
   writeFileBytes dataFile . appendNewline . AesonPretty.encodePretty' aesonConfig $ remappedData
   return ()
 migrate _ (MkSchemaVersion v) =
-  migrationError $ "no supported migration path for schema version " ++ show v
+  throwMigration $ "no supported migration path for schema version " ++ show v
 
 preInitialize :: (MonadAppError m, MonadFilesystem m, MonadInteraction m) => Config -> SchemaVersion -> m ()
 preInitialize cfg currentSchemaVersion = do

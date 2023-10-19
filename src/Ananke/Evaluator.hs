@@ -106,13 +106,13 @@ checkKey k = do
             let keyId         = configKeyId cfg
                 allowMultKeys = configMultKeys cfg
                 question      = "New keyid found: do you want to re-encrypt all entries?"
-                err           = defaultError "You have set allow_multiple_keys to false"
+                err           = throwDefault "You have set allow_multiple_keys to false"
             keyCount <- getCountOfKeyId keyId
             case (keyCount, allowMultKeys) of
               (0, False)                   -> yesNo question (reencryptAll keyId >> k) err
               (x, _    ) | x == totalCount -> k
               (_, True )                   -> yesNo question (reencryptAll keyId >> k) k
-              (_, False)                   -> defaultError "All entries do not have the same keyid"
+              (_, False)                   -> throwDefault "All entries do not have the same keyid"
   where
     yesNo :: String -> m a -> m a -> m a
     yesNo promptString kYes kNo = do
@@ -121,7 +121,7 @@ checkKey k = do
         ""  -> kNo
         "n" -> kNo
         "y" -> kYes
-        _   -> defaultError "Please answer y or n"
+        _   -> throwDefault "Please answer y or n"
 
 add
   :: (MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m, MonadTime m)
@@ -184,8 +184,8 @@ modify target modifyAction maybeIdentity maybeMeta = do
   entries <- runQuery $ queryFromTarget target
   case entries of
     [entry] -> now >>= updateCiphertext modifyAction . update maybeIdentity maybeMeta entry >>= put >> delete entry >> return Modified
-    []      -> ambiguousInputError "There are no entries matching your input criteria."
-    _       -> ambiguousInputError "There are multiple entries matching your input criteria."
+    []      -> throwAmbiguousInput "There are no entries matching your input criteria."
+    _       -> throwAmbiguousInput "There are multiple entries matching your input criteria."
 
 redescribe
   :: (MonadAppError m, MonadEncrypt m, MonadInteraction m, MonadStore m, MonadTime m)
@@ -199,14 +199,14 @@ redescribe target entryDescription = do
                   put $ updateEntry entry{entryTimestamp, entryDescription}
                   delete entry
                   return Redescribed
-    _       -> ambiguousInputError "There are multiple entries matching your input criteria."
+    _       -> throwAmbiguousInput "There are multiple entries matching your input criteria."
 
 remove :: (MonadAppError m, MonadStore m) => Target -> m Response
 remove target = do
   entries <- runQuery $ queryFromTarget target
   case entries of
     [entry] -> delete entry >> return Removed
-    _       -> ambiguousInputError "There are multiple entries matching your input criteria."
+    _       -> throwAmbiguousInput "There are multiple entries matching your input criteria."
 
 check :: (MonadAppError m, MonadConfigReader m, MonadStore m) => m Response
 check = do
@@ -215,13 +215,13 @@ check = do
   keyCount   <- getCountOfKeyId keyId
   if totalCount == keyCount
     then return CheckedForMultipleKeys
-    else defaultError "All entries do not have the same keyid"
+    else throwDefault "All entries do not have the same keyid"
 
 #ifdef BACKEND_JSON
 importJSON :: (MonadAppError m, MonadFilesystem m, MonadStore m) => FilePath -> m Response
 importJSON jsonFile = do
   input   <- readFileBytes jsonFile
-  entries <- maybe (defaultError ("unable to decode " ++ jsonFile)) return (Aeson.decode input :: Maybe [Entry])
+  entries <- maybe (throwDefault ("unable to decode " ++ jsonFile)) return (Aeson.decode input :: Maybe [Entry])
   mapM_ put entries
   return Imported
 

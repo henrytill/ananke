@@ -34,40 +34,40 @@ import qualified Ananke.GPG           as GPG
 -- * MonadAppError
 
 class Monad m => MonadAppError m where
-  configurationError  :: String -> m a
-  gpgError            :: String -> m a
-  databaseError       :: String -> m a
-  filesystemError     :: String -> m a
-  ambiguousInputError :: String -> m a
-  migrationError      :: String -> m a
-  defaultError        :: String -> m a
+  throwConfiguration  :: String -> m a
+  throwGPG            :: String -> m a
+  throwDatabase       :: String -> m a
+  throwFilesystem     :: String -> m a
+  throwAmbiguousInput :: String -> m a
+  throwMigration      :: String -> m a
+  throwDefault        :: String -> m a
 
 instance MonadAppError IO where
-  configurationError  = throwM . Configuration
-  gpgError            = throwM . GPG
-  databaseError       = throwM . Database
-  filesystemError     = throwM . Filesystem
-  ambiguousInputError = throwM . AmbiguousInput
-  migrationError      = throwM . Migration
-  defaultError        = throwM . Default
+  throwConfiguration  = throwM . Configuration
+  throwGPG            = throwM . GPG
+  throwDatabase       = throwM . Database
+  throwFilesystem     = throwM . Filesystem
+  throwAmbiguousInput = throwM . AmbiguousInput
+  throwMigration      = throwM . Migration
+  throwDefault        = throwM . Default
 
 instance MonadAppError m => MonadAppError (ReaderT r m) where
-  configurationError  = lift . configurationError
-  gpgError            = lift . gpgError
-  databaseError       = lift . databaseError
-  filesystemError     = lift . filesystemError
-  ambiguousInputError = lift . ambiguousInputError
-  migrationError      = lift . migrationError
-  defaultError        = lift . defaultError
+  throwConfiguration  = lift . throwConfiguration
+  throwGPG            = lift . throwGPG
+  throwDatabase       = lift . throwDatabase
+  throwFilesystem     = lift . throwFilesystem
+  throwAmbiguousInput = lift . throwAmbiguousInput
+  throwMigration      = lift . throwMigration
+  throwDefault        = lift . throwDefault
 
 instance MonadAppError m => MonadAppError (StateT s m) where
-  configurationError  = lift . configurationError
-  gpgError            = lift . gpgError
-  databaseError       = lift . databaseError
-  filesystemError     = lift . filesystemError
-  ambiguousInputError = lift . ambiguousInputError
-  migrationError      = lift . migrationError
-  defaultError        = lift . defaultError
+  throwConfiguration  = lift . throwConfiguration
+  throwGPG            = lift . throwGPG
+  throwDatabase       = lift . throwDatabase
+  throwFilesystem     = lift . throwFilesystem
+  throwAmbiguousInput = lift . throwAmbiguousInput
+  throwMigration      = lift . throwMigration
+  throwDefault        = lift . throwDefault
 
 -- * MonadConfigReader
 

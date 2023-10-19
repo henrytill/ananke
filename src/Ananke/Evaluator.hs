@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE NamedFieldPuns      #-}
 {-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE PatternSynonyms     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Ananke.Evaluator
@@ -150,14 +151,20 @@ lookup description maybeIdentity verbosity = do
       do plaintext <- decrypt entryCiphertext
          return $ MkDisplayEntry entryId entryTimestamp entryDescription entryIdentity plaintext entryMeta
 
+pattern EmptyIdentity :: Maybe Identity
+pattern EmptyIdentity = Just (MkIdentity "")
+
+pattern EmptyMetadata :: Maybe Metadata
+pattern EmptyMetadata = Just (MkMetadata "")
+
 update :: Maybe Identity -> Maybe Metadata -> Entry -> UTCTime -> Entry
-update Nothing                Nothing                entry _              = entry
-update (Just (MkIdentity "")) Nothing                entry entryTimestamp = updateEntry entry{entryTimestamp, entryIdentity = Nothing}
-update entryIdentity          Nothing                entry entryTimestamp = updateEntry entry{entryTimestamp, entryIdentity}
-update Nothing                (Just (MkMetadata "")) entry entryTimestamp = updateEntry entry{entryTimestamp, entryMeta = Nothing}
-update Nothing                entryMeta              entry entryTimestamp = updateEntry entry{entryTimestamp, entryMeta}
-update (Just (MkIdentity "")) (Just (MkMetadata "")) entry entryTimestamp = updateEntry entry{entryTimestamp, entryIdentity = Nothing, entryMeta = Nothing}
-update entryIdentity          entryMeta              entry entryTimestamp = updateEntry entry{entryTimestamp, entryIdentity, entryMeta}
+update Nothing       Nothing       entry _              = entry
+update EmptyIdentity Nothing       entry entryTimestamp = updateEntry entry{entryTimestamp, entryIdentity = Nothing}
+update Nothing       EmptyMetadata entry entryTimestamp = updateEntry entry{entryTimestamp, entryMeta = Nothing}
+update EmptyIdentity EmptyMetadata entry entryTimestamp = updateEntry entry{entryTimestamp, entryIdentity = Nothing, entryMeta = Nothing}
+update entryIdentity Nothing       entry entryTimestamp = updateEntry entry{entryTimestamp, entryIdentity}
+update Nothing       entryMeta     entry entryTimestamp = updateEntry entry{entryTimestamp, entryMeta}
+update entryIdentity entryMeta     entry entryTimestamp = updateEntry entry{entryTimestamp, entryIdentity, entryMeta}
 
 updateCiphertext
   :: (MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadTime m)

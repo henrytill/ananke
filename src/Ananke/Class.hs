@@ -12,7 +12,7 @@ module Ananke.Class
 import           Prelude              (Bool, FilePath, IO, Int, Maybe, Monad, Monoid (..), String, ($), (.), (>>))
 import qualified Prelude
 
-import           Control.Monad.Catch  (MonadThrow (..))
+import           Control.Exception    (throwIO)
 import           Control.Monad.Reader (ReaderT)
 import           Control.Monad.State  (StateT)
 import           Control.Monad.Trans  (lift)
@@ -43,13 +43,13 @@ class Monad m => MonadAppError m where
   throwDefault        :: String -> m a
 
 instance MonadAppError IO where
-  throwConfiguration  = throwM . Configuration
-  throwGPG            = throwM . GPG
-  throwDatabase       = throwM . Database
-  throwFilesystem     = throwM . Filesystem
-  throwAmbiguousInput = throwM . AmbiguousInput
-  throwMigration      = throwM . Migration
-  throwDefault        = throwM . Default
+  throwConfiguration  = throwIO . Configuration
+  throwGPG            = throwIO . GPG
+  throwDatabase       = throwIO . Database
+  throwFilesystem     = throwIO . Filesystem
+  throwAmbiguousInput = throwIO . AmbiguousInput
+  throwMigration      = throwIO . Migration
+  throwDefault        = throwIO . Default
 
 instance MonadAppError m => MonadAppError (ReaderT r m) where
   throwConfiguration  = lift . throwConfiguration

@@ -13,8 +13,6 @@ module Ananke.Backend.JSON
   ) where
 
 import           Control.Monad                (unless, when)
-import           Control.Monad.Catch          (MonadThrow (..))
-import           Control.Monad.IO.Class       (MonadIO (..))
 import           Control.Monad.Reader         (MonadReader, ReaderT, ask, runReaderT)
 import           Control.Monad.State          (MonadState, StateT, gets, modify, runStateT)
 import           Data.Aeson                   (Value (..))
@@ -39,7 +37,6 @@ newtype JSON a = MkJSON { unJSON :: ReaderT Config (StateT AppState IO) a }
   deriving ( Functor
            , Applicative
            , Monad
-           , MonadIO
            , MonadReader Config
            , MonadState AppState
            , MonadAppError
@@ -140,9 +137,6 @@ preInitialize cfg currentSchemaVersion = do
             return ()
 
 -- * Instances
-
-instance MonadThrow JSON where
-  throwM = liftIO . throwM
 
 instance MonadConfigReader JSON where
   askConfig = ask

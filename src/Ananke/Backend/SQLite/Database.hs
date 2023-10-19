@@ -2,7 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Ananke.Backend.SQLite.Database
-  ( put
+  ( rethrow
+  , put
   , delete
   , runQuery
   , selectAll
@@ -13,21 +14,20 @@ module Ananke.Backend.SQLite.Database
   , migrate
   ) where
 
-import qualified Control.Exception      as Exception
-import           Control.Monad.Catch    (MonadThrow (..))
-import           Control.Monad.IO.Class (MonadIO (..))
-import qualified Data.Text              as T
-import           Data.Time.Clock        (UTCTime)
-import qualified Database.SQLite3       as SQLite3
+import qualified Control.Exception as Exception
+import qualified Data.Text         as T
+import           Data.Time.Clock   (UTCTime)
+import qualified Database.SQLite3  as SQLite3
 
 import           Ananke.Data
-import           Ananke.Error           (AppError (..))
+import           Ananke.Error      (AppError (..))
 
 
-rethrowLift :: (MonadThrow m, MonadIO m) => IO a -> m a
-rethrowLift a = liftIO $ Exception.catch a f
+rethrow :: IO a -> IO a
+rethrow a = Exception.catch a f
   where
-    f = throwM . Database . T.unpack . SQLite3.sqlErrorDetails
+    f :: SQLite3.SQLError -> IO a
+    f = Exception.throwIO . Database . T.unpack . SQLite3.sqlErrorDetails
 
 executeStatement :: SQLite3.Statement -> IO ()
 executeStatement stmt = SQLite3.stepNoCB stmt >>= \case
@@ -81,8 +81,8 @@ executeCount = flip go 0
       SQLite3.Row  -> do count <- SQLite3.columnInt64 stmt 0
                          go stmt $ count + acc
 
-createTable :: (MonadThrow m, MonadIO m) => SQLite3.Database -> m ()
-createTable db = rethrowLift $ Exception.bracket (SQLite3.prepare db s) SQLite3.finalize executeStatement
+createTable :: SQLite3.Database -> IO ()
+createTable db = Exception.bracket (SQLite3.prepare db s) SQLite3.finalize executeStatement
   where
     s = "CREATE TABLE IF NOT EXISTS entries (\
         \  id          TEXT UNIQUE NOT NULL, \
@@ -94,8 +94,8 @@ createTable db = rethrowLift $ Exception.bracket (SQLite3.prepare db s) SQLite3.
         \  meta        TEXT                  \
         \)"
 
-addKeyId :: (MonadThrow m, MonadIO m) => SQLite3.Database -> KeyId -> m ()
-addKeyId db (MkKeyId keyId) = rethrowLift $ Exception.bracket
+addKeyId :: SQLite3.Database -> KeyId -> IO ()
+addKeyId db (MkKeyId keyId) = Exception.bracket
   (do stmt <- SQLite3.prepare db s
       SQLite3.bindSQLData stmt 1 (SQLite3.SQLText keyId)
       return stmt)
@@ -108,24 +108,22 @@ addKeyId db (MkKeyId keyId) = rethrowLift $ Exception.bracket
         \  FROM entries_v1"
 
 migrate
-  :: (MonadThrow m, MonadIO m)
-  => SQLite3.Database
+  :: SQLite3.Database
   -> SchemaVersion
   -> KeyId
-  -> m ()
-migrate db (MkSchemaVersion 1) keyId =
-  rethrowLift $ do
-    SQLite3.exec db "ALTER TABLE entries RENAME TO entries_v1"
-    createTable db
-    addKeyId db keyId
-    SQLite3.exec db "DROP TABLE entries_v1"
+  -> IO ()
+migrate db (MkSchemaVersion 1) keyId = do
+  SQLite3.exec db "ALTER TABLE entries RENAME TO entries_v1"
+  createTable db
+  addKeyId db keyId
+  SQLite3.exec db "DROP TABLE entries_v1"
 migrate _ (MkSchemaVersion 2) _ =
   return ()
 migrate _ (MkSchemaVersion v) _ =
-  throwM . Migration $ "no supported migration path for schema version " ++ show v
+  Exception.throwIO . Migration $ "no supported migration path for schema version " ++ show v
 
-put :: (MonadThrow m, MonadIO m) => SQLite3.Database -> Entry -> m ()
-put db entry = rethrowLift $ Exception.bracket
+put :: SQLite3.Database -> Entry -> IO ()
+put db entry = Exception.bracket
   (do stmt <- SQLite3.prepare db s
       SQLite3.bindSQLData stmt 1 . SQLite3.SQLText . unId             . entryId          $ entry
       SQLite3.bindSQLData stmt 2 . SQLite3.SQLText . unKeyId          . entryKeyId       $ entry
@@ -144,8 +142,8 @@ put db entry = rethrowLift $ Exception.bracket
         \  (id, keyid, timestamp, description, identity, ciphertext, meta) \
         \  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)"
 
-delete :: (MonadThrow m, MonadIO m) => SQLite3.Database -> Entry -> m ()
-delete db entry = rethrowLift $ Exception.bracket
+delete :: SQLite3.Database -> Entry -> IO ()
+delete db entry = Exception.bracket
   (do stmt <- SQLite3.prepare db s
       SQLite3.bindNamed stmt [(":id", SQLite3.SQLText . unId . entryId $ entry)]
       return stmt)
@@ -154,19 +152,19 @@ delete db entry = rethrowLift $ Exception.bracket
   where
     s = "DELETE FROM entries WHERE id = :id"
 
-selectAll :: (MonadThrow m, MonadIO m) => SQLite3.Database -> m [Entry]
-selectAll db = rethrowLift $ Exception.bracket (SQLite3.prepare db s) SQLite3.finalize executeQuery
+selectAll :: SQLite3.Database -> IO [Entry]
+selectAll db = Exception.bracket (SQLite3.prepare db s) SQLite3.finalize executeQuery
   where
     s = "SELECT id, keyid, timestamp, description, identity, ciphertext, meta \
         \FROM entries"
 
-getCount :: (MonadThrow m, MonadIO m) => SQLite3.Database -> m Int
-getCount db = rethrowLift $ Exception.bracket (SQLite3.prepare db s) SQLite3.finalize executeCount
+getCount :: SQLite3.Database -> IO Int
+getCount db = Exception.bracket (SQLite3.prepare db s) SQLite3.finalize executeCount
   where
     s = "SELECT count(*) FROM entries"
 
-getCountOfKeyId :: (MonadThrow m, MonadIO m) => SQLite3.Database -> KeyId -> m Int
-getCountOfKeyId db (MkKeyId keyId) = rethrowLift $ Exception.bracket
+getCountOfKeyId :: SQLite3.Database -> KeyId -> IO Int
+getCountOfKeyId db (MkKeyId keyId) = Exception.bracket
   (do stmt <- SQLite3.prepare db s
       SQLite3.bindNamed stmt [(":keyid", SQLite3.SQLText keyId)]
       return stmt)
@@ -210,11 +208,11 @@ generateQuery = (select <>) . foldl queryFolder ("", []) . queryParts
         \WHERE "
     select = (q, [])
 
-runQuery :: (MonadThrow m, MonadIO m) => SQLite3.Database -> Query -> m [Entry]
+runQuery :: SQLite3.Database -> Query -> IO [Entry]
 runQuery db query =
   if queryIsEmpty query
   then selectAll db
-  else rethrowLift $ Exception.bracket
+  else Exception.bracket
     (do stmt <- SQLite3.prepare db qs
         SQLite3.bindNamed stmt nps
         return stmt)

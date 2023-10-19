@@ -4,9 +4,8 @@ module Ananke.GPG.Process
 
 import           Control.Concurrent      (forkIO, killThread)
 import           Control.Concurrent.MVar (MVar, newEmptyMVar, putMVar, takeMVar)
-import           Control.Exception       (handle, mask, onException, throwIO, try)
+import           Control.Exception       (SomeException, handle, mask, onException, throwIO, try)
 import           Control.Monad           (unless)
-import           Control.Monad.Catch     (SomeException)
 import qualified Data.ByteString         as BS
 import           Foreign.C.Error         (Errno (..), ePIPE)
 import           GHC.IO.Exception        (IOErrorType (..), IOException (..))

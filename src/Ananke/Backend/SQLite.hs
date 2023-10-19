@@ -10,7 +10,6 @@ module Ananke.Backend.SQLite
   ) where
 
 import           Control.Monad                    (unless)
-import           Control.Monad.Catch              (MonadThrow (..))
 import           Control.Monad.IO.Class           (MonadIO (..))
 import           Control.Monad.Reader             (MonadReader, ReaderT, ask, asks, runReaderT)
 import qualified Data.Text                        as T
@@ -77,14 +76,11 @@ setup = do
 
 -- * Instances
 
-instance MonadThrow SQLite where
-  throwM = liftIO . throwM
-
 instance MonadConfigReader SQLite where
   askConfig = asks appContextConfig
 
-withDatabase :: (SQLite3.Database -> SQLite a) -> SQLite a
-withDatabase f = ask >>= f . appContextDatabase
+withDatabase :: (SQLite3.Database -> IO a) -> SQLite a
+withDatabase f = ask >>= liftIO . Database.rethrow . f . appContextDatabase
 
 instance MonadStore SQLite where
   put             e = withDatabase $ \db -> Database.put             db e

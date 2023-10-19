@@ -67,7 +67,7 @@ instance MonadFilesystem TestMigrate where
 
   createDir _ = ok ()
 
-  readFileText _ = err . Default $ "readFileText not implemented"
+  readFileText _ = error "readFileText is not implemented"
 
   readFileBytes "data/db/data.json" = gets testStateInput
   readFileBytes "data/db/schema"    = gets testSchemaInput

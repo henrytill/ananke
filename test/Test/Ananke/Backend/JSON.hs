@@ -61,11 +61,11 @@ instance MonadFilesystem TestMigrate where
   doesFileExist "data/db/schema"    = ok True
   doesFileExist _                   = ok False
 
-  doesDirectoryExist "data"    = ok True
-  doesDirectoryExist "data/db" = ok True
-  doesDirectoryExist _         = ok True
+  doesDirExist "data"    = ok True
+  doesDirExist "data/db" = ok True
+  doesDirExist _         = ok True
 
-  createDirectory _ = ok ()
+  createDir _ = ok ()
 
   readFileText _ = err . Default $ "readFileText not implemented"
 
@@ -83,11 +83,11 @@ instance MonadInteraction TestMigrate where
 
 config :: Config
 config = MkConfig
-  { configDirectory         = "data"
-  , configDataDirectory     = "data"
-  , configBackend           = JSON
-  , configKeyId             = MkKeyId "371C136C"
-  , configAllowMultipleKeys = False
+  { configDir      = "data"
+  , configDataDir  = "data"
+  , configBackend  = JSON
+  , configKeyId    = MkKeyId "371C136C"
+  , configMultKeys = False
   }
 
 migrateV3 :: IO Test

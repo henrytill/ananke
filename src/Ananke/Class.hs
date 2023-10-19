@@ -77,16 +77,16 @@ class Monad m => MonadConfigReader m where
 -- * MonadConfigure
 
 class Monad m => MonadConfigure m where
-  getHomeDirectory   :: m FilePath
-  getConfigDirectory :: m FilePath
-  getDataDirectory   :: m FilePath
-  getEnv             :: String   -> m (Maybe String)
+  getHomeDir   :: m FilePath
+  getConfigDir :: m FilePath
+  getDataDir   :: m FilePath
+  getEnv       :: String -> m (Maybe String)
 
 instance MonadConfigure IO where
-  getHomeDirectory   = Directory.getHomeDirectory
-  getConfigDirectory = Directory.getXdgDirectory XdgConfig mempty
-  getDataDirectory   = Directory.getXdgDirectory XdgData mempty
-  getEnv             = Env.lookupEnv
+  getHomeDir   = Directory.getHomeDirectory
+  getConfigDir = Directory.getXdgDirectory XdgConfig mempty
+  getDataDir   = Directory.getXdgDirectory XdgData mempty
+  getEnv       = Env.lookupEnv
 
 -- * MonadEncrypt
 
@@ -109,36 +109,36 @@ instance MonadEncrypt m => MonadEncrypt (StateT s m) where
 -- * MonadFilesystem
 
 class Monad m => MonadFilesystem m where
-  doesFileExist      :: FilePath -> m Bool
-  doesDirectoryExist :: FilePath -> m Bool
-  createDirectory    :: FilePath -> m ()
-  readFileText       :: FilePath -> m Text
-  readFileBytes      :: FilePath -> m BSL.ByteString
-  writeFileBytes     :: FilePath -> BSL.ByteString -> m ()
+  doesFileExist  :: FilePath -> m Bool
+  doesDirExist   :: FilePath -> m Bool
+  createDir      :: FilePath -> m ()
+  readFileText   :: FilePath -> m Text
+  readFileBytes  :: FilePath -> m BSL.ByteString
+  writeFileBytes :: FilePath -> BSL.ByteString -> m ()
 
 instance MonadFilesystem IO where
-  doesFileExist      = Directory.doesFileExist
-  doesDirectoryExist = Directory.doesDirectoryExist
-  createDirectory    = Directory.createDirectory
-  readFileText       = TIO.readFile
-  readFileBytes      = BSL.readFile
-  writeFileBytes     = BSL.writeFile
+  doesFileExist  = Directory.doesFileExist
+  doesDirExist   = Directory.doesDirectoryExist
+  createDir      = Directory.createDirectory
+  readFileText   = TIO.readFile
+  readFileBytes  = BSL.readFile
+  writeFileBytes = BSL.writeFile
 
 instance MonadFilesystem m => MonadFilesystem (ReaderT r m) where
-  doesFileExist      = lift . doesFileExist
-  doesDirectoryExist = lift . doesDirectoryExist
-  createDirectory    = lift . createDirectory
-  readFileText       = lift . readFileText
-  readFileBytes      = lift . readFileBytes
-  writeFileBytes f   = lift . writeFileBytes f
+  doesFileExist    = lift . doesFileExist
+  doesDirExist     = lift . doesDirExist
+  createDir        = lift . createDir
+  readFileText     = lift . readFileText
+  readFileBytes    = lift . readFileBytes
+  writeFileBytes f = lift . writeFileBytes f
 
 instance MonadFilesystem m => MonadFilesystem (StateT s m) where
-  doesFileExist      = lift . doesFileExist
-  doesDirectoryExist = lift . doesDirectoryExist
-  createDirectory    = lift . createDirectory
-  readFileText       = lift . readFileText
-  readFileBytes      = lift . readFileBytes
-  writeFileBytes f   = lift . writeFileBytes f
+  doesFileExist    = lift . doesFileExist
+  doesDirExist     = lift . doesDirExist
+  createDir        = lift . createDir
+  readFileText     = lift . readFileText
+  readFileBytes    = lift . readFileBytes
+  writeFileBytes f = lift . writeFileBytes f
 
 -- * MonadInteraction
 

@@ -75,7 +75,7 @@ doProperties = do
   sysTempDir <- Temp.getCanonicalTemporaryDirectory
   dir        <- Temp.createTempDirectory sysTempDir "ananke"
   _          <- print ("dir: " ++ dir)
-  let preConfig = mempty{preConfigDirectory = First (Just dir), preConfigDataDirectory = First (Just dir), preConfigBackend = First (Just SQLite)}
+  let preConfig = mempty{preConfigDir = First (Just dir), preConfigDataDir = First (Just dir), preConfigBackend = First (Just SQLite)}
   _          <- Directory.copyFile "./example/ananke.ini" (dir ++ "/ananke.ini")
   ctx        <- Configuration.configureWith preConfig >>= SQLite.initialize
   _          <- SQLite.run SQLite.setup ctx

@@ -20,7 +20,7 @@ import           Ananke.Backend
 import           Ananke.Backend.SQLite.AppContext (AppContext (..))
 import qualified Ananke.Backend.SQLite.Database   as Database
 import           Ananke.Class
-import           Ananke.Data                      (Config, configDatabaseDirectory, configDatabaseFile, configKeyId,
+import           Ananke.Data                      (Config, configDatabaseDir, configDatabaseFile, configKeyId,
                                                    configSchemaFile)
 
 
@@ -47,10 +47,10 @@ run = runSQLite
 
 initialize :: Config -> IO AppContext
 initialize cfg = do
-  let dbDir  = configDatabaseDirectory cfg
+  let dbDir  = configDatabaseDir cfg
       dbFile = configDatabaseFile cfg
-  dbDirExists <- doesDirectoryExist dbDir
-  unless dbDirExists (createDirectory dbDir)
+  dbDirExists <- doesDirExist dbDir
+  unless dbDirExists (createDir dbDir)
   MkAppContext cfg <$> SQLite3.open (T.pack dbFile)
 
 finalize :: AppContext -> IO ()

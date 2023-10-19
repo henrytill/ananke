@@ -104,7 +104,7 @@ checkKey k = do
     then k
     else do cfg <- askConfig
             let keyId         = configKeyId cfg
-                allowMultKeys = configAllowMultipleKeys cfg
+                allowMultKeys = configMultKeys cfg
                 question      = "New keyid found: do you want to re-encrypt all entries?"
                 err           = defaultError "You have set allow_multiple_keys to false"
             keyCount <- getCountOfKeyId keyId

@@ -11,7 +11,7 @@ module Ananke.Data
     Backend(..)
   , PreConfig(..)
   , Config(..)
-  , configDatabaseDirectory
+  , configDatabaseDir
   , configSchemaFile
   , configDatabaseFile
   , configDataFile
@@ -77,11 +77,11 @@ data Backend = SQLite | JSON
 
 -- | A 'PreConfig' is used in the creation of a 'Config'
 data PreConfig = MkPreConfig
-  { preConfigDirectory         :: First FilePath
-  , preConfigDataDirectory     :: First FilePath
-  , preConfigBackend           :: First Backend
-  , preConfigKeyId             :: First KeyId
-  , preConfigAllowMultipleKeys :: First Bool
+  { preConfigDir      :: First FilePath
+  , preConfigDataDir  :: First FilePath
+  , preConfigBackend  :: First Backend
+  , preConfigKeyId    :: First KeyId
+  , preConfigMultKeys :: First Bool
   } deriving (Show, Eq)
 
 instance Sem.Semigroup PreConfig where
@@ -92,22 +92,22 @@ instance Monoid PreConfig where
 
 -- | A 'Config' represents our application's configuration
 data Config = MkConfig
-  { configDirectory         :: FilePath
-  , configDataDirectory     :: FilePath
-  , configBackend           :: Backend
-  , configKeyId             :: KeyId
-  , configAllowMultipleKeys :: Bool
+  { configDir      :: FilePath
+  , configDataDir  :: FilePath
+  , configBackend  :: Backend
+  , configKeyId    :: KeyId
+  , configMultKeys :: Bool
   } deriving (Show, Eq)
 
 -- Virtual fields
-configDatabaseDirectory :: Config -> FilePath
-configSchemaFile        :: Config -> FilePath
-configDatabaseFile      :: Config -> FilePath
-configDataFile          :: Config -> FilePath
-configDatabaseDirectory cfg = configDataDirectory     cfg ++ "/db"
-configSchemaFile        cfg = configDatabaseDirectory cfg ++ "/schema"
-configDatabaseFile      cfg = configDatabaseDirectory cfg ++ "/db.sqlite"
-configDataFile          cfg = configDatabaseDirectory cfg ++ "/data.json"
+configDatabaseDir  :: Config -> FilePath
+configSchemaFile   :: Config -> FilePath
+configDatabaseFile :: Config -> FilePath
+configDataFile     :: Config -> FilePath
+configDatabaseDir  cfg = configDataDir     cfg ++ "/db"
+configSchemaFile   cfg = configDatabaseDir cfg ++ "/schema"
+configDatabaseFile cfg = configDatabaseDir cfg ++ "/db.sqlite"
+configDataFile     cfg = configDatabaseDir cfg ++ "/data.json"
 
 -- | A 'SchemaVersion' represents the database's schema version
 newtype SchemaVersion = MkSchemaVersion { unSchemaVersion :: Int }

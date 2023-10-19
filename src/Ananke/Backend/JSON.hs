@@ -29,7 +29,7 @@ import           Ananke.Backend               (createSchemaFile, getSchemaVersio
 import           Ananke.Backend.JSON.AppState (AppState, appStateDirty)
 import qualified Ananke.Backend.JSON.AppState as AppState
 import           Ananke.Class
-import           Ananke.Data                  (Config, Entry, SchemaVersion (..), configDataDirectory, configDataFile,
+import           Ananke.Data                  (Config, Entry, SchemaVersion (..), configDataDir, configDataFile,
                                                configSchemaFile, entryKeyOrder)
 
 
@@ -75,10 +75,10 @@ run m state cfg = do
 
 createState :: Config -> IO AppState
 createState cfg = do
-  let dataDir  = configDataDirectory cfg
+  let dataDir  = configDataDir cfg
       dataFile = configDataFile cfg
-  dataDirExists <- doesDirectoryExist dataDir
-  unless dataDirExists $ createDirectory dataDir
+  dataDirExists <- doesDirExist dataDir
+  unless dataDirExists $ createDir dataDir
   input <- readFileBytes dataFile
   maybe (databaseError "unable to decode data.json") (return . AppState.mkAppState) (Aeson.decode input)
 

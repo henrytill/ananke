@@ -23,13 +23,16 @@ import qualified Data.Aeson.KeyMap            as KeyMap
 import qualified Data.ByteString.Lazy         as BSL
 import qualified Data.List                    as List
 
-import           Ananke.Backend               (createSchemaFile, getSchemaVersion)
+import           Ananke.Backend
 import           Ananke.Backend.JSON.AppState (AppState, appStateDirty)
 import qualified Ananke.Backend.JSON.AppState as AppState
 import           Ananke.Class
 import           Ananke.Data                  (Config, Entry, SchemaVersion (..), configDataDir, configDataFile,
                                                configSchemaFile, entryKeyOrder)
 
+
+errUnableToDecode :: String
+errUnableToDecode = "unable to decode data.json"
 
 -- * JSON
 
@@ -77,7 +80,7 @@ createState cfg = do
   dataDirExists <- doesDirExist dataDir
   unless dataDirExists $ createDir dataDir
   input <- readFileBytes dataFile
-  maybe (throwDatabase "unable to decode data.json") (return . AppState.mkAppState) (Aeson.decode input)
+  maybe (throwDatabase errUnableToDecode) (return . AppState.mkAppState) (Aeson.decode input)
 
 initialize :: Config -> IO (Config, AppState)
 initialize cfg = do
@@ -114,26 +117,26 @@ migrate :: (MonadAppError m, MonadFilesystem m) => Config -> SchemaVersion -> m 
 migrate cfg (MkSchemaVersion 2) = do
   let dataFile = configDataFile cfg
   jsonData    <- readFileBytes dataFile
-  decodedData <- maybe (throwMigration "unable to decode data.json") return (Aeson.decode jsonData)
+  decodedData <- maybe (throwMigration errUnableToDecode) return (Aeson.decode jsonData)
   let remappedData = remapJSON decodedData
   writeFileBytes dataFile . appendNewline . AesonPretty.encodePretty' aesonConfig $ remappedData
   return ()
 migrate _ (MkSchemaVersion v) =
   throwMigration $ "no supported migration path for schema version " ++ show v
 
-preInitialize :: (MonadAppError m, MonadFilesystem m, MonadInteraction m) => Config -> SchemaVersion -> m ()
-preInitialize cfg currentSchemaVersion = do
+preInitialize
+  :: (MonadAppError m, MonadFilesystem m, MonadInteraction m)
+  => Config
+  -> SchemaVersion
+  -> m ()
+preInitialize cfg current = do
   let schemaFile = configSchemaFile cfg
-  schemaVersion <- getSchemaVersion schemaFile
-  if schemaVersion == currentSchemaVersion
+  previous <- getSchemaVersion schemaFile
+  if previous == current
     then return ()
-    else do message ("Migrating data file from schema version "
-                     ++ show schemaVersion
-                     ++ " to version "
-                     ++ show currentSchemaVersion
-                     ++ "...")
-            migrate cfg schemaVersion
-            _ <- createSchemaFile schemaFile currentSchemaVersion
+    else do message $ mkMigrateMessage previous current
+            migrate cfg previous
+            _ <- createSchemaFile schemaFile current
             return ()
 
 -- * Instances

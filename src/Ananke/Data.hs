@@ -42,6 +42,7 @@ module Ananke.Data
   , DisplayEntry(..)
     -- * Queries
   , Query(..)
+  , emptyQuery
   , queryIsEmpty
     -- * Helpers
   , utcTimeToText
@@ -85,7 +86,8 @@ data PreConfig = MkPreConfig
   } deriving (Show, Eq)
 
 instance Sem.Semigroup PreConfig where
-  MkPreConfig a b c d e <> MkPreConfig f g h i j = MkPreConfig (a <> f) (b <> g) (c <> h) (d <> i) (e <> j)
+  MkPreConfig a b c d e <> MkPreConfig f g h i j =
+    MkPreConfig (a <> f) (b <> g) (c <> h) (d <> i) (e <> j)
 
 instance Monoid PreConfig where
   mempty = MkPreConfig mempty mempty mempty mempty mempty
@@ -331,6 +333,9 @@ data Query = MkQuery
   , queryIdentity    :: Maybe Identity
   , queryMeta        :: Maybe Metadata
   } deriving (Show, Eq)
+
+emptyQuery :: Query
+emptyQuery = MkQuery Nothing Nothing Nothing Nothing
 
 queryIsEmpty :: Query -> Bool
 queryIsEmpty (MkQuery Nothing Nothing Nothing Nothing) = True

@@ -13,6 +13,7 @@ import qualified Test.QuickCheck         as QuickCheck
 import           Test.QuickCheck         (Arbitrary (..), Property, Result)
 import qualified Test.QuickCheck.Monadic as Monadic
 
+import           Ananke.Backend          (currentSchemaVersion)
 import           Ananke.Backend.SQLite   (AppContext (..))
 import qualified Ananke.Backend.SQLite   as SQLite
 import           Ananke.Class
@@ -72,13 +73,13 @@ tests =
 
 doProperties :: IO [Result]
 doProperties = do
-  sysTempDir <- Temp.getCanonicalTemporaryDirectory
-  dir        <- Temp.createTempDirectory sysTempDir "ananke"
-  _          <- print ("dir: " ++ dir)
+  tmp <- Temp.getCanonicalTemporaryDirectory
+  dir <- Temp.createTempDirectory tmp "ananke"
+  print ("dir: " ++ dir)
   let preConfig = mempty{preConfigDir = First (Just dir), preConfigDataDir = First (Just dir), preConfigBackend = First (Just SQLite)}
-  _          <- Directory.copyFile "./example/ananke.ini" (dir ++ "/ananke.ini")
-  ctx        <- Configuration.configureWith preConfig >>= SQLite.initialize
-  _          <- SQLite.run SQLite.setup ctx
-  results    <- mapM (\p -> QuickCheck.quickCheckWithResult QuickCheck.stdArgs (p ctx)) tests
-  _          <- SQLite3.close (appContextDatabase ctx)
-  return results
+  _   <- Directory.copyFile "./example/ananke.ini" (dir ++ "/ananke.ini")
+  ctx <- Configuration.configureWith preConfig >>= SQLite.initialize
+  _   <- SQLite.run (SQLite.setup currentSchemaVersion) ctx
+  res <- mapM (\p -> QuickCheck.quickCheckWithResult QuickCheck.stdArgs (p ctx)) tests
+  _   <- SQLite3.close (appContextDatabase ctx)
+  return res

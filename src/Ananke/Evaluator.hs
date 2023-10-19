@@ -78,8 +78,8 @@ data Response
   deriving (Show, Eq)
 
 queryFromTarget :: Target -> Query
-queryFromTarget (TargetId targetId)                   = MkQuery (Just targetId) Nothing                  Nothing Nothing
-queryFromTarget (TargetDescription targetDescription) = MkQuery Nothing         (Just targetDescription) Nothing Nothing
+queryFromTarget (TargetId ti)          = emptyQuery{queryId = Just ti}
+queryFromTarget (TargetDescription td) = emptyQuery{queryDescription = Just td}
 
 reencryptAll :: forall m. (MonadEncrypt m, MonadStore m) => KeyId -> m ()
 reencryptAll keyId = do

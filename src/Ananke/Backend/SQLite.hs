@@ -19,8 +19,8 @@ import           Ananke.Backend
 import           Ananke.Backend.SQLite.AppContext (AppContext (..))
 import qualified Ananke.Backend.SQLite.Database   as Database
 import           Ananke.Class
-import           Ananke.Data                      (Config, configDatabaseDir, configDatabaseFile, configKeyId,
-                                                   configSchemaFile)
+import           Ananke.Data                      (Config, SchemaVersion, configDatabaseDir, configDatabaseFile,
+                                                   configKeyId, configSchemaFile)
 
 
 -- * SQLite
@@ -57,21 +57,17 @@ finalize = SQLite3.close . appContextDatabase
 
 -- * Setup
 
-setup :: SQLite ()
-setup = do
+setup :: SchemaVersion -> SQLite ()
+setup current = do
   cfg <- askConfig
   let schemaFile = configSchemaFile cfg
-      keyId      = configKeyId cfg
-  schemaVersion <- getSchemaVersion schemaFile
-  if schemaVersion == currentSchemaVersion
-    then withDatabase $ \db -> Database.createTable db
-    else do message ("Migrating database from schema version "
-                     ++ show schemaVersion
-                     ++ " to version "
-                     ++ show currentSchemaVersion
-                     ++ "...")
-            withDatabase $ \db -> Database.migrate db schemaVersion keyId
-            _ <- createSchemaFile schemaFile currentSchemaVersion
+  previous <- getSchemaVersion schemaFile
+  if previous == current
+    then withDatabase Database.createTable
+    else do message $ mkMigrateMessage previous current
+            let keyId = configKeyId cfg
+            withDatabase $ \db -> Database.migrate db previous keyId
+            _ <- createSchemaFile schemaFile current
             return ()
 
 -- * Instances

@@ -10,10 +10,10 @@ import           System.Exit           (ExitCode (..))
 import qualified System.IO             as IO
 
 #ifdef BACKEND_JSON
-import           Ananke.Backend        (currentSchemaVersion)
 import qualified Ananke.Backend.JSON   as JSON
 #endif
 
+import           Ananke.Backend        (currentSchemaVersion)
 import qualified Ananke.Backend.SQLite as SQLite
 import           Ananke.Configuration  (Backend (..), Config (..), configure)
 import           Ananke.Error          (AppError (..))
@@ -40,7 +40,7 @@ handleResponse res = case res of
 runSQLiteApp :: SQLite.AppContext -> IO ExitCode
 runSQLiteApp ctx = do
   cmd <- Parser.runCLIParser
-  Exception.catch (SQLite.run (SQLite.setup >> Evaluator.eval cmd) ctx >>= handleResponse)
+  Exception.catch (SQLite.run (SQLite.setup currentSchemaVersion >> Evaluator.eval cmd) ctx >>= handleResponse)
                   handleError
 
 #ifdef BACKEND_JSON

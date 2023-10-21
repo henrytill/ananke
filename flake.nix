@@ -21,7 +21,7 @@
                then nixpkgs.legacyPackages.${system}.pkgsMusl
                else nixpkgs.legacyPackages.${system};
         call = compiler: pkgs.haskell.packages.${compiler}.callCabal2nixWithOptions;
-        flags = "-fbackend-json";
+        flags = "";
         src = builtins.path { path = ./.; name = "ananke-src"; };
         ananke_ = call compiler "ananke" src flags {};
         extDeps = [ nixpkgs.legacyPackages.${system}.gnupg ];

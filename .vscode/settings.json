@@ -1,8 +1,0 @@
-{
-  "haskell.plugin.class.codeLensOn": false,
-  "haskell.plugin.importLens.codeLensOn": false,
-  "haskell.plugin.refineImports.codeLensOn": false,
-  "haskell.plugin.tactics.codeLensOn": false,
-  "haskell.formattingProvider": "stylish-haskell",
-  "editor.rulers": [100, 120]
-}

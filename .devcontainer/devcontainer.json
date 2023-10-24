@@ -21,8 +21,14 @@
     "vscode": {
       "extensions": ["haskell.haskell", "esbenp.prettier-vscode"],
       "settings": {
+        "haskell.formattingProvider": "stylish-haskell",
         "haskell.manageHLS": "GHCup",
-        "haskell.toolchain.stack": null
+        "haskell.plugin.class.codeLensOn": false,
+        "haskell.plugin.importLens.codeLensOn": false,
+        "haskell.plugin.refineImports.codeLensOn": false,
+        "haskell.plugin.tactics.codeLensOn": false,
+        "haskell.toolchain.stack": null,
+        "editor.rulers": [100, 120]
       }
     }
   },

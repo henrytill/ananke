@@ -77,11 +77,11 @@ doProperties = do
   tmp <- Temp.getCanonicalTemporaryDirectory
   dir <- Temp.createTempDirectory tmp "ananke"
   print ("dir: " ++ dir)
+  _   <- Directory.copyFile "./example/ananke.ini" (dir ++ "/ananke.ini")
   let preConfigDir     = First (Just dir)
       preConfigDataDir = First (Just dir)
       preConfigBackend = First (Just SQLite)
       preConfig        = mempty{preConfigDir, preConfigDataDir, preConfigBackend}
-  _   <- Directory.copyFile "./example/ananke.ini" (dir ++ "/ananke.ini")
   ctx <- Configuration.configureWith preConfig >>= SQLite.initialize
   _   <- SQLite.run (SQLite.setup currentSchemaVersion) ctx
   res <- mapM (\p -> QuickCheck.quickCheckWithResult QuickCheck.stdArgs (p ctx)) tests

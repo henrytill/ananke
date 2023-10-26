@@ -23,7 +23,7 @@ lint:
 	hlint -XHaskell98 exe src test
 
 modules.png: FORCE
-	find executables src -name '*.hs' | xargs graphmod -q | dot -Tpng -o $@
+	find exe src -name '*.hs' | xargs graphmod -q | dot -Tpng -Gdpi=300 -o $@
 
 depends.png: FORCE
 	cabal-plan dot --tred | dot -Tpng -o $@

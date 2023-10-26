@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Test.Ananke.Properties
@@ -76,7 +77,10 @@ doProperties = do
   tmp <- Temp.getCanonicalTemporaryDirectory
   dir <- Temp.createTempDirectory tmp "ananke"
   print ("dir: " ++ dir)
-  let preConfig = mempty{preConfigDir = First (Just dir), preConfigDataDir = First (Just dir), preConfigBackend = First (Just SQLite)}
+  let preConfigDir     = First (Just dir)
+      preConfigDataDir = First (Just dir)
+      preConfigBackend = First (Just SQLite)
+      preConfig        = mempty{preConfigDir, preConfigDataDir, preConfigBackend}
   _   <- Directory.copyFile "./example/ananke.ini" (dir ++ "/ananke.ini")
   ctx <- Configuration.configureWith preConfig >>= SQLite.initialize
   _   <- SQLite.run (SQLite.setup currentSchemaVersion) ctx

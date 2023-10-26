@@ -24,39 +24,39 @@ import           Ananke.Data
 import           Test.Ananke.Orphans     ()
 
 
-data TestData = MkTestData
-  { testDescription :: Description
-  , testIdentity    :: Maybe Identity
-  , testPlaintext   :: Plaintext
-  , testMetadata    :: Maybe Metadata
+data Datum = MkDatum
+  { datumDescription :: Description
+  , datumIdentity    :: Maybe Identity
+  , datumPlaintext   :: Plaintext
+  , datumMetadata    :: Maybe Metadata
   } deriving (Eq, Show)
 
-instance Arbitrary TestData where
-  arbitrary                       = MkTestData <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
-  shrink (MkTestData as bs cs ds) = MkTestData <$> shrink as <*> shrink bs <*> shrink cs <*> shrink ds
+instance Arbitrary Datum where
+  arbitrary                    = MkDatum <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+  shrink (MkDatum as bs cs ds) = MkDatum <$> shrink as <*> shrink bs <*> shrink cs <*> shrink ds
 
-createEntryFromTestData
+createEntry
   :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadTime m)
-  => TestData
+  => Datum
   -> m Entry
-createEntryFromTestData td = do
+createEntry td = do
   cfg       <- askConfig
   timestamp <- now
   let keyId = configKeyId cfg
-  ciphertext <- encrypt keyId $ testPlaintext td
+  ciphertext <- encrypt keyId $ datumPlaintext td
   return $ mkEntry keyId
                    timestamp
-                   (testDescription td)
-                   (testIdentity td)
+                   (datumDescription td)
+                   (datumIdentity td)
                    ciphertext
-                   (testMetadata td)
+                   (datumMetadata td)
 
 addEntryToDatabase
   :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m, MonadTime m)
-  => [TestData]
+  => [Datum]
   -> m [Entry]
 addEntryToDatabase tds = do
-  es <- mapM createEntryFromTestData tds
+  es <- mapM createEntry tds
   mapM_ put es
   return es
 

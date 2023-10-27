@@ -14,16 +14,16 @@ instance Arbitrary T.Text where
 
 instance Arbitrary Description where
   arbitrary = MkDescription <$> arbitrary
-  shrink (MkDescription xs) = MkDescription <$> shrink xs
+  shrink (MkDescription d) = MkDescription <$> shrink d
 
 instance Arbitrary Identity where
   arbitrary = MkIdentity <$> arbitrary
-  shrink (MkIdentity xs) = MkIdentity <$> shrink xs
+  shrink (MkIdentity i) = MkIdentity <$> shrink i
 
 instance Arbitrary Plaintext where
   arbitrary = MkPlaintext <$> arbitrary
-  shrink (MkPlaintext xs) = MkPlaintext <$> shrink xs
+  shrink (MkPlaintext p) = MkPlaintext <$> shrink p
 
 instance Arbitrary Metadata where
   arbitrary = MkMetadata <$> arbitrary
-  shrink (MkMetadata xs) = MkMetadata <$> shrink xs
+  shrink (MkMetadata m) = MkMetadata <$> shrink m

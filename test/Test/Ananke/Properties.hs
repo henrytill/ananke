@@ -33,30 +33,30 @@ data Datum = MkDatum
 
 instance Arbitrary Datum where
   arbitrary = MkDatum <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
-  shrink (MkDatum as bs cs ds) = MkDatum <$> shrink as <*> shrink bs <*> shrink cs <*> shrink ds
+  shrink (MkDatum a b c d) = MkDatum <$> shrink a <*> shrink b <*> shrink c <*> shrink d
 
 createEntry
   :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadTime m)
   => Datum
   -> m Entry
-createEntry td = do
+createEntry d = do
   cfg <- askConfig
   timestamp <- now
   let keyId = configKeyId cfg
-  ciphertext <- encrypt keyId $ datumPlaintext td
+  ciphertext <- encrypt keyId $ datumPlaintext d
   return $ mkEntry keyId
                    timestamp
-                   (datumDescription td)
-                   (datumIdentity td)
+                   (datumDescription d)
+                   (datumIdentity d)
                    ciphertext
-                   (datumMetadata td)
+                   (datumMetadata d)
 
 addEntryToDatabase
   :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m, MonadTime m)
   => [Datum]
   -> m [Entry]
-addEntryToDatabase tds = do
-  es <- mapM createEntry tds
+addEntryToDatabase ds = do
+  es <- mapM createEntry ds
   mapM_ put es
   return es
 
@@ -84,6 +84,6 @@ doProperties = do
       preConfig = mempty{preConfigDir, preConfigDataDir, preConfigBackend}
   ctx <- Configuration.configureWith preConfig >>= SQLite.initialize
   _ <- SQLite.run (SQLite.setup currentSchemaVersion) ctx
-  res <- mapM (\p -> QuickCheck.quickCheckWithResult QuickCheck.stdArgs (p ctx)) tests
+  rs <- mapM (\p -> QuickCheck.quickCheckWithResult QuickCheck.stdArgs (p ctx)) tests
   _ <- SQLite3.close (appContextDatabase ctx)
-  return res
+  return rs

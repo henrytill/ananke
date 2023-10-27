@@ -23,6 +23,11 @@ import qualified Ananke.Parser as Parser
 import Ananke.Printing (prettyError, prettyResponse, render)
 
 
+#ifndef BACKEND_JSON
+errJSONBackend :: String
+errJSONBackend = "JSON backend not available.  Please rebuild with backend-json flag enabled."
+#endif
+
 handleError :: AppError -> IO ExitCode
 handleError err =  pr err >> return (ExitFailure 1)
   where
@@ -57,5 +62,5 @@ run cfg = case configBackend cfg of
 #ifdef BACKEND_JSON
   JSON -> Exception.bracket (JSON.preInitialize cfg currentSchemaVersion >> JSON.initialize cfg) JSON.finalize runJSONApp
 #else
-  JSON -> Exception.throwIO $ Configuration "JSON backend not available.  Please rebuild with backend-json flag enabled."
+  JSON -> Exception.throwIO $ Configuration errJSONBackend
 #endif

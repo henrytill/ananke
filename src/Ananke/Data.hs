@@ -299,10 +299,10 @@ mkId :: T.Text -> Id
 mkId = MkId . T.pack . SHA.showDigest . SHA.sha1 . BSL.fromStrict . Encoding.encodeUtf8
 
 generateId :: KeyId -> UTCTime -> Description -> Maybe Identity -> Id
-generateId (MkKeyId k) ts (MkDescription d) (Just (MkIdentity i)) =
-  mkId $ k <> utcTimeToText ts <> d <> i
-generateId (MkKeyId k) ts (MkDescription d) Nothing =
-  mkId $ k <> utcTimeToText ts <> d
+generateId (MkKeyId k) t (MkDescription d) (Just (MkIdentity i)) =
+  mkId $ k <> utcTimeToText t <> d <> i
+generateId (MkKeyId k) t (MkDescription d) Nothing =
+  mkId $ k <> utcTimeToText t <> d
 
 mkEntry :: KeyId -> UTCTime -> Description -> Maybe Identity -> Ciphertext -> Maybe Metadata -> Entry
 mkEntry keyId timestamp description identity ciphertext meta =

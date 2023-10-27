@@ -100,28 +100,31 @@ checkKey
   => m Response
   -> m Response
 checkKey k = do
-  totalCount <- getCount
-  if totalCount == 0
+  count <- getCount
+  if count == 0
     then k
-    else do cfg <- askConfig
-            let keyId = configKeyId cfg
-                allowMultKeys = configMultKeys cfg
-                question = "New keyid found: do you want to re-encrypt all entries?"
-                err = throwDefault "You have set allow_multiple_keys to false"
-            keyCount <- getCountOfKeyId keyId
-            case (keyCount, allowMultKeys) of
-              (0, False) -> yesNo question (reencryptAll keyId >> k) err
-              (x, _ ) | x == totalCount -> k
-              (_, True ) -> yesNo question (reencryptAll keyId >> k) k
-              (_, False) -> throwDefault "All entries do not have the same keyid"
+    else askUpdate count
   where
-    yesNo :: String -> m a -> m a -> m a
-    yesNo promptString kYes kNo = do
-      input <- prompt (promptString ++ " [N/y] ")
-      case map toLower input of
-        "" -> kNo
-        "n" -> kNo
-        "y" -> kYes
+    askUpdate :: Int -> m Response
+    askUpdate totalCount = do
+      cfg <- askConfig
+      let keyId = configKeyId cfg
+          allowMultKeys = configMultKeys cfg
+          question = "New keyid found: do you want to re-encrypt all entries?"
+          err = throwDefault "You have set allow_multiple_keys to false"
+      keyCount <- getCountOfKeyId keyId
+      case (keyCount, allowMultKeys) of
+        (0, False) -> promptYesNo question (reencryptAll keyId >> k) err
+        (x, _) | x == totalCount -> k
+        (_, True) -> promptYesNo question (reencryptAll keyId >> k) k
+        (_, False) -> throwDefault "All entries do not have the same keyid"
+    promptYesNo :: String -> m a -> m a -> m a
+    promptYesNo q ky kn = do
+      input <- prompt (q ++ " [N/y] ")
+      case toLower <$> input of
+        "" -> kn
+        "n" -> kn
+        "y" -> ky
         _ -> throwDefault "Please answer y or n"
 
 add

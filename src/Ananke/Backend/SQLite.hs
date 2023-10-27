@@ -81,6 +81,6 @@ instance MonadStore SQLite where
   put e = withDatabase $ \db -> Database.put db e
   delete e = withDatabase $ \db -> Database.delete db e
   runQuery q = withDatabase $ \db -> Database.runQuery db q
-  selectAll = withDatabase $ \db -> Database.selectAll db
-  getCount = withDatabase $ \db -> Database.getCount db
+  selectAll = withDatabase Database.selectAll
+  getCount = withDatabase Database.getCount
   getCountOfKeyId k = withDatabase $ \db -> Database.getCountOfKeyId db k

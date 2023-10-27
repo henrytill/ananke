@@ -9,9 +9,6 @@ module Ananke.Class
   , MonadTime(..)
   ) where
 
-import Prelude (Bool, FilePath, IO, Int, Maybe, Monad, Monoid (..), String, ($), (.), (>>))
-import qualified Prelude
-
 import Control.Exception (throwIO)
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.State (StateT)
@@ -99,12 +96,12 @@ instance MonadEncrypt IO where
   decrypt = GPG.decrypt
 
 instance MonadEncrypt m => MonadEncrypt (ReaderT r m) where
-  encrypt k p = lift $ encrypt k p
-  decrypt c = lift $ decrypt c
+  encrypt k = lift . encrypt k
+  decrypt = lift . decrypt
 
 instance MonadEncrypt m => MonadEncrypt (StateT s m) where
-  encrypt k p = lift $ encrypt k p
-  decrypt c = lift $ decrypt c
+  encrypt k = lift . encrypt k
+  decrypt = lift . decrypt
 
 -- * MonadFilesystem
 
@@ -147,8 +144,8 @@ class Monad m => MonadInteraction m where
   prompt :: String -> m String
 
 instance MonadInteraction IO where
-  message = Prelude.putStrLn
-  prompt s = Prelude.putStr s >> IO.hFlush IO.stdout >> Prelude.getLine
+  message = putStrLn
+  prompt s = putStr s >> IO.hFlush IO.stdout >> getLine
 
 instance MonadInteraction m => MonadInteraction (ReaderT r m) where
   message = lift . message

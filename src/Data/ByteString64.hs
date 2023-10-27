@@ -7,14 +7,14 @@ module Data.ByteString64
   ) where
 
 #if BACKEND_JSON
-import           Data.Aeson             (FromJSON (..), ToJSON (..), Value (String))
-import qualified Data.Aeson             as Aeson
+import Data.Aeson (FromJSON (..), ToJSON (..), Value (String))
+import qualified Data.Aeson as Aeson
 #endif
 
-import qualified Data.ByteString        as BS
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Base64 as Base64
-import qualified Data.Text              as T
-import           Data.Text.Encoding
+import qualified Data.Text as T
+import Data.Text.Encoding
 
 
 -- | A ByteString which is displayed and serialized in its base64 encoding

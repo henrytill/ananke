@@ -1,38 +1,38 @@
-{-# LANGUAGE NamedFieldPuns    #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Test.Ananke.Properties
   ( doProperties
   ) where
 
-import           Data.List               ((\\))
-import           Data.Monoid             (First (..))
-import qualified Database.SQLite3        as SQLite3
-import qualified System.Directory        as Directory
-import qualified System.IO.Temp          as Temp
-import qualified Test.QuickCheck         as QuickCheck
-import           Test.QuickCheck         (Arbitrary (..), Property, Result)
+import Data.List ((\\))
+import Data.Monoid (First (..))
+import qualified Database.SQLite3 as SQLite3
+import qualified System.Directory as Directory
+import qualified System.IO.Temp as Temp
+import qualified Test.QuickCheck as QuickCheck
+import Test.QuickCheck (Arbitrary (..), Property, Result)
 import qualified Test.QuickCheck.Monadic as Monadic
 
-import           Ananke.Backend          (currentSchemaVersion)
-import           Ananke.Backend.SQLite   (AppContext (..))
-import qualified Ananke.Backend.SQLite   as SQLite
-import           Ananke.Class
-import qualified Ananke.Configuration    as Configuration
-import           Ananke.Data
+import Ananke.Backend (currentSchemaVersion)
+import Ananke.Backend.SQLite (AppContext (..))
+import qualified Ananke.Backend.SQLite as SQLite
+import Ananke.Class
+import qualified Ananke.Configuration as Configuration
+import Ananke.Data
 
-import           Test.Ananke.Orphans     ()
+import Test.Ananke.Orphans ()
 
 
 data Datum = MkDatum
   { datumDescription :: Description
-  , datumIdentity    :: Maybe Identity
-  , datumPlaintext   :: Plaintext
-  , datumMetadata    :: Maybe Metadata
+  , datumIdentity :: Maybe Identity
+  , datumPlaintext :: Plaintext
+  , datumMetadata :: Maybe Metadata
   } deriving (Eq, Show)
 
 instance Arbitrary Datum where
-  arbitrary                    = MkDatum <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+  arbitrary = MkDatum <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
   shrink (MkDatum as bs cs ds) = MkDatum <$> shrink as <*> shrink bs <*> shrink cs <*> shrink ds
 
 createEntry
@@ -40,7 +40,7 @@ createEntry
   => Datum
   -> m Entry
 createEntry td = do
-  cfg       <- askConfig
+  cfg <- askConfig
   timestamp <- now
   let keyId = configKeyId cfg
   ciphertext <- encrypt keyId $ datumPlaintext td
@@ -62,10 +62,10 @@ addEntryToDatabase tds = do
 
 prop_roundTripEntriesToDatabase :: AppContext -> Property
 prop_roundTripEntriesToDatabase ctx = Monadic.monadicIO $ do
-  tds <- Monadic.pick $ QuickCheck.listOf1 arbitrary
-  es  <- Monadic.run  $ SQLite.run (addEntryToDatabase tds) ctx
-  res <- Monadic.run  $ SQLite.run selectAll ctx
-  Monadic.assert . null $ es \\ res
+  ds <- Monadic.pick $ QuickCheck.listOf1 arbitrary
+  es <- Monadic.run $ SQLite.run (addEntryToDatabase ds) ctx
+  rs <- Monadic.run $ SQLite.run selectAll ctx
+  Monadic.assert . null $ es \\ rs
 
 tests :: [AppContext -> Property]
 tests =
@@ -77,13 +77,13 @@ doProperties = do
   tmp <- Temp.getCanonicalTemporaryDirectory
   dir <- Temp.createTempDirectory tmp "ananke"
   print ("dir: " ++ dir)
-  _   <- Directory.copyFile "./example/ananke.ini" (dir ++ "/ananke.ini")
-  let preConfigDir     = First (Just dir)
+  _ <- Directory.copyFile "./example/ananke.ini" (dir ++ "/ananke.ini")
+  let preConfigDir = First (Just dir)
       preConfigDataDir = First (Just dir)
       preConfigBackend = First (Just SQLite)
-      preConfig        = mempty{preConfigDir, preConfigDataDir, preConfigBackend}
+      preConfig = mempty{preConfigDir, preConfigDataDir, preConfigBackend}
   ctx <- Configuration.configureWith preConfig >>= SQLite.initialize
-  _   <- SQLite.run (SQLite.setup currentSchemaVersion) ctx
+  _ <- SQLite.run (SQLite.setup currentSchemaVersion) ctx
   res <- mapM (\p -> QuickCheck.quickCheckWithResult QuickCheck.stdArgs (p ctx)) tests
-  _   <- SQLite3.close (appContextDatabase ctx)
+  _ <- SQLite3.close (appContextDatabase ctx)
   return res

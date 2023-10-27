@@ -10,22 +10,22 @@ module Ananke.Backend.JSON.AppState
   , getCountOfKeyId
   ) where
 
-import           Control.Arrow ((&&&))
-import qualified Data.Maybe    as Maybe
-import           Data.Multimap (Multimap)
+import Control.Arrow ((&&&))
+import qualified Data.Maybe as Maybe
+import Data.Multimap (Multimap)
 import qualified Data.Multimap as Multimap
-import           Data.Set      (Set)
-import qualified Data.Set      as Set
-import qualified Data.Text     as Text
+import Data.Set (Set)
+import qualified Data.Set as Set
+import qualified Data.Text as Text
 
-import           Ananke.Data
+import Ananke.Data
 
 
 type EntriesMap = Multimap Description Entry
 
 data AppState = MkAppState
   { appStateDirty :: Bool
-  , appStateData  :: EntriesMap
+  , appStateData :: EntriesMap
   } deriving (Show, Eq)
 
 mkAppState :: [Entry] -> AppState
@@ -34,14 +34,16 @@ mkAppState = MkAppState False . Multimap.fromList . fmap (entryDescription &&& i
 update :: (EntriesMap -> EntriesMap) -> AppState -> AppState
 update f = MkAppState True . f . appStateData
 
-put    :: Entry -> AppState -> AppState
+put :: Entry -> AppState -> AppState
+put = update . (Multimap.insert <$> entryDescription <*> id)
+
 delete :: Entry -> AppState -> AppState
-put    = update . (Multimap.insert <$> entryDescription <*> id)
 delete = update . (Multimap.delete <$> entryDescription <*> id)
 
-idenIsInfixOf :: Identity    -> Identity    -> Bool
+idenIsInfixOf :: Identity -> Identity -> Bool
+idenIsInfixOf (MkIdentity needle) (MkIdentity haystack) = Text.isInfixOf needle haystack
+
 descIsInfixOf :: Description -> Description -> Bool
-idenIsInfixOf (MkIdentity    needle) (MkIdentity    haystack) = Text.isInfixOf needle haystack
 descIsInfixOf (MkDescription needle) (MkDescription haystack) = Text.isInfixOf needle haystack
 
 idenMatcher :: Maybe Identity -> Maybe Identity -> Bool
@@ -51,7 +53,7 @@ filterEntries :: (Maybe Identity -> Bool) -> Set Entry -> [Entry]
 filterEntries predicate = Set.foldr f []
   where
     f entry acc | predicate $ entryIdentity entry = entry : acc
-                | otherwise                       = acc
+                | otherwise = acc
 
 queryFolder :: Query -> Description -> Set Entry -> [Entry] -> [Entry]
 queryFolder (MkQuery (Just qid) Nothing Nothing Nothing) _ entries acc =
@@ -61,7 +63,7 @@ queryFolder (MkQuery (Just qid) Nothing Nothing Nothing) _ entries acc =
 queryFolder query description entries acc =
   case descMatches of
     Just True -> filterEntries idenMatches entries ++ acc
-    _         -> acc
+    _ -> acc
   where
     descMatches :: Maybe Bool
     descMatches = descIsInfixOf <$> queryDescription query <*> pure description

@@ -5,22 +5,22 @@ module Ananke
   , run
   ) where
 
-import qualified Control.Exception     as Exception
-import           System.Exit           (ExitCode (..))
-import qualified System.IO             as IO
+import qualified Control.Exception as Exception
+import System.Exit (ExitCode (..))
+import qualified System.IO as IO
 
 #ifdef BACKEND_JSON
-import qualified Ananke.Backend.JSON   as JSON
+import qualified Ananke.Backend.JSON as JSON
 #endif
 
-import           Ananke.Backend        (currentSchemaVersion)
+import Ananke.Backend (currentSchemaVersion)
 import qualified Ananke.Backend.SQLite as SQLite
-import           Ananke.Configuration  (Backend (..), Config (..), configure)
-import           Ananke.Error          (AppError (..))
-import           Ananke.Evaluator      (Response (..))
-import qualified Ananke.Evaluator      as Evaluator
-import qualified Ananke.Parser         as Parser
-import           Ananke.Printing       (prettyError, prettyResponse, render)
+import Ananke.Configuration (Backend (..), Config (..), configure)
+import Ananke.Error (AppError (..))
+import Ananke.Evaluator (Response (..))
+import qualified Ananke.Evaluator as Evaluator
+import qualified Ananke.Parser as Parser
+import Ananke.Printing (prettyError, prettyResponse, render)
 
 
 handleError :: AppError -> IO ExitCode
@@ -31,11 +31,11 @@ handleError err =  pr err >> return (ExitFailure 1)
 handleResponse :: Response -> IO ExitCode
 handleResponse res = case res of
   (MultipleEntries [] _) -> pr res >> return (ExitFailure 1)
-  _                      -> pr res >> return ExitSuccess
+  _ -> pr res >> return ExitSuccess
   where
     pr r = case prettyResponse r of
       doc | doc == mempty -> return ()
-          | otherwise     -> putStrLn . render $ doc
+          | otherwise -> putStrLn . render $ doc
 
 runSQLiteApp :: SQLite.AppContext -> IO ExitCode
 runSQLiteApp ctx = do

@@ -2,8 +2,8 @@ module Test.Data.Multimap
   ( runTests
   ) where
 
-import qualified Data.Set      as Set
-import           Test.Dwergaz
+import qualified Data.Set as Set
+import Test.Dwergaz
 
 import qualified Data.Multimap as Multimap
 
@@ -72,7 +72,7 @@ fromListWorks :: Test
 fromListWorks =
   Expect "fromList constructs a map from a list of pairs"
          (==)
-         (Multimap.fromList    [(testKey1, 1), (testKey1, 2)])
+         (Multimap.fromList [(testKey1, 1), (testKey1, 2)])
          (foldr inserter empty [(testKey1, 1), (testKey1, 2)])
 
 elemsWorks :: Test

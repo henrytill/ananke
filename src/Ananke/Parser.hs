@@ -4,10 +4,10 @@ module Ananke.Parser
   ( runCLIParser
   ) where
 
-import           Options.Applicative
+import Options.Applicative
 
-import           Ananke.Data
-import           Ananke.Evaluator
+import Ananke.Data
+import Ananke.Evaluator
 
 
 descArgP :: Parser Description
@@ -45,35 +45,52 @@ targetP :: Parser Target
 targetP = (TargetId <$> hashOptP) <|> (TargetDescription <$> descOptP)
 
 modifyCiphertextFlagP :: Parser ModifyAction
-verbosityFlagP        :: Parser Verbosity
-modifyCiphertextFlagP = flag Keep   Change  $ long "ciphertext" <> short 'c' <> help "Modify ciphertext"
-verbosityFlagP        = flag Normal Verbose $ long "verbose"    <> short 'v' <> help "Display verbose results"
+modifyCiphertextFlagP = flag Keep Change $ long "ciphertext" <> short 'c' <> help "Modify ciphertext"
 
-addP        :: Parser Command
-lookupP     :: Parser Command
-modifyP     :: Parser Command
+verbosityFlagP :: Parser Verbosity
+verbosityFlagP = flag Normal Verbose $ long "verbose" <> short 'v' <> help "Display verbose results"
+
+addP :: Parser Command
+addP = Add <$> descArgP <*> optional idenOptP <*> optional metaOptP
+
+lookupP :: Parser Command
+lookupP = Lookup <$> descArgP <*> optional idenOptP <*> verbosityFlagP
+
+modifyP :: Parser Command
+modifyP = Modify <$> targetP <*> modifyCiphertextFlagP <*> optional idenOptP <*> optional metaOptP
+
 redescribeP :: Parser Command
-removeP     :: Parser Command
-checkP      :: Parser Command
-addP        = Add        <$> descArgP <*> optional idenOptP     <*> optional metaOptP
-lookupP     = Lookup     <$> descArgP <*> optional idenOptP     <*> verbosityFlagP
-modifyP     = Modify     <$> targetP  <*> modifyCiphertextFlagP <*> optional idenOptP <*> optional metaOptP
 redescribeP = Redescribe <$> targetP  <*> descArgP
-removeP     = Remove     <$> targetP
-checkP      = pure CheckForMultipleKeys
 
-cmdAdd        :: Mod CommandFields Command
-cmdLookup     :: Mod CommandFields Command
-cmdModify     :: Mod CommandFields Command
+removeP :: Parser Command
+removeP = Remove <$> targetP
+
+checkP :: Parser Command
+checkP = pure CheckForMultipleKeys
+
+cmdAdd :: Mod CommandFields Command
+cmdAdd = command "add" . info addP $ progDesc d
+  where d = "Encrypt a piece of text and add it to the store"
+
+cmdLookup :: Mod CommandFields Command
+cmdLookup = command "lookup" . info lookupP $ progDesc d
+  where d = "Lookup a piece of ciphertext in the store"
+
+cmdModify :: Mod CommandFields Command
+cmdModify = command "modify" . info modifyP $ progDesc d
+  where d = "Modify a piece of ciphertext in the store"
+
 cmdRedescribe :: Mod CommandFields Command
-cmdRemove     :: Mod CommandFields Command
-cmdCheck      :: Mod CommandFields Command
-cmdAdd        = command "add"        . info addP        $ progDesc "Encrypt a piece of text and add it to the store"
-cmdLookup     = command "lookup"     . info lookupP     $ progDesc "Lookup a piece of ciphertext in the store"
-cmdModify     = command "modify"     . info modifyP     $ progDesc "Modify a piece of ciphertext in the store"
-cmdRedescribe = command "redescribe" . info redescribeP $ progDesc "Modify the description of a piece of ciphertext in the store"
-cmdRemove     = command "remove"     . info removeP     $ progDesc "Remove a piece of ciphertext from the store"
-cmdCheck      = command "check"      . info checkP      $ progDesc "Check if all entries have the same keyid"
+cmdRedescribe = command "redescribe" . info redescribeP $ progDesc d
+  where d = "Modify the description of a piece of ciphertext in the store"
+
+cmdRemove :: Mod CommandFields Command
+cmdRemove =command "remove" . info removeP $ progDesc d
+  where d = "Remove a piece of ciphertext from the store"
+
+cmdCheck :: Mod CommandFields Command
+cmdCheck = command "check" . info checkP $ progDesc d
+  where d = "Check if all entries have the same keyid"
 
 #ifdef BACKEND_JSON
 pathArgP :: Parser FilePath
@@ -86,15 +103,28 @@ exportP :: Parser Command
 exportP = Export <$> pathArgP
 
 cmdImport :: Mod CommandFields Command
-cmdExport :: Mod CommandFields Command
 cmdImport = command "import" . info importP $ progDesc "Import a JSON file"
+
+cmdExport :: Mod CommandFields Command
 cmdExport = command "export" . info exportP $ progDesc "Export a JSON file"
 
 master :: Parser Command
-master = hsubparser (cmdAdd <> cmdLookup <> cmdImport <> cmdExport <> cmdModify <> cmdRedescribe <> cmdRemove <> cmdCheck)
+master = hsubparser (cmdAdd
+                     <> cmdLookup
+                     <> cmdImport
+                     <> cmdExport
+                     <> cmdModify
+                     <> cmdRedescribe
+                     <> cmdRemove
+                     <> cmdCheck)
 #else
 master :: Parser Command
-master = hsubparser (cmdAdd <> cmdLookup <> cmdModify <> cmdRedescribe <> cmdRemove <> cmdCheck)
+master = hsubparser (cmdAdd
+                     <> cmdLookup
+                     <> cmdModify
+                     <> cmdRedescribe
+                     <> cmdRemove
+                     <> cmdCheck)
 #endif
 
 opts :: ParserInfo Command

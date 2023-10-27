@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE PatternGuards              #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
 
 module Ananke.Backend.JSON
   ( JSON
@@ -12,23 +12,22 @@ module Ananke.Backend.JSON
   , AppState
   ) where
 
-import           Control.Monad                (unless, when)
-import           Control.Monad.Reader         (MonadReader, ReaderT, ask, runReaderT)
-import           Control.Monad.State          (MonadState, StateT, gets, modify, runStateT)
-import           Data.Aeson                   (Value (..))
-import qualified Data.Aeson                   as Aeson
-import qualified Data.Aeson.Encode.Pretty     as AesonPretty
-import           Data.Aeson.KeyMap            (Key, KeyMap)
-import qualified Data.Aeson.KeyMap            as KeyMap
-import qualified Data.ByteString.Lazy         as BSL
-import qualified Data.List                    as List
+import Control.Monad (unless, when)
+import Control.Monad.Reader (MonadReader, ReaderT, ask, runReaderT)
+import Control.Monad.State (MonadState, StateT, gets, modify, runStateT)
+import Data.Aeson (Value (..))
+import qualified Data.Aeson as Aeson
+import qualified Data.Aeson.Encode.Pretty as AesonPretty
+import Data.Aeson.KeyMap (Key, KeyMap)
+import qualified Data.Aeson.KeyMap as KeyMap
+import qualified Data.ByteString.Lazy as BSL
+import qualified Data.List as List
 
-import           Ananke.Backend
-import           Ananke.Backend.JSON.AppState (AppState, appStateDirty)
+import Ananke.Backend
+import Ananke.Backend.JSON.AppState (AppState, appStateDirty)
 import qualified Ananke.Backend.JSON.AppState as AppState
-import           Ananke.Class
-import           Ananke.Data                  (Config, Entry, SchemaVersion (..), configDataDir, configDataFile,
-                                               configSchemaFile, entryKeyOrder)
+import Ananke.Class
+import Ananke.Data (Config (..), Entry, SchemaVersion (..), configDataFile, configSchemaFile, entryKeyOrder)
 
 
 errUnableToDecode :: String
@@ -75,7 +74,7 @@ run m state cfg = do
 
 createState :: Config -> IO AppState
 createState cfg = do
-  let dataDir  = configDataDir cfg
+  let dataDir = configDataDir cfg
       dataFile = configDataFile cfg
   dataDirExists <- doesDirExist dataDir
   unless dataDirExists $ createDir dataDir
@@ -106,17 +105,17 @@ keyMapping =
 remapKeys :: [(Key, Key)] -> KeyMap Value -> KeyMap Value
 remapKeys mapping = KeyMap.mapKeyVal f id where
   f k | Just mapped <- lookup k mapping = mapped
-      | otherwise                       = k
+      | otherwise = k
 
 remapJSON :: Value -> Value
 remapJSON (Object obj) = Object (remapKeys keyMapping obj)
-remapJSON (Array arr)  = Array (fmap remapJSON arr)
-remapJSON other        = other
+remapJSON (Array arr) = Array (fmap remapJSON arr)
+remapJSON other = other
 
 migrate :: (MonadAppError m, MonadFilesystem m) => Config -> SchemaVersion -> m ()
 migrate cfg (MkSchemaVersion 2) = do
   let dataFile = configDataFile cfg
-  jsonData    <- readFileBytes dataFile
+  jsonData <- readFileBytes dataFile
   decodedData <- maybe (throwMigration errUnableToDecode) return (Aeson.decode jsonData)
   let remappedData = remapJSON decodedData
   writeFileBytes dataFile . appendNewline . AesonPretty.encodePretty' aesonConfig $ remappedData
@@ -145,9 +144,9 @@ instance MonadConfigReader JSON where
   askConfig = ask
 
 instance MonadStore JSON where
-  put             e = modify $ AppState.put             e
-  delete          e = modify $ AppState.delete          e
-  runQuery        q = gets   $ AppState.runQuery        q
-  selectAll         = gets     AppState.selectAll
-  getCount          = gets     AppState.getCount
-  getCountOfKeyId k = gets   $ AppState.getCountOfKeyId k
+  put e = modify $ AppState.put e
+  delete e = modify $ AppState.delete e
+  runQuery q = gets $ AppState.runQuery q
+  selectAll = gets AppState.selectAll
+  getCount = gets AppState.getCount
+  getCountOfKeyId k = gets $ AppState.getCountOfKeyId k

@@ -7,8 +7,8 @@ module Ananke.Backend
 
 import qualified Data.ByteString.Lazy.Char8 as Char8
 
-import           Ananke.Class               (MonadFilesystem (..))
-import           Ananke.Data
+import Ananke.Class (MonadFilesystem (..))
+import Ananke.Data
 
 
 currentSchemaVersion :: SchemaVersion
@@ -28,8 +28,9 @@ getSchemaVersion path = do
     else createSchemaFile path currentSchemaVersion
 
 mkMigrateMessage :: SchemaVersion -> SchemaVersion -> String
-mkMigrateMessage previous current = "Migrating database from schema version "
-                                    ++ show previous
-                                    ++ " to version "
-                                    ++ show current
-                                    ++ "..."
+mkMigrateMessage previous current =
+  "Migrating database from schema version "
+  ++ show previous
+  ++ " to version "
+  ++ show current
+  ++ "..."

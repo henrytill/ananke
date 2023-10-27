@@ -2,23 +2,23 @@ module Ananke.GPG.Process
   ( readProcessWithExitCode
   ) where
 
-import           Control.Concurrent      (forkIO, killThread)
-import           Control.Concurrent.MVar (MVar, newEmptyMVar, putMVar, takeMVar)
-import           Control.Exception       (SomeException, handle, mask, onException, throwIO, try)
-import           Control.Monad           (unless)
-import qualified Data.ByteString         as BS
-import           Foreign.C.Error         (Errno (..), ePIPE)
-import           GHC.IO.Exception        (IOErrorType (..), IOException (..))
-import           GHC.IO.Handle           (hClose, hSetBinaryMode)
-import           System.Exit             (ExitCode (..))
-import qualified System.Process          as Process
-import           System.Process          (CreateProcess (..), StdStream (..))
+import Control.Concurrent (forkIO, killThread)
+import Control.Concurrent.MVar (MVar, newEmptyMVar, putMVar, takeMVar)
+import Control.Exception (SomeException, handle, mask, onException, throwIO, try)
+import Control.Monad (unless)
+import qualified Data.ByteString as BS
+import Foreign.C.Error (Errno (..), ePIPE)
+import GHC.IO.Exception (IOErrorType (..), IOException (..))
+import GHC.IO.Handle (hClose, hSetBinaryMode)
+import System.Exit (ExitCode (..))
+import qualified System.Process as Process
+import System.Process (CreateProcess (..), StdStream (..))
 
 
 ignoreSIGPIPE :: IO () -> IO ()
 ignoreSIGPIPE = handle $ \e -> case e of
   IOError{ioe_type = ResourceVanished, ioe_errno = Just ioe} | Errno ioe == ePIPE -> return ()
-  _                                                                               -> throwIO e
+  _ -> throwIO e
 
 -- | A descendant of ['withForkWait'](https://hackage.haskell.org/package/process/docs/src/System.Process.html#withForkWait).
 forkWait :: IO a -> IO (IO a)
@@ -35,7 +35,7 @@ readProcessWithExitCode cmd args input =
   in Process.withCreateProcess cp $ \stdin stdout stderr ph ->
     case (stdin, stdout, stderr) of
       (Just inh, Just outh, Just errh) ->
-        do hSetBinaryMode inh  True
+        do hSetBinaryMode inh True
            hSetBinaryMode outh True
            hSetBinaryMode errh True
            outThunk <- forkWait (BS.hGetContents outh)
@@ -48,6 +48,6 @@ readProcessWithExitCode cmd args input =
            hClose errh
            ex <- Process.waitForProcess ph
            return (ex, out, err)
-      (Nothing,       _,       _) -> error "readProcessWithExitCode: Failed to get stdin."
-      (      _, Nothing,       _) -> error "readProcessWithExitCode: Failed to get stdout."
-      (      _,       _, Nothing) -> error "readProcessWithExitCode: Failed to get stderr."
+      (Nothing, _, _) -> error "readProcessWithExitCode: Failed to get stdin."
+      (_, Nothing, _) -> error "readProcessWithExitCode: Failed to get stdout."
+      (_, _, Nothing) -> error "readProcessWithExitCode: Failed to get stderr."

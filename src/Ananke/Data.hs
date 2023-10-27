@@ -1,9 +1,9 @@
-{-# LANGUAGE CPP               #-}
-{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 #ifdef BACKEND_JSON
-{-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE PatternGuards #-}
 #endif
 
 module Ananke.Data
@@ -49,26 +49,26 @@ module Ananke.Data
   , utcTimeFromText
   ) where
 
-import           Prelude                  hiding (id)
+import Prelude hiding (id)
 
 #ifdef BACKEND_JSON
-import           Data.Aeson               (FromJSON (..), Options, ToJSON (..))
-import qualified Data.Aeson               as Aeson
+import Data.Aeson (FromJSON (..), Options, ToJSON (..))
+import qualified Data.Aeson as Aeson
 #endif
 
-import qualified Data.ByteString          as BS
-import qualified Data.ByteString.Lazy     as BSL
-import           Data.ByteString64        (ByteString64 (..))
-import qualified Data.ByteString64        as BS64
-import qualified Data.Digest.Pure.SHA     as SHA
-import           Data.Monoid              (First)
-import qualified Data.Ord                 as Ord
-import qualified Data.Semigroup           as Sem
-import qualified Data.Text                as T
-import qualified Data.Text.Encoding       as Encoding
-import           Data.Time.Clock          (UTCTime)
-import           Data.Time.Format.ISO8601 (iso8601ParseM, iso8601Show)
-import           GHC.Generics             (Generic)
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BSL
+import Data.ByteString64 (ByteString64 (..))
+import qualified Data.ByteString64 as BS64
+import qualified Data.Digest.Pure.SHA as SHA
+import Data.Monoid (First)
+import qualified Data.Ord as Ord
+import qualified Data.Semigroup as Sem
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as Encoding
+import Data.Time.Clock (UTCTime)
+import Data.Time.Format.ISO8601 (iso8601ParseM, iso8601Show)
+import GHC.Generics (Generic)
 
 
 -- * Configuration
@@ -78,10 +78,10 @@ data Backend = SQLite | JSON
 
 -- | A 'PreConfig' is used in the creation of a 'Config'
 data PreConfig = MkPreConfig
-  { preConfigDir      :: First FilePath
-  , preConfigDataDir  :: First FilePath
-  , preConfigBackend  :: First Backend
-  , preConfigKeyId    :: First KeyId
+  { preConfigDir :: First FilePath
+  , preConfigDataDir :: First FilePath
+  , preConfigBackend :: First Backend
+  , preConfigKeyId :: First KeyId
   , preConfigMultKeys :: First Bool
   } deriving (Show, Eq)
 
@@ -94,22 +94,25 @@ instance Monoid PreConfig where
 
 -- | A 'Config' represents our application's configuration
 data Config = MkConfig
-  { configDir      :: FilePath
-  , configDataDir  :: FilePath
-  , configBackend  :: Backend
-  , configKeyId    :: KeyId
+  { configDir :: FilePath
+  , configDataDir :: FilePath
+  , configBackend :: Backend
+  , configKeyId :: KeyId
   , configMultKeys :: Bool
   } deriving (Show, Eq)
 
 -- Virtual fields
-configDatabaseDir  :: Config -> FilePath
-configSchemaFile   :: Config -> FilePath
+configDatabaseDir :: Config -> FilePath
+configDatabaseDir cfg = configDataDir cfg ++ "/db"
+
+configSchemaFile :: Config -> FilePath
+configSchemaFile cfg = configDatabaseDir cfg ++ "/schema"
+
 configDatabaseFile :: Config -> FilePath
-configDataFile     :: Config -> FilePath
-configDatabaseDir  cfg = configDataDir     cfg ++ "/db"
-configSchemaFile   cfg = configDatabaseDir cfg ++ "/schema"
 configDatabaseFile cfg = configDatabaseDir cfg ++ "/db.sqlite"
-configDataFile     cfg = configDatabaseDir cfg ++ "/data.json"
+
+configDataFile :: Config -> FilePath
+configDataFile cfg = configDatabaseDir cfg ++ "/data.json"
 
 -- | A 'SchemaVersion' represents the database's schema version
 newtype SchemaVersion = MkSchemaVersion { unSchemaVersion :: Int }
@@ -174,23 +177,23 @@ instance FromJSON Ciphertext where
 -- | An 'Entry' is a record that stores an encrypted value along with associated
 -- information
 data Entry = MkEntry
-  { entryId          :: Id
-  , entryKeyId       :: KeyId
-  , entryTimestamp   :: UTCTime
+  { entryId :: Id
+  , entryKeyId :: KeyId
+  , entryTimestamp :: UTCTime
   , entryDescription :: Description
-  , entryIdentity    :: Maybe Identity
-  , entryCiphertext  :: Ciphertext
-  , entryMeta        :: Maybe Metadata
+  , entryIdentity :: Maybe Identity
+  , entryCiphertext :: Ciphertext
+  , entryMeta :: Maybe Metadata
   } deriving (Show, Eq, Generic)
 
 instance Ord Entry where
-  compare x y | entryTimestamp   x /= entryTimestamp   y = Ord.comparing entryTimestamp   x y
-              | entryId          x /= entryId          y = Ord.comparing entryId          x y
-              | entryKeyId       x /= entryKeyId       y = Ord.comparing entryKeyId       x y
+  compare x y | entryTimestamp x /= entryTimestamp y = Ord.comparing entryTimestamp x y
+              | entryId x /= entryId y = Ord.comparing entryId x y
+              | entryKeyId x /= entryKeyId y = Ord.comparing entryKeyId x y
               | entryDescription x /= entryDescription y = Ord.comparing entryDescription x y
-              | entryIdentity    x /= entryIdentity    y = Ord.comparing entryIdentity    x y
-              | entryCiphertext  x /= entryCiphertext  y = Ord.comparing entryCiphertext  x y
-              | otherwise                                = Ord.comparing entryMeta        x y
+              | entryIdentity x /= entryIdentity y = Ord.comparing entryIdentity x y
+              | entryCiphertext x /= entryCiphertext y = Ord.comparing entryCiphertext x y
+              | otherwise = Ord.comparing entryMeta x y
 
 #ifdef BACKEND_JSON
 fieldToJSON :: [(String, String)]
@@ -210,12 +213,12 @@ entryKeyOrder = map (T.pack . snd) fieldToJSON
 remapField :: String -> String
 remapField field
   | Just mapped <- lookup field fieldToJSON = mapped
-  | otherwise                               = field
+  | otherwise = field
 
 options :: Options
 options = Aeson.defaultOptions
   { Aeson.fieldLabelModifier = remapField
-  , Aeson.omitNothingFields  = True
+  , Aeson.omitNothingFields = True
   }
 
 instance ToJSON Entry where
@@ -296,8 +299,10 @@ mkId :: T.Text -> Id
 mkId = MkId . T.pack . SHA.showDigest . SHA.sha1 . BSL.fromStrict . Encoding.encodeUtf8
 
 generateId :: KeyId -> UTCTime -> Description -> Maybe Identity -> Id
-generateId (MkKeyId k) ts (MkDescription d) (Just (MkIdentity i)) = mkId $ k <> utcTimeToText ts <> d <> i
-generateId (MkKeyId k) ts (MkDescription d) Nothing               = mkId $ k <> utcTimeToText ts <> d
+generateId (MkKeyId k) ts (MkDescription d) (Just (MkIdentity i)) =
+  mkId $ k <> utcTimeToText ts <> d <> i
+generateId (MkKeyId k) ts (MkDescription d) Nothing =
+  mkId $ k <> utcTimeToText ts <> d
 
 mkEntry :: KeyId -> UTCTime -> Description -> Maybe Identity -> Ciphertext -> Maybe Metadata -> Entry
 mkEntry keyId timestamp description identity ciphertext meta =
@@ -316,22 +321,22 @@ updateEntry entry@(MkEntry _ keyId timestamp description identity _ _) =
 -- | A 'DisplayEntry' is a record that is displayed to the user in response to a
 -- command
 data DisplayEntry = MkDisplayEntry
-  { displayId          :: Id
-  , displayTimestamp   :: UTCTime
+  { displayId :: Id
+  , displayTimestamp :: UTCTime
   , displayDescription :: Description
-  , displayIdentity    :: Maybe Identity
-  , displayPlaintext   :: Plaintext
-  , displayMeta        :: Maybe Metadata
+  , displayIdentity :: Maybe Identity
+  , displayPlaintext :: Plaintext
+  , displayMeta :: Maybe Metadata
   } deriving (Show, Eq)
 
 -- * Queries
 
 -- | A 'Query' represents a database query
 data Query = MkQuery
-  { queryId          :: Maybe Id
+  { queryId :: Maybe Id
   , queryDescription :: Maybe Description
-  , queryIdentity    :: Maybe Identity
-  , queryMeta        :: Maybe Metadata
+  , queryIdentity :: Maybe Identity
+  , queryMeta :: Maybe Metadata
   } deriving (Show, Eq)
 
 emptyQuery :: Query
@@ -339,7 +344,7 @@ emptyQuery = MkQuery Nothing Nothing Nothing Nothing
 
 queryIsEmpty :: Query -> Bool
 queryIsEmpty (MkQuery Nothing Nothing Nothing Nothing) = True
-queryIsEmpty _                                         = False
+queryIsEmpty _ = False
 
 -- * Helpers
 

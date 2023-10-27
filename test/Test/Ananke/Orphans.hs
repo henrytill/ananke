@@ -2,10 +2,10 @@
 
 module Test.Ananke.Orphans () where
 
-import qualified Data.Text       as T
-import           Test.QuickCheck (Arbitrary (..))
+import qualified Data.Text as T
+import Test.QuickCheck (Arbitrary (..))
 
-import           Ananke.Data     (Description (..), Identity (..), Metadata (..), Plaintext (..))
+import Ananke.Data (Description (..), Identity (..), Metadata (..), Plaintext (..))
 
 
 instance Arbitrary T.Text where
@@ -13,17 +13,17 @@ instance Arbitrary T.Text where
     shrink xs = T.pack <$> shrink (T.unpack xs)
 
 instance Arbitrary Description where
-  arbitrary                 = MkDescription <$> arbitrary
+  arbitrary = MkDescription <$> arbitrary
   shrink (MkDescription xs) = MkDescription <$> shrink xs
 
 instance Arbitrary Identity where
-  arbitrary              = MkIdentity <$> arbitrary
+  arbitrary = MkIdentity <$> arbitrary
   shrink (MkIdentity xs) = MkIdentity <$> shrink xs
 
 instance Arbitrary Plaintext where
-  arbitrary               = MkPlaintext <$> arbitrary
+  arbitrary = MkPlaintext <$> arbitrary
   shrink (MkPlaintext xs) = MkPlaintext <$> shrink xs
 
 instance Arbitrary Metadata where
-  arbitrary              = MkMetadata <$> arbitrary
+  arbitrary = MkMetadata <$> arbitrary
   shrink (MkMetadata xs) = MkMetadata <$> shrink xs

@@ -2,7 +2,7 @@ module Main (main) where
 
 import qualified System.Exit as Exit
 
-import           Ananke      (configure, run)
+import Ananke (configure, run)
 
 
 main :: IO ()

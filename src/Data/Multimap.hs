@@ -16,14 +16,14 @@ module Data.Multimap
   , foldMapWithKey
   ) where
 
-import           Prelude    hiding (foldl, foldr, lookup, null)
+import Prelude hiding (foldl, foldr, lookup, null)
 import qualified Prelude
 
-import           Data.Map   (Map)
-import qualified Data.Map   as Map
+import Data.Map (Map)
+import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
-import           Data.Set   (Set)
-import qualified Data.Set   as Set
+import Data.Set (Set)
+import qualified Data.Set as Set
 
 
 newtype Multimap k v = MkMultimap { unMultimap :: Map k (Set v) }
@@ -36,7 +36,7 @@ null :: Multimap k v -> Bool
 null (MkMultimap m) = Map.null m
 
 inserter :: Ord v => v -> Maybe (Set v) -> Maybe (Set v)
-inserter v Nothing  = Just (Set.singleton v)
+inserter v Nothing = Just (Set.singleton v)
 inserter v (Just s) = Just (Set.insert v s)
 
 insert :: (Ord k, Ord v) => k -> v -> Multimap k v -> Multimap k v
@@ -46,9 +46,9 @@ deleteAll :: Ord k => k -> Multimap k v -> Multimap k v
 deleteAll k (MkMultimap m) = MkMultimap $ Map.delete k m
 
 deleter :: Ord v => v -> Maybe (Set v) -> Maybe (Set v)
-deleter _ Nothing                     = Nothing
+deleter _ Nothing = Nothing
 deleter v (Just s) | Set.null updated = Nothing
-                   | otherwise        = Just updated
+                   | otherwise = Just updated
   where
     updated = Set.delete v s
 

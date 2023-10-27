@@ -86,8 +86,8 @@ data PreConfig = MkPreConfig
   } deriving (Show, Eq)
 
 instance Sem.Semigroup PreConfig where
-  MkPreConfig a b c d e <> MkPreConfig f g h i j =
-    MkPreConfig (a <> f) (b <> g) (c <> h) (d <> i) (e <> j)
+  MkPreConfig a b c d e <> MkPreConfig n o p q r =
+    MkPreConfig (a <> n) (b <> o) (c <> p) (d <> q) (e <> r)
 
 instance Monoid PreConfig where
   mempty = MkPreConfig mempty mempty mempty mempty mempty

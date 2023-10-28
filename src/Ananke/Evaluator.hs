@@ -112,7 +112,7 @@ checkKey k = do
           allowMultKeys = configMultKeys cfg
           question = "New keyid found: do you want to re-encrypt all entries?"
           err = throwDefault "You have set allow_multiple_keys to false"
-      keyCount <- getCountOfKeyId keyId
+      keyCount <- getCountOf keyId
       case (keyCount, allowMultKeys) of
         (0, False) -> promptYesNo question (reencryptAll keyId >> k) err
         (x, _) | x == totalCount -> k
@@ -233,7 +233,7 @@ check :: (MonadAppError m, MonadConfigReader m, MonadStore m) => m Response
 check = do
   keyId <- configKeyId <$> askConfig
   totalCount <- getCount
-  keyCount <- getCountOfKeyId keyId
+  keyCount <- getCountOf keyId
   if totalCount == keyCount
     then return CheckedForMultipleKeys
     else throwDefault "All entries do not have the same keyid"

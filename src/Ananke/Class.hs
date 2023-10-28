@@ -163,7 +163,7 @@ class Monad m => MonadStore m where
   runQuery :: Query -> m [Entry]
   selectAll :: m [Entry]
   getCount :: m Int
-  getCountOfKeyId :: KeyId -> m Int
+  getCountOf :: KeyId -> m Int
 
 -- * MonadTime
 

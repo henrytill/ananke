@@ -8,7 +8,7 @@ module Ananke.Backend.SQLite.Database
   , runQuery
   , selectAll
   , getCount
-  , getCountOfKeyId
+  , getCountOf
   , addKeyId
   , createTable
   , migrate
@@ -168,8 +168,8 @@ getCount db = Exception.bracket (SQLite3.prepare db s) SQLite3.finalize executeC
   where
     s = "SELECT count(*) FROM entries"
 
-getCountOfKeyId :: SQLite3.Database -> KeyId -> IO Int
-getCountOfKeyId db (MkKeyId keyId) = Exception.bracket
+getCountOf :: SQLite3.Database -> KeyId -> IO Int
+getCountOf db (MkKeyId keyId) = Exception.bracket
   (do stmt <- SQLite3.prepare db s
       SQLite3.bindNamed stmt [(":keyid", SQLite3.SQLText keyId)]
       return stmt)

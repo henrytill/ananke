@@ -149,4 +149,4 @@ instance MonadStore JSON where
   runQuery = gets . AppState.runQuery
   selectAll = gets AppState.selectAll
   getCount = gets AppState.getCount
-  getCountOfKeyId = gets . AppState.getCountOfKeyId
+  getCountOf = gets . AppState.getCountOf

@@ -7,7 +7,7 @@ module Ananke.Backend.JSON.AppState
   , runQuery
   , selectAll
   , getCount
-  , getCountOfKeyId
+  , getCountOf
   ) where
 
 import Control.Arrow ((&&&))
@@ -80,5 +80,5 @@ selectAll = Multimap.elems . appStateData
 getCount :: AppState -> Int
 getCount = Multimap.size . appStateData
 
-getCountOfKeyId :: KeyId -> AppState -> Int
-getCountOfKeyId keyId = length . filter (\entry -> entryKeyId entry == keyId) . selectAll
+getCountOf :: KeyId -> AppState -> Int
+getCountOf keyId = length . filter (\entry -> entryKeyId entry == keyId) . selectAll

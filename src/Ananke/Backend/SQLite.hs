@@ -83,4 +83,4 @@ instance MonadStore SQLite where
   runQuery q = withDatabase $ \db -> Database.runQuery db q
   selectAll = withDatabase Database.selectAll
   getCount = withDatabase Database.getCount
-  getCountOfKeyId k = withDatabase $ \db -> Database.getCountOfKeyId db k
+  getCountOf k = withDatabase $ \db -> Database.getCountOf db k

@@ -86,7 +86,7 @@ initialize cfg = do
   state <- createState cfg
   return (cfg, state)
 
-finalize :: (Config, AppState) -> IO ()
+finalize :: a -> IO ()
 finalize _ = return ()
 
 -- * Pre-Initialize

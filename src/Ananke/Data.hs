@@ -206,15 +206,15 @@ fieldToJSON =
 entryKeyOrder :: [T.Text]
 entryKeyOrder = map (T.pack . snd) fieldToJSON
 
-remapField :: String -> String
-remapField field
-  | Just mapped <- lookup field fieldToJSON = mapped
+remapField :: [(String, String)] -> String -> String
+remapField mappings field
+  | Just mapped <- lookup field mappings = mapped
   | otherwise = field
 
 options :: Options
 options =
   Aeson.defaultOptions
-    { Aeson.fieldLabelModifier = remapField,
+    { Aeson.fieldLabelModifier = remapField fieldToJSON,
       Aeson.omitNothingFields = True
     }
 

@@ -57,7 +57,7 @@ anankeIniFile :: FilePath
 anankeIniFile = "/ananke.ini"
 
 trues :: [Text]
-trues = [ "true", "t", "yes", "y", "1" ]
+trues = ["true", "t", "yes", "y", "1"]
 
 mkBackend :: Text -> Backend
 mkBackend t = case T.toLower t of

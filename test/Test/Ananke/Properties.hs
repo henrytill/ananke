@@ -68,9 +68,7 @@ prop_roundTripEntriesToDatabase ctx = Monadic.monadicIO $ do
   Monadic.assert . null $ es \\ rs
 
 tests :: [AppContext -> Property]
-tests =
-  [ prop_roundTripEntriesToDatabase
-  ]
+tests = [prop_roundTripEntriesToDatabase]
 
 doProperties :: IO [Result]
 doProperties = do

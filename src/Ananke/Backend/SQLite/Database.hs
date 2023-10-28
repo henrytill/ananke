@@ -2,26 +2,25 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Ananke.Backend.SQLite.Database
-  ( rethrow
-  , put
-  , delete
-  , runQuery
-  , selectAll
-  , getCount
-  , getCountOf
-  , addKeyId
-  , createTable
-  , migrate
-  ) where
+  ( rethrow,
+    put,
+    delete,
+    runQuery,
+    selectAll,
+    getCount,
+    getCountOf,
+    addKeyId,
+    createTable,
+    migrate,
+  )
+where
 
+import Ananke.Data
+import Ananke.Error (AppError (..))
 import qualified Control.Exception as Exception
 import qualified Data.Text as T
 import Data.Time.Clock (UTCTime)
 import qualified Database.SQLite3 as SQLite3
-
-import Ananke.Data
-import Ananke.Error (AppError (..))
-
 
 rethrow :: IO a -> IO a
 rethrow a = Exception.catch a f
@@ -30,25 +29,28 @@ rethrow a = Exception.catch a f
     f = Exception.throwIO . Database . T.unpack . SQLite3.sqlErrorDetails
 
 executeStatement :: SQLite3.Statement -> IO ()
-executeStatement stmt = SQLite3.stepNoCB stmt >>= \case
-  SQLite3.Row -> executeStatement stmt
-  SQLite3.Done -> return ()
+executeStatement stmt =
+  SQLite3.stepNoCB stmt >>= \case
+    SQLite3.Row -> executeStatement stmt
+    SQLite3.Done -> return ()
 
 columnMaybeText :: SQLite3.Statement -> SQLite3.ColumnIndex -> (T.Text -> a) -> IO (Maybe a)
-columnMaybeText stmt column f = SQLite3.column stmt column >>= \case
-  SQLite3.SQLText text -> return . Just . f $ text
-  SQLite3.SQLNull -> return Nothing
-  _ -> Exception.throwIO . Database $ "unexpected type"
+columnMaybeText stmt column f =
+  SQLite3.column stmt column >>= \case
+    SQLite3.SQLText text -> return . Just . f $ text
+    SQLite3.SQLNull -> return Nothing
+    _ -> Exception.throwIO . Database $ "unexpected type"
 
 getEntry :: SQLite3.Statement -> IO Entry
 getEntry stmt =
-  MkEntry <$> getId stmt
-          <*> getKeyId stmt
-          <*> getTimestamp stmt
-          <*> getDescription stmt
-          <*> getIdentity stmt
-          <*> getCiphertext stmt
-          <*> getMeta stmt
+  MkEntry
+    <$> getId stmt
+    <*> getKeyId stmt
+    <*> getTimestamp stmt
+    <*> getDescription stmt
+    <*> getIdentity stmt
+    <*> getCiphertext stmt
+    <*> getMeta stmt
   where
     getId :: SQLite3.Statement -> IO Id
     getId s = MkId <$> SQLite3.columnText s 0
@@ -74,50 +76,59 @@ getEntry stmt =
 executeQuery :: SQLite3.Statement -> IO [Entry]
 executeQuery = flip go []
   where
-    go stmt acc = SQLite3.stepNoCB stmt >>= \case
-      SQLite3.Done -> return acc
-      SQLite3.Row -> do entry <- getEntry stmt
-                        go stmt $ entry : acc
+    go stmt acc =
+      SQLite3.stepNoCB stmt >>= \case
+        SQLite3.Done -> return acc
+        SQLite3.Row -> do
+          entry <- getEntry stmt
+          go stmt $ entry : acc
 
 executeCount :: SQLite3.Statement -> IO Int
 executeCount = flip go 0
   where
-    go stmt acc = SQLite3.stepNoCB stmt >>= \case
-      SQLite3.Done -> return . fromIntegral $ acc
-      SQLite3.Row -> do count <- SQLite3.columnInt64 stmt 0
-                        go stmt $ count + acc
+    go stmt acc =
+      SQLite3.stepNoCB stmt >>= \case
+        SQLite3.Done -> return . fromIntegral $ acc
+        SQLite3.Row -> do
+          count <- SQLite3.columnInt64 stmt 0
+          go stmt $ count + acc
 
 createTable :: SQLite3.Database -> IO ()
 createTable db = Exception.bracket (SQLite3.prepare db s) SQLite3.finalize executeStatement
   where
-    s = "CREATE TABLE IF NOT EXISTS entries (\
-        \  id TEXT UNIQUE NOT NULL,          \
-        \  keyid TEXT NOT NULL,              \
-        \  timestamp TEXT NOT NULL,          \
-        \  description TEXT NOT NULL,        \
-        \  identity TEXT,                    \
-        \  ciphertext TEXT NOT NULL,         \
-        \  meta TEXT                         \
-        \)"
+    s =
+      "CREATE TABLE IF NOT EXISTS entries (\
+      \  id TEXT UNIQUE NOT NULL,          \
+      \  keyid TEXT NOT NULL,              \
+      \  timestamp TEXT NOT NULL,          \
+      \  description TEXT NOT NULL,        \
+      \  identity TEXT,                    \
+      \  ciphertext TEXT NOT NULL,         \
+      \  meta TEXT                         \
+      \)"
 
 addKeyId :: SQLite3.Database -> KeyId -> IO ()
-addKeyId db (MkKeyId keyId) = Exception.bracket
-  (do stmt <- SQLite3.prepare db s
-      SQLite3.bindSQLData stmt 1 (SQLite3.SQLText keyId)
-      return stmt)
-  SQLite3.finalize
-  executeStatement
+addKeyId db (MkKeyId keyId) =
+  Exception.bracket
+    ( do
+        stmt <- SQLite3.prepare db s
+        SQLite3.bindSQLData stmt 1 (SQLite3.SQLText keyId)
+        return stmt
+    )
+    SQLite3.finalize
+    executeStatement
   where
-    s = "INSERT INTO entries \
-        \  (id, keyid, timestamp, description, identity, ciphertext, meta)  \
-        \  SELECT id, ?1, timestamp, description, identity, ciphertext, meta \
-        \  FROM entries_v1"
+    s =
+      "INSERT INTO entries \
+      \  (id, keyid, timestamp, description, identity, ciphertext, meta)  \
+      \  SELECT id, ?1, timestamp, description, identity, ciphertext, meta \
+      \  FROM entries_v1"
 
-migrate
-  :: SQLite3.Database
-  -> SchemaVersion
-  -> KeyId
-  -> IO ()
+migrate ::
+  SQLite3.Database ->
+  SchemaVersion ->
+  KeyId ->
+  IO ()
 migrate db (MkSchemaVersion 1) keyId = do
   SQLite3.exec db "ALTER TABLE entries RENAME TO entries_v1"
   createTable db
@@ -129,32 +140,39 @@ migrate _ (MkSchemaVersion v) _ =
   Exception.throwIO . Migration $ "no supported migration path for schema version " ++ show v
 
 put :: SQLite3.Database -> Entry -> IO ()
-put db entry = Exception.bracket
-  (do stmt <- SQLite3.prepare db s
-      SQLite3.bindSQLData stmt 1 . SQLite3.SQLText . unId . entryId $ entry
-      SQLite3.bindSQLData stmt 2 . SQLite3.SQLText . unKeyId . entryKeyId $ entry
-      SQLite3.bindSQLData stmt 3 . SQLite3.SQLText . utcTimeToText . entryTimestamp $ entry
-      SQLite3.bindSQLData stmt 4 . SQLite3.SQLText . unDescription . entryDescription $ entry
-      SQLite3.bindSQLData stmt 6 . SQLite3.SQLText . ciphertextToText . entryCiphertext  $ entry
-      let identity = maybe SQLite3.SQLNull (SQLite3.SQLText . unIdentity) (entryIdentity entry)
-          metadata = maybe SQLite3.SQLNull (SQLite3.SQLText . unMetadata) (entryMeta entry)
-      SQLite3.bindSQLData stmt 5 identity
-      SQLite3.bindSQLData stmt 7 metadata
-      return stmt)
-  SQLite3.finalize
-  executeStatement
+put db entry =
+  Exception.bracket
+    ( do
+        stmt <- SQLite3.prepare db s
+        SQLite3.bindSQLData stmt 1 . SQLite3.SQLText . unId . entryId $ entry
+        SQLite3.bindSQLData stmt 2 . SQLite3.SQLText . unKeyId . entryKeyId $ entry
+        SQLite3.bindSQLData stmt 3 . SQLite3.SQLText . utcTimeToText . entryTimestamp $ entry
+        SQLite3.bindSQLData stmt 4 . SQLite3.SQLText . unDescription . entryDescription $ entry
+        SQLite3.bindSQLData stmt 6 . SQLite3.SQLText . ciphertextToText . entryCiphertext $ entry
+        let identity = maybe SQLite3.SQLNull (SQLite3.SQLText . unIdentity) (entryIdentity entry)
+            metadata = maybe SQLite3.SQLNull (SQLite3.SQLText . unMetadata) (entryMeta entry)
+        SQLite3.bindSQLData stmt 5 identity
+        SQLite3.bindSQLData stmt 7 metadata
+        return stmt
+    )
+    SQLite3.finalize
+    executeStatement
   where
-    s = "INSERT OR REPLACE INTO entries \
-        \  (id, keyid, timestamp, description, identity, ciphertext, meta) \
-        \  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)"
+    s =
+      "INSERT OR REPLACE INTO entries \
+      \  (id, keyid, timestamp, description, identity, ciphertext, meta) \
+      \  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)"
 
 delete :: SQLite3.Database -> Entry -> IO ()
-delete db entry = Exception.bracket
-  (do stmt <- SQLite3.prepare db s
-      SQLite3.bindNamed stmt [(":id", SQLite3.SQLText . unId . entryId $ entry)]
-      return stmt)
-  SQLite3.finalize
-  executeStatement
+delete db entry =
+  Exception.bracket
+    ( do
+        stmt <- SQLite3.prepare db s
+        SQLite3.bindNamed stmt [(":id", SQLite3.SQLText . unId . entryId $ entry)]
+        return stmt
+    )
+    SQLite3.finalize
+    executeStatement
   where
     s = "DELETE FROM entries WHERE id = :id"
 
@@ -169,12 +187,15 @@ getCount db = Exception.bracket (SQLite3.prepare db s) SQLite3.finalize executeC
     s = "SELECT count(*) FROM entries"
 
 getCountOf :: SQLite3.Database -> KeyId -> IO Int
-getCountOf db (MkKeyId keyId) = Exception.bracket
-  (do stmt <- SQLite3.prepare db s
-      SQLite3.bindNamed stmt [(":keyid", SQLite3.SQLText keyId)]
-      return stmt)
-  SQLite3.finalize
-  executeCount
+getCountOf db (MkKeyId keyId) =
+  Exception.bracket
+    ( do
+        stmt <- SQLite3.prepare db s
+        SQLite3.bindNamed stmt [(":keyid", SQLite3.SQLText keyId)]
+        return stmt
+    )
+    SQLite3.finalize
+    executeCount
   where
     s = "SELECT count(*) FROM entries WHERE keyid = :keyid"
 
@@ -194,20 +215,20 @@ metadataMatcher :: Metadata -> (T.Text, [(T.Text, SQLite3.SQLData)])
 metadataMatcher (MkMetadata m) =
   ("meta LIKE :meta", [(":meta", SQLite3.SQLText m)])
 
-queryFolder
-  :: (T.Text, [(T.Text, SQLite3.SQLData)])
-  -> Maybe (T.Text, [(T.Text, SQLite3.SQLData)])
-  -> (T.Text, [(T.Text, SQLite3.SQLData)])
+queryFolder ::
+  (T.Text, [(T.Text, SQLite3.SQLData)]) ->
+  Maybe (T.Text, [(T.Text, SQLite3.SQLData)]) ->
+  (T.Text, [(T.Text, SQLite3.SQLData)])
 queryFolder ("", []) (Just (qs, np)) = (qs, np)
 queryFolder (accQs, accNp) (Just (qs, np)) = (accQs <> " AND " <> qs, accNp <> np)
 queryFolder (accQs, accNp) Nothing = (accQs, accNp)
 
 queryParts :: Query -> [Maybe (T.Text, [(T.Text, SQLite3.SQLData)])]
 queryParts query =
-  [ idMatcher <$> queryId query
-  , descriptionMatcher <$> queryDescription query
-  , identityMatcher <$> queryIdentity query
-  , metadataMatcher <$> queryMeta query
+  [ idMatcher <$> queryId query,
+    descriptionMatcher <$> queryDescription query,
+    identityMatcher <$> queryIdentity query,
+    metadataMatcher <$> queryMeta query
   ]
 
 generateQuery :: Query -> (T.Text, [(T.Text, SQLite3.SQLData)])
@@ -219,12 +240,15 @@ generateQuery = (select <>) . foldl queryFolder ("", []) . queryParts
 runQuery :: SQLite3.Database -> Query -> IO [Entry]
 runQuery db query =
   if queryIsEmpty query
-  then selectAll db
-  else Exception.bracket
-    (do stmt <- SQLite3.prepare db qs
-        SQLite3.bindNamed stmt nps
-        return stmt)
-    SQLite3.finalize
-    executeQuery
+    then selectAll db
+    else
+      Exception.bracket
+        ( do
+            stmt <- SQLite3.prepare db qs
+            SQLite3.bindNamed stmt nps
+            return stmt
+        )
+        SQLite3.finalize
+        executeQuery
   where
     (qs, nps) = generateQuery query

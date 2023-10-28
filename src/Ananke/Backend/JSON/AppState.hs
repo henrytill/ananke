@@ -1,15 +1,17 @@
 module Ananke.Backend.JSON.AppState
-  ( EntriesMap
-  , AppState (..)
-  , mkAppState
-  , put
-  , delete
-  , runQuery
-  , selectAll
-  , getCount
-  , getCountOf
-  ) where
+  ( EntriesMap,
+    AppState (..),
+    mkAppState,
+    put,
+    delete,
+    runQuery,
+    selectAll,
+    getCount,
+    getCountOf,
+  )
+where
 
+import Ananke.Data
 import Control.Arrow ((&&&))
 import qualified Data.Maybe as Maybe
 import Data.Multimap (Multimap)
@@ -18,15 +20,13 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 
-import Ananke.Data
-
-
 type EntriesMap = Multimap Description Entry
 
 data AppState = MkAppState
-  { appStateDirty :: Bool
-  , appStateData :: EntriesMap
-  } deriving (Show, Eq)
+  { appStateDirty :: Bool,
+    appStateData :: EntriesMap
+  }
+  deriving (Show, Eq)
 
 mkAppState :: [Entry] -> AppState
 mkAppState = MkAppState False . Multimap.fromList . fmap (entryDescription &&& id)
@@ -52,8 +52,9 @@ idenMatcher queryIden entryIden = Maybe.fromMaybe True (idenIsInfixOf <$> queryI
 filterEntries :: (Maybe Identity -> Bool) -> Set Entry -> [Entry]
 filterEntries predicate = Set.foldr f []
   where
-    f entry acc | predicate $ entryIdentity entry = entry : acc
-                | otherwise = acc
+    f entry acc
+      | predicate $ entryIdentity entry = entry : acc
+      | otherwise = acc
 
 queryFolder :: Query -> Description -> Set Entry -> [Entry] -> [Entry]
 queryFolder (MkQuery (Just qid) Nothing Nothing Nothing) _ entries acc =

@@ -1,18 +1,17 @@
 module Ananke.Printing
-  ( prettyResponse
-  , prettyError
-  , render
-  ) where
-
-import qualified Data.Text as T
-import Data.Time.Clock (UTCTime)
-import Data.Time.Format.ISO8601 (iso8601Show)
-import Text.PrettyPrint (Doc, Mode (..), Style (..), empty, renderStyle, style, text, ($$), (<+>))
+  ( prettyResponse,
+    prettyError,
+    render,
+  )
+where
 
 import Ananke.Data
 import Ananke.Error (AppError (..))
 import Ananke.Evaluator (Response (..), Verbosity (..))
-
+import qualified Data.Text as T
+import Data.Time.Clock (UTCTime)
+import Data.Time.Format.ISO8601 (iso8601Show)
+import Text.PrettyPrint (Doc, Mode (..), Style (..), empty, renderStyle, style, text, ($$), (<+>))
 
 prettyText :: T.Text -> Doc
 prettyText = text . T.unpack
@@ -42,18 +41,18 @@ printPlain = prettyPlaintext . displayPlaintext
 
 printOne :: DisplayEntry -> Doc
 printOne e =
-  prettyDescription (displayDescription e) <+>
-  prettyIdentity (displayIdentity e) <+>
-  prettyPlaintext (displayPlaintext e)
+  prettyDescription (displayDescription e)
+    <+> prettyIdentity (displayIdentity e)
+    <+> prettyPlaintext (displayPlaintext e)
 
 printOneVerbose :: DisplayEntry -> Doc
 printOneVerbose e =
-  prettyId (displayId e) <+>
-  prettyTimestamp (displayTimestamp e) <+>
-  prettyDescription (displayDescription e) <+>
-  prettyIdentity (displayIdentity e) <+>
-  prettyPlaintext (displayPlaintext e) <+>
-  prettyMeta (displayMeta e)
+  prettyId (displayId e)
+    <+> prettyTimestamp (displayTimestamp e)
+    <+> prettyDescription (displayDescription e)
+    <+> prettyIdentity (displayIdentity e)
+    <+> prettyPlaintext (displayPlaintext e)
+    <+> prettyMeta (displayMeta e)
 
 prettyResponse :: Response -> Doc
 prettyResponse (SingleEntry d Normal) = printPlain d
@@ -68,4 +67,4 @@ prettyError :: AppError -> Doc
 prettyError = text . show
 
 render :: Doc -> String
-render = renderStyle style{mode = LeftMode}
+render = renderStyle style {mode = LeftMode}

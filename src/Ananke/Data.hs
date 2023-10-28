@@ -4,46 +4,52 @@
 
 module Ananke.Data
   ( -- * Configuration
-    Backend(..)
-  , PreConfig(..)
-  , Config(..)
-  , configDatabaseDir
-  , configSchemaFile
-  , configDatabaseFile
-  , configDataFile
-  , SchemaVersion(..)
-  , KeyId(..)
-    -- * Decrypted and encrypted values
-  , Plaintext(..)
-  , mkPlaintext
-  , Ciphertext
-  , mkCiphertext
-  , unCiphertext
-  , ciphertextToText
-  , ciphertextFromText
-    -- * Entries
-  , Entry(..)
-  , entryKeyOrder
-    -- ** their constituents
-  , Id(..)
-  , Description(..)
-  , Identity(..)
-  , Metadata(..)
-    -- ** and related
-  , mkEntry
-  , updateEntry
-    -- * Display Entries
-  , DisplayEntry(..)
-    -- * Queries
-  , Query(..)
-  , emptyQuery
-  , queryIsEmpty
-    -- * Helpers
-  , utcTimeToText
-  , utcTimeFromText
-  ) where
+    Backend (..),
+    PreConfig (..),
+    Config (..),
+    configDatabaseDir,
+    configSchemaFile,
+    configDatabaseFile,
+    configDataFile,
+    SchemaVersion (..),
+    KeyId (..),
 
-import Prelude hiding (id)
+    -- * Decrypted and encrypted values
+    Plaintext (..),
+    mkPlaintext,
+    Ciphertext,
+    mkCiphertext,
+    unCiphertext,
+    ciphertextToText,
+    ciphertextFromText,
+
+    -- * Entries
+    Entry (..),
+    entryKeyOrder,
+
+    -- ** their constituents
+    Id (..),
+    Description (..),
+    Identity (..),
+    Metadata (..),
+
+    -- ** and related
+    mkEntry,
+    updateEntry,
+
+    -- * Display Entries
+    DisplayEntry (..),
+
+    -- * Queries
+    Query (..),
+    emptyQuery,
+    queryIsEmpty,
+
+    -- * Helpers
+    utcTimeToText,
+    utcTimeFromText,
+  )
+where
 
 import Data.Aeson (FromJSON (..), Options, ToJSON (..))
 import qualified Data.Aeson as Aeson
@@ -60,7 +66,7 @@ import qualified Data.Text.Encoding as Encoding
 import Data.Time.Clock (UTCTime)
 import Data.Time.Format.ISO8601 (iso8601ParseM, iso8601Show)
 import GHC.Generics (Generic)
-
+import Prelude hiding (id)
 
 -- * Configuration
 
@@ -69,12 +75,13 @@ data Backend = SQLite | JSON
 
 -- | A 'PreConfig' is used in the creation of a 'Config'
 data PreConfig = MkPreConfig
-  { preConfigDir :: First FilePath
-  , preConfigDataDir :: First FilePath
-  , preConfigBackend :: First Backend
-  , preConfigKeyId :: First KeyId
-  , preConfigMultKeys :: First Bool
-  } deriving (Show, Eq)
+  { preConfigDir :: First FilePath,
+    preConfigDataDir :: First FilePath,
+    preConfigBackend :: First Backend,
+    preConfigKeyId :: First KeyId,
+    preConfigMultKeys :: First Bool
+  }
+  deriving (Show, Eq)
 
 instance Sem.Semigroup PreConfig where
   MkPreConfig a b c d e <> MkPreConfig n o p q r =
@@ -85,12 +92,13 @@ instance Monoid PreConfig where
 
 -- | A 'Config' represents our application's configuration
 data Config = MkConfig
-  { configDir :: FilePath
-  , configDataDir :: FilePath
-  , configBackend :: Backend
-  , configKeyId :: KeyId
-  , configMultKeys :: Bool
-  } deriving (Show, Eq)
+  { configDir :: FilePath,
+    configDataDir :: FilePath,
+    configBackend :: Backend,
+    configKeyId :: KeyId,
+    configMultKeys :: Bool
+  }
+  deriving (Show, Eq)
 
 -- Virtual fields
 configDatabaseDir :: Config -> FilePath
@@ -106,14 +114,14 @@ configDataFile :: Config -> FilePath
 configDataFile cfg = configDatabaseDir cfg ++ "/data.json"
 
 -- | A 'SchemaVersion' represents the database's schema version
-newtype SchemaVersion = MkSchemaVersion { unSchemaVersion :: Int }
-  deriving Eq
+newtype SchemaVersion = MkSchemaVersion {unSchemaVersion :: Int}
+  deriving (Eq)
 
 instance Show SchemaVersion where
   show = show . unSchemaVersion
 
 -- | A 'KeyId' represents a GPG Key Id
-newtype KeyId = MkKeyId { unKeyId :: T.Text }
+newtype KeyId = MkKeyId {unKeyId :: T.Text}
   deriving (Eq, Ord)
 
 instance Show KeyId where
@@ -129,7 +137,7 @@ instance FromJSON KeyId where
 
 -- | A 'Plaintext' represents a decrypted value
 newtype Plaintext = MkPlaintext T.Text
-  deriving Eq
+  deriving (Eq)
 
 instance Show Plaintext where
   show (MkPlaintext t) = show t
@@ -150,7 +158,7 @@ unCiphertext (MkCiphertext bs64) = unByteString64 bs64
 ciphertextToText :: Ciphertext -> T.Text
 ciphertextToText (MkCiphertext bs64) = BS64.toText bs64
 
-ciphertextFromText :: MonadFail m => T.Text -> m Ciphertext
+ciphertextFromText :: (MonadFail m) => T.Text -> m Ciphertext
 ciphertextFromText t = MkCiphertext <$> BS64.fromText t
 
 instance ToJSON Ciphertext where
@@ -164,33 +172,35 @@ instance FromJSON Ciphertext where
 -- | An 'Entry' is a record that stores an encrypted value along with associated
 -- information
 data Entry = MkEntry
-  { entryId :: Id
-  , entryKeyId :: KeyId
-  , entryTimestamp :: UTCTime
-  , entryDescription :: Description
-  , entryIdentity :: Maybe Identity
-  , entryCiphertext :: Ciphertext
-  , entryMeta :: Maybe Metadata
-  } deriving (Show, Eq, Generic)
+  { entryId :: Id,
+    entryKeyId :: KeyId,
+    entryTimestamp :: UTCTime,
+    entryDescription :: Description,
+    entryIdentity :: Maybe Identity,
+    entryCiphertext :: Ciphertext,
+    entryMeta :: Maybe Metadata
+  }
+  deriving (Show, Eq, Generic)
 
 instance Ord Entry where
-  compare x y | entryTimestamp x /= entryTimestamp y = Ord.comparing entryTimestamp x y
-              | entryId x /= entryId y = Ord.comparing entryId x y
-              | entryKeyId x /= entryKeyId y = Ord.comparing entryKeyId x y
-              | entryDescription x /= entryDescription y = Ord.comparing entryDescription x y
-              | entryIdentity x /= entryIdentity y = Ord.comparing entryIdentity x y
-              | entryCiphertext x /= entryCiphertext y = Ord.comparing entryCiphertext x y
-              | otherwise = Ord.comparing entryMeta x y
+  compare x y
+    | entryTimestamp x /= entryTimestamp y = Ord.comparing entryTimestamp x y
+    | entryId x /= entryId y = Ord.comparing entryId x y
+    | entryKeyId x /= entryKeyId y = Ord.comparing entryKeyId x y
+    | entryDescription x /= entryDescription y = Ord.comparing entryDescription x y
+    | entryIdentity x /= entryIdentity y = Ord.comparing entryIdentity x y
+    | entryCiphertext x /= entryCiphertext y = Ord.comparing entryCiphertext x y
+    | otherwise = Ord.comparing entryMeta x y
 
 fieldToJSON :: [(String, String)]
 fieldToJSON =
-  [ ("entryTimestamp", "timestamp")
-  , ("entryId", "id")
-  , ("entryKeyId", "keyId")
-  , ("entryDescription", "description")
-  , ("entryIdentity", "identity")
-  , ("entryCiphertext", "ciphertext")
-  , ("entryMeta", "meta")
+  [ ("entryTimestamp", "timestamp"),
+    ("entryId", "id"),
+    ("entryKeyId", "keyId"),
+    ("entryDescription", "description"),
+    ("entryIdentity", "identity"),
+    ("entryCiphertext", "ciphertext"),
+    ("entryMeta", "meta")
   ]
 
 entryKeyOrder :: [T.Text]
@@ -202,10 +212,11 @@ remapField field
   | otherwise = field
 
 options :: Options
-options = Aeson.defaultOptions
-  { Aeson.fieldLabelModifier = remapField
-  , Aeson.omitNothingFields = True
-  }
+options =
+  Aeson.defaultOptions
+    { Aeson.fieldLabelModifier = remapField,
+      Aeson.omitNothingFields = True
+    }
 
 instance ToJSON Entry where
   toJSON = Aeson.genericToJSON options
@@ -216,7 +227,7 @@ instance FromJSON Entry where
 -- ** their constituents
 
 -- | A 'Id' identifies a given 'Entry'.
-newtype Id = MkId { unId :: T.Text }
+newtype Id = MkId {unId :: T.Text}
   deriving (Eq, Ord)
 
 instance Show Id where
@@ -230,7 +241,7 @@ instance FromJSON Id where
 
 -- | A 'Description' identifies a given 'Entry'.  It could be a URI or a
 -- descriptive name.
-newtype Description = MkDescription { unDescription ::  T.Text }
+newtype Description = MkDescription {unDescription :: T.Text}
   deriving (Eq, Ord)
 
 instance Show Description where
@@ -244,7 +255,7 @@ instance FromJSON Description where
 
 -- | An 'Identity' represents an identifying value.  It could be the username in
 -- a username/password pair
-newtype Identity = MkIdentity { unIdentity :: T.Text }
+newtype Identity = MkIdentity {unIdentity :: T.Text}
   deriving (Eq, Ord)
 
 instance Show Identity where
@@ -258,7 +269,7 @@ instance FromJSON Identity where
 
 -- | A 'Metadata' value contains additional non-specific information for a given
 -- 'Entry'
-newtype Metadata = MkMetadata { unMetadata :: T.Text }
+newtype Metadata = MkMetadata {unMetadata :: T.Text}
   deriving (Eq, Ord)
 
 instance Show Metadata where
@@ -289,7 +300,7 @@ mkEntry keyId timestamp description identity ciphertext meta =
 
 updateEntry :: Entry -> Entry
 updateEntry entry@(MkEntry _ keyId timestamp description identity _ _) =
-  entry{entryId = id}
+  entry {entryId = id}
   where
     id = generateId keyId timestamp description identity
 
@@ -298,23 +309,25 @@ updateEntry entry@(MkEntry _ keyId timestamp description identity _ _) =
 -- | A 'DisplayEntry' is a record that is displayed to the user in response to a
 -- command
 data DisplayEntry = MkDisplayEntry
-  { displayId :: Id
-  , displayTimestamp :: UTCTime
-  , displayDescription :: Description
-  , displayIdentity :: Maybe Identity
-  , displayPlaintext :: Plaintext
-  , displayMeta :: Maybe Metadata
-  } deriving (Show, Eq)
+  { displayId :: Id,
+    displayTimestamp :: UTCTime,
+    displayDescription :: Description,
+    displayIdentity :: Maybe Identity,
+    displayPlaintext :: Plaintext,
+    displayMeta :: Maybe Metadata
+  }
+  deriving (Show, Eq)
 
 -- * Queries
 
 -- | A 'Query' represents a database query
 data Query = MkQuery
-  { queryId :: Maybe Id
-  , queryDescription :: Maybe Description
-  , queryIdentity :: Maybe Identity
-  , queryMeta :: Maybe Metadata
-  } deriving (Show, Eq)
+  { queryId :: Maybe Id,
+    queryDescription :: Maybe Description,
+    queryIdentity :: Maybe Identity,
+    queryMeta :: Maybe Metadata
+  }
+  deriving (Show, Eq)
 
 emptyQuery :: Query
 emptyQuery = MkQuery Nothing Nothing Nothing Nothing
@@ -328,5 +341,5 @@ queryIsEmpty _ = False
 utcTimeToText :: UTCTime -> T.Text
 utcTimeToText = T.pack . iso8601Show
 
-utcTimeFromText :: MonadFail m => T.Text -> m UTCTime
+utcTimeFromText :: (MonadFail m) => T.Text -> m UTCTime
 utcTimeFromText = iso8601ParseM . T.unpack

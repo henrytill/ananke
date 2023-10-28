@@ -1,14 +1,18 @@
 module Ananke.Class
-  ( MonadAppError(..)
-  , MonadConfigReader(..)
-  , MonadConfigure(..)
-  , MonadEncrypt(..)
-  , MonadFilesystem(..)
-  , MonadInteraction(..)
-  , MonadStore(..)
-  , MonadTime(..)
-  ) where
+  ( MonadAppError (..),
+    MonadConfigReader (..),
+    MonadConfigure (..),
+    MonadEncrypt (..),
+    MonadFilesystem (..),
+    MonadInteraction (..),
+    MonadStore (..),
+    MonadTime (..),
+  )
+where
 
+import Ananke.Data
+import Ananke.Error (AppError (..))
+import qualified Ananke.GPG as GPG
 import Control.Exception (throwIO)
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.State (StateT)
@@ -18,19 +22,14 @@ import Data.Text (Text)
 import qualified Data.Text.IO as TIO
 import Data.Time.Clock (UTCTime)
 import qualified Data.Time.Clock as Clock
-import qualified System.Directory as Directory
 import System.Directory (XdgDirectory (..))
+import qualified System.Directory as Directory
 import qualified System.Environment as Env
 import qualified System.IO as IO
 
-import Ananke.Data
-import Ananke.Error (AppError (..))
-import qualified Ananke.GPG as GPG
-
-
 -- * MonadAppError
 
-class Monad m => MonadAppError m where
+class (Monad m) => MonadAppError m where
   throwConfiguration :: String -> m a
   throwGPG :: String -> m a
   throwDatabase :: String -> m a
@@ -48,8 +47,8 @@ instance MonadAppError IO where
   throwMigration = throwIO . Migration
   throwDefault = throwIO . Default
 
-instance MonadAppError m => MonadAppError (ReaderT r m) where
-  throwConfiguration  = lift . throwConfiguration
+instance (MonadAppError m) => MonadAppError (ReaderT r m) where
+  throwConfiguration = lift . throwConfiguration
   throwGPG = lift . throwGPG
   throwDatabase = lift . throwDatabase
   throwFilesystem = lift . throwFilesystem
@@ -57,7 +56,7 @@ instance MonadAppError m => MonadAppError (ReaderT r m) where
   throwMigration = lift . throwMigration
   throwDefault = lift . throwDefault
 
-instance MonadAppError m => MonadAppError (StateT s m) where
+instance (MonadAppError m) => MonadAppError (StateT s m) where
   throwConfiguration = lift . throwConfiguration
   throwGPG = lift . throwGPG
   throwDatabase = lift . throwDatabase
@@ -68,12 +67,12 @@ instance MonadAppError m => MonadAppError (StateT s m) where
 
 -- * MonadConfigReader
 
-class Monad m => MonadConfigReader m where
+class (Monad m) => MonadConfigReader m where
   askConfig :: m Config
 
 -- * MonadConfigure
 
-class Monad m => MonadConfigure m where
+class (Monad m) => MonadConfigure m where
   getHomeDir :: m FilePath
   getConfigDir :: m FilePath
   getDataDir :: m FilePath
@@ -87,7 +86,7 @@ instance MonadConfigure IO where
 
 -- * MonadEncrypt
 
-class Monad m => MonadEncrypt m where
+class (Monad m) => MonadEncrypt m where
   encrypt :: KeyId -> Plaintext -> m Ciphertext
   decrypt :: Ciphertext -> m Plaintext
 
@@ -95,17 +94,17 @@ instance MonadEncrypt IO where
   encrypt = GPG.encrypt
   decrypt = GPG.decrypt
 
-instance MonadEncrypt m => MonadEncrypt (ReaderT r m) where
+instance (MonadEncrypt m) => MonadEncrypt (ReaderT r m) where
   encrypt k = lift . encrypt k
   decrypt = lift . decrypt
 
-instance MonadEncrypt m => MonadEncrypt (StateT s m) where
+instance (MonadEncrypt m) => MonadEncrypt (StateT s m) where
   encrypt k = lift . encrypt k
   decrypt = lift . decrypt
 
 -- * MonadFilesystem
 
-class Monad m => MonadFilesystem m where
+class (Monad m) => MonadFilesystem m where
   doesFileExist :: FilePath -> m Bool
   doesDirExist :: FilePath -> m Bool
   createDir :: FilePath -> m ()
@@ -121,7 +120,7 @@ instance MonadFilesystem IO where
   readFileBytes = BSL.readFile
   writeFileBytes = BSL.writeFile
 
-instance MonadFilesystem m => MonadFilesystem (ReaderT r m) where
+instance (MonadFilesystem m) => MonadFilesystem (ReaderT r m) where
   doesFileExist = lift . doesFileExist
   doesDirExist = lift . doesDirExist
   createDir = lift . createDir
@@ -129,7 +128,7 @@ instance MonadFilesystem m => MonadFilesystem (ReaderT r m) where
   readFileBytes = lift . readFileBytes
   writeFileBytes f = lift . writeFileBytes f
 
-instance MonadFilesystem m => MonadFilesystem (StateT s m) where
+instance (MonadFilesystem m) => MonadFilesystem (StateT s m) where
   doesFileExist = lift . doesFileExist
   doesDirExist = lift . doesDirExist
   createDir = lift . createDir
@@ -139,7 +138,7 @@ instance MonadFilesystem m => MonadFilesystem (StateT s m) where
 
 -- * MonadInteraction
 
-class Monad m => MonadInteraction m where
+class (Monad m) => MonadInteraction m where
   message :: String -> m ()
   prompt :: String -> m String
 
@@ -147,17 +146,17 @@ instance MonadInteraction IO where
   message = putStrLn
   prompt s = putStr s >> IO.hFlush IO.stdout >> getLine
 
-instance MonadInteraction m => MonadInteraction (ReaderT r m) where
+instance (MonadInteraction m) => MonadInteraction (ReaderT r m) where
   message = lift . message
   prompt = lift . prompt
 
-instance MonadInteraction m => MonadInteraction (StateT s m) where
+instance (MonadInteraction m) => MonadInteraction (StateT s m) where
   message = lift . message
   prompt = lift . prompt
 
 -- * MonadStore
 
-class Monad m => MonadStore m where
+class (Monad m) => MonadStore m where
   put :: Entry -> m ()
   delete :: Entry -> m ()
   runQuery :: Query -> m [Entry]
@@ -167,14 +166,14 @@ class Monad m => MonadStore m where
 
 -- * MonadTime
 
-class Monad m => MonadTime m where
+class (Monad m) => MonadTime m where
   now :: m UTCTime
 
 instance MonadTime IO where
   now = Clock.getCurrentTime
 
-instance MonadTime m => MonadTime (ReaderT r m) where
+instance (MonadTime m) => MonadTime (ReaderT r m) where
   now = lift now
 
-instance MonadTime m => MonadTime (StateT s m) where
+instance (MonadTime m) => MonadTime (StateT s m) where
   now = lift now

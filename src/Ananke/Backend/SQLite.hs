@@ -1,41 +1,41 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Ananke.Backend.SQLite
-  ( SQLite
-  , setup
-  , run
-  , initialize
-  , finalize
-  , AppContext (..)
-  ) where
-
-import Control.Monad (unless)
-import Control.Monad.IO.Class (MonadIO (..))
-import Control.Monad.Reader (MonadReader, ReaderT, ask, asks, runReaderT)
-import qualified Data.Text as T
-import qualified Database.SQLite3 as SQLite3
+  ( SQLite,
+    setup,
+    run,
+    initialize,
+    finalize,
+    AppContext (..),
+  )
+where
 
 import Ananke.Backend
 import Ananke.Backend.SQLite.AppContext (AppContext (..))
 import qualified Ananke.Backend.SQLite.Database as Database
 import Ananke.Class
 import Ananke.Data (Config (..), SchemaVersion, configDatabaseDir, configDatabaseFile, configSchemaFile)
-
+import Control.Monad (unless)
+import Control.Monad.IO.Class (MonadIO (..))
+import Control.Monad.Reader (MonadReader, ReaderT, ask, asks, runReaderT)
+import qualified Data.Text as T
+import qualified Database.SQLite3 as SQLite3
 
 -- * SQLite
 
-newtype SQLite a = MkSQLite { unSQLite :: ReaderT AppContext IO a }
-  deriving ( Functor
-           , Applicative
-           , Monad
-           , MonadIO
-           , MonadReader AppContext
-           , MonadAppError
-           , MonadEncrypt
-           , MonadFilesystem
-           , MonadInteraction
-           , MonadTime
-           )
+newtype SQLite a = MkSQLite {unSQLite :: ReaderT AppContext IO a}
+  deriving
+    ( Functor,
+      Applicative,
+      Monad,
+      MonadIO,
+      MonadReader AppContext,
+      MonadAppError,
+      MonadEncrypt,
+      MonadFilesystem,
+      MonadInteraction,
+      MonadTime
+    )
 
 runSQLite :: SQLite a -> AppContext -> IO a
 runSQLite = runReaderT . unSQLite
@@ -63,11 +63,12 @@ setup current = do
   previous <- getSchemaVersion schemaFile
   if previous == current
     then withDatabase Database.createTable
-    else do message $ mkMigrateMessage previous current
-            let keyId = configKeyId cfg
-            withDatabase $ \db -> Database.migrate db previous keyId
-            _ <- createSchemaFile schemaFile current
-            return ()
+    else do
+      message $ mkMigrateMessage previous current
+      let keyId = configKeyId cfg
+      withDatabase $ \db -> Database.migrate db previous keyId
+      _ <- createSchemaFile schemaFile current
+      return ()
 
 -- * Instances
 

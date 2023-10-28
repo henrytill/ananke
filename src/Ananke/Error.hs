@@ -3,7 +3,6 @@ module Ananke.Error (module Ananke.Error) where
 import Control.Exception (Exception)
 import Data.Typeable (Typeable)
 
-
 -- | 'AppError' represents application errors
 data AppError
   = Configuration String

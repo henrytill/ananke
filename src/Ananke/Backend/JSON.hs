@@ -3,15 +3,21 @@
 {-# LANGUAGE PatternGuards #-}
 
 module Ananke.Backend.JSON
-  ( JSON
-  , encodeJSON
-  , run
-  , preInitialize
-  , initialize
-  , finalize
-  , AppState
-  ) where
+  ( JSON,
+    encodeJSON,
+    run,
+    preInitialize,
+    initialize,
+    finalize,
+    AppState,
+  )
+where
 
+import Ananke.Backend
+import Ananke.Backend.JSON.AppState (AppState, appStateDirty)
+import qualified Ananke.Backend.JSON.AppState as AppState
+import Ananke.Class
+import Ananke.Data (Config (..), Entry, SchemaVersion (..), configDataFile, configSchemaFile, entryKeyOrder)
 import Control.Monad (unless, when)
 import Control.Monad.Reader (MonadReader, ReaderT, ask, runReaderT)
 import Control.Monad.State (MonadState, StateT, gets, modify, runStateT)
@@ -23,36 +29,30 @@ import qualified Data.Aeson.KeyMap as KeyMap
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.List as List
 
-import Ananke.Backend
-import Ananke.Backend.JSON.AppState (AppState, appStateDirty)
-import qualified Ananke.Backend.JSON.AppState as AppState
-import Ananke.Class
-import Ananke.Data (Config (..), Entry, SchemaVersion (..), configDataFile, configSchemaFile, entryKeyOrder)
-
-
 errUnableToDecode :: String
 errUnableToDecode = "unable to decode data.json"
 
 -- * JSON
 
-newtype JSON a = MkJSON { unJSON :: ReaderT Config (StateT AppState IO) a }
-  deriving ( Functor
-           , Applicative
-           , Monad
-           , MonadReader Config
-           , MonadState AppState
-           , MonadAppError
-           , MonadEncrypt
-           , MonadFilesystem
-           , MonadInteraction
-           , MonadTime
-           )
+newtype JSON a = MkJSON {unJSON :: ReaderT Config (StateT AppState IO) a}
+  deriving
+    ( Functor,
+      Applicative,
+      Monad,
+      MonadReader Config,
+      MonadState AppState,
+      MonadAppError,
+      MonadEncrypt,
+      MonadFilesystem,
+      MonadInteraction,
+      MonadTime
+    )
 
 runJSON :: JSON a -> AppState -> Config -> IO (a, AppState)
 runJSON m state cfg = runStateT (runReaderT (unJSON m) cfg) state
 
 aesonConfig :: AesonPretty.Config
-aesonConfig = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
+aesonConfig = AesonPretty.defConfig {AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
 
 appendNewline :: BSL.ByteString -> BSL.ByteString
 appendNewline = flip BSL.append "\n"
@@ -93,18 +93,20 @@ finalize _ = return ()
 
 keyMapping :: [(Key, Key)]
 keyMapping =
-  [ ("Timestamp", "timestamp")
-  , ("Id", "id")
-  , ("KeyId", "keyId")
-  , ("Description", "description")
-  , ("Identity", "identity")
-  , ("Ciphertext", "ciphertext")
-  , ("Meta", "meta")
+  [ ("Timestamp", "timestamp"),
+    ("Id", "id"),
+    ("KeyId", "keyId"),
+    ("Description", "description"),
+    ("Identity", "identity"),
+    ("Ciphertext", "ciphertext"),
+    ("Meta", "meta")
   ]
 
 remapKeys :: [(Key, Key)] -> KeyMap Value -> KeyMap Value
-remapKeys mapping = KeyMap.mapKeyVal f id where
-  f k | Just mapped <- lookup k mapping = mapped
+remapKeys mapping = KeyMap.mapKeyVal f id
+  where
+    f k
+      | Just mapped <- lookup k mapping = mapped
       | otherwise = k
 
 remapJSON :: Value -> Value
@@ -123,20 +125,21 @@ migrate cfg (MkSchemaVersion 2) = do
 migrate _ (MkSchemaVersion v) =
   throwMigration $ "no supported migration path for schema version " ++ show v
 
-preInitialize
-  :: (MonadAppError m, MonadFilesystem m, MonadInteraction m)
-  => Config
-  -> SchemaVersion
-  -> m ()
+preInitialize ::
+  (MonadAppError m, MonadFilesystem m, MonadInteraction m) =>
+  Config ->
+  SchemaVersion ->
+  m ()
 preInitialize cfg current = do
   let schemaFile = configSchemaFile cfg
   previous <- getSchemaVersion schemaFile
   if previous == current
     then return ()
-    else do message $ mkMigrateMessage previous current
-            migrate cfg previous
-            _ <- createSchemaFile schemaFile current
-            return ()
+    else do
+      message $ mkMigrateMessage previous current
+      migrate cfg previous
+      _ <- createSchemaFile schemaFile current
+      return ()
 
 -- * Instances
 

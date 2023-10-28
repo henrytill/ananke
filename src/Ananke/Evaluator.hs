@@ -4,25 +4,23 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Ananke.Evaluator
-  ( ModifyAction(..)
-  , Verbosity(..)
-  , Target(..)
-  , Command(..)
-  , Response(..)
-  , eval
-  ) where
+  ( ModifyAction (..),
+    Verbosity (..),
+    Target (..),
+    Command (..),
+    Response (..),
+    eval,
+  )
+where
 
-import Prelude hiding (lookup)
-
+import Ananke.Class
+import Ananke.Data
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Encode.Pretty as AesonPretty
 import Data.Char (toLower)
 import qualified Data.List as List
 import Data.Time.Clock (UTCTime)
-
-import Ananke.Class
-import Ananke.Data
-
+import Prelude hiding (lookup)
 
 data ModifyAction = Keep | Change
   deriving (Show, Eq)
@@ -37,27 +35,31 @@ data Target
 
 -- | 'Command' represents CLI commands
 data Command
-  = Add { addDescription :: Description
-        , addIdentity :: Maybe Identity
-        , addMeta :: Maybe Metadata
-        }
-  | Lookup { lookupDescription :: Description
-           , lookupIdentity :: Maybe Identity
-           , lookupVerbosity :: Verbosity
-           }
-  | Modify { modifyTarget :: Target
-           , modifyCiphertext :: ModifyAction
-           , modifyIdentity :: Maybe Identity
-           , modifyMeta :: Maybe Metadata
-           }
-  | Redescribe { redescribeTarget :: Target
-               , redescribeDescription :: Description
-               }
-  | Remove { removeTarget :: Target }
+  = Add
+      { addDescription :: Description,
+        addIdentity :: Maybe Identity,
+        addMeta :: Maybe Metadata
+      }
+  | Lookup
+      { lookupDescription :: Description,
+        lookupIdentity :: Maybe Identity,
+        lookupVerbosity :: Verbosity
+      }
+  | Modify
+      { modifyTarget :: Target,
+        modifyCiphertext :: ModifyAction,
+        modifyIdentity :: Maybe Identity,
+        modifyMeta :: Maybe Metadata
+      }
+  | Redescribe
+      { redescribeTarget :: Target,
+        redescribeDescription :: Description
+      }
+  | Remove {removeTarget :: Target}
   | CheckForMultipleKeys
-  | Import { importFile :: FilePath }
-  | Export { exportFile :: FilePath }
-  deriving Show
+  | Import {importFile :: FilePath}
+  | Export {exportFile :: FilePath}
+  deriving (Show)
 
 -- | 'Response' represents the response to a 'Command'
 data Response
@@ -73,8 +75,8 @@ data Response
   deriving (Show, Eq)
 
 queryFromTarget :: Target -> Query
-queryFromTarget (TargetId ti) = emptyQuery{queryId = Just ti}
-queryFromTarget (TargetDescription td) = emptyQuery{queryDescription = Just td}
+queryFromTarget (TargetId ti) = emptyQuery {queryId = Just ti}
+queryFromTarget (TargetDescription td) = emptyQuery {queryDescription = Just td}
 
 reencryptAll :: forall m. (MonadEncrypt m, MonadStore m) => KeyId -> m ()
 reencryptAll keyId = do
@@ -87,12 +89,13 @@ reencryptAll keyId = do
     reencrypt entryKeyId entry = do
       plaintext <- decrypt $ entryCiphertext entry
       entryCiphertext <- encrypt entryKeyId plaintext
-      return $ updateEntry entry{entryKeyId, entryCiphertext}
+      return $ updateEntry entry {entryKeyId, entryCiphertext}
 
-checkKey
-  :: forall m. (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m)
-  => m Response
-  -> m Response
+checkKey ::
+  forall m.
+  (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m) =>
+  m Response ->
+  m Response
 checkKey k = do
   count <- getCount
   if count == 0
@@ -121,12 +124,12 @@ checkKey k = do
         "y" -> ky
         _ -> throwDefault "Please answer y or n"
 
-add
-  :: (MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m, MonadTime m)
-  => Description
-  -> Maybe Identity
-  -> Maybe Metadata
-  -> m Response
+add ::
+  (MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m, MonadTime m) =>
+  Description ->
+  Maybe Identity ->
+  Maybe Metadata ->
+  m Response
 add description maybeIdentity maybeMeta = do
   input <- prompt "Enter text to encrypt: "
   timestamp <- now
@@ -144,9 +147,10 @@ lookup description maybeIdentity verbosity = do
     _ -> MultipleEntries <$> mapM f entries <*> pure verbosity
   where
     f :: Entry -> m DisplayEntry
-    f MkEntry{entryId, entryTimestamp, entryDescription, entryIdentity, entryCiphertext, entryMeta} =
-      do plaintext <- decrypt entryCiphertext
-         return $ MkDisplayEntry entryId entryTimestamp entryDescription entryIdentity plaintext entryMeta
+    f MkEntry {entryId, entryTimestamp, entryDescription, entryIdentity, entryCiphertext, entryMeta} =
+      do
+        plaintext <- decrypt entryCiphertext
+        return $ MkDisplayEntry entryId entryTimestamp entryDescription entryIdentity plaintext entryMeta
 
 pattern EmptyIdentity :: Maybe Identity
 pattern EmptyIdentity = Just (MkIdentity "")
@@ -158,62 +162,64 @@ update :: Maybe Identity -> Maybe Metadata -> Entry -> UTCTime -> Entry
 update Nothing Nothing entry _ =
   entry
 update EmptyIdentity Nothing entry entryTimestamp =
-  updateEntry entry{entryTimestamp, entryIdentity = Nothing}
+  updateEntry entry {entryTimestamp, entryIdentity = Nothing}
 update Nothing EmptyMetadata entry entryTimestamp =
-  updateEntry entry{entryTimestamp, entryMeta = Nothing}
+  updateEntry entry {entryTimestamp, entryMeta = Nothing}
 update EmptyIdentity EmptyMetadata entry entryTimestamp =
-  updateEntry entry{entryTimestamp, entryIdentity = Nothing, entryMeta = Nothing}
+  updateEntry entry {entryTimestamp, entryIdentity = Nothing, entryMeta = Nothing}
 update entryIdentity Nothing entry entryTimestamp =
-  updateEntry entry{entryTimestamp, entryIdentity}
+  updateEntry entry {entryTimestamp, entryIdentity}
 update Nothing entryMeta entry entryTimestamp =
-  updateEntry entry{entryTimestamp, entryMeta}
+  updateEntry entry {entryTimestamp, entryMeta}
 update entryIdentity entryMeta entry entryTimestamp =
-  updateEntry entry{entryTimestamp, entryIdentity, entryMeta}
+  updateEntry entry {entryTimestamp, entryIdentity, entryMeta}
 
-updateCiphertext
-  :: (MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadTime m)
-  => ModifyAction
-  -> Entry
-  -> m Entry
+updateCiphertext ::
+  (MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadTime m) =>
+  ModifyAction ->
+  Entry ->
+  m Entry
 updateCiphertext Change entry = do
   input <- prompt "Enter text to encrypt: "
   entryTimestamp <- now
   keyId <- configKeyId <$> askConfig
   entryCiphertext <- encrypt keyId $ mkPlaintext input
-  return $ updateEntry entry{entryTimestamp, entryCiphertext}
+  return $ updateEntry entry {entryTimestamp, entryCiphertext}
 updateCiphertext Keep entry =
   return entry
 
-modify
-  :: (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m, MonadTime m)
-  => Target
-  -> ModifyAction
-  -> Maybe Identity
-  -> Maybe Metadata
-  -> m Response
+modify ::
+  (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m, MonadTime m) =>
+  Target ->
+  ModifyAction ->
+  Maybe Identity ->
+  Maybe Metadata ->
+  m Response
 modify target modifyAction maybeIdentity maybeMeta = do
   entries <- runQuery $ queryFromTarget target
   case entries of
-    [entry] -> do timestamp <- now
-                  updated <- updateCiphertext modifyAction . update maybeIdentity maybeMeta entry $ timestamp
-                  put updated
-                  delete entry
-                  return Modified
+    [entry] -> do
+      timestamp <- now
+      updated <- updateCiphertext modifyAction . update maybeIdentity maybeMeta entry $ timestamp
+      put updated
+      delete entry
+      return Modified
     [] -> throwAmbiguousInput "There are no entries matching your input criteria."
     _ -> throwAmbiguousInput "There are multiple entries matching your input criteria."
 
-redescribe
-  :: (MonadAppError m, MonadEncrypt m, MonadInteraction m, MonadStore m, MonadTime m)
-  => Target
-  -> Description
-  -> m Response
+redescribe ::
+  (MonadAppError m, MonadEncrypt m, MonadInteraction m, MonadStore m, MonadTime m) =>
+  Target ->
+  Description ->
+  m Response
 redescribe target entryDescription = do
   entries <- runQuery $ queryFromTarget target
   case entries of
-    [entry] -> do entryTimestamp <- now
-                  put $ updateEntry entry{entryTimestamp, entryDescription}
-                  delete entry
-                  return Redescribed
+    [entry] -> do
+      entryTimestamp <- now
+      put $ updateEntry entry {entryTimestamp, entryDescription}
+      delete entry
+      return Redescribed
     _ -> throwAmbiguousInput "There are multiple entries matching your input criteria."
 
 remove :: (MonadAppError m, MonadStore m) => Target -> m Response
@@ -242,35 +248,35 @@ importJSON jsonFile = do
 exportJSON :: (MonadFilesystem m, MonadStore m) => FilePath -> m Response
 exportJSON jsonFile = do
   entries <- selectAll
-  let aesonCfg = AesonPretty.defConfig{AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
+  let aesonCfg = AesonPretty.defConfig {AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
       output = AesonPretty.encodePretty' aesonCfg . List.sort $ entries
   writeFileBytes jsonFile output
   return Exported
 
-eval
-  :: ( MonadAppError m
-     , MonadConfigReader m
-     , MonadEncrypt m
-     , MonadFilesystem m
-     , MonadInteraction m
-     , MonadStore m
-     , MonadTime m
-     )
-  => Command
-  -> m Response
-eval Add{addDescription, addIdentity, addMeta} =
+eval ::
+  ( MonadAppError m,
+    MonadConfigReader m,
+    MonadEncrypt m,
+    MonadFilesystem m,
+    MonadInteraction m,
+    MonadStore m,
+    MonadTime m
+  ) =>
+  Command ->
+  m Response
+eval Add {addDescription, addIdentity, addMeta} =
   checkKey $ add addDescription addIdentity addMeta
-eval Lookup{lookupDescription, lookupIdentity, lookupVerbosity} =
+eval Lookup {lookupDescription, lookupIdentity, lookupVerbosity} =
   lookup lookupDescription lookupIdentity lookupVerbosity
-eval Modify{modifyTarget, modifyCiphertext, modifyIdentity, modifyMeta} =
+eval Modify {modifyTarget, modifyCiphertext, modifyIdentity, modifyMeta} =
   checkKey $ modify modifyTarget modifyCiphertext modifyIdentity modifyMeta
-eval Redescribe{redescribeTarget, redescribeDescription} =
+eval Redescribe {redescribeTarget, redescribeDescription} =
   checkKey $ redescribe redescribeTarget redescribeDescription
-eval Remove{removeTarget} =
+eval Remove {removeTarget} =
   remove removeTarget
 eval CheckForMultipleKeys =
   check
-eval Import{importFile} =
+eval Import {importFile} =
   importJSON importFile
-eval Export{exportFile} =
+eval Export {exportFile} =
   exportJSON exportFile

@@ -1,43 +1,50 @@
 module Ananke.Parser
-  ( runCLIParser
-  ) where
-
-import Options.Applicative
+  ( runCLIParser,
+  )
+where
 
 import Ananke.Data
 import Ananke.Evaluator
-
+import Options.Applicative
 
 descArgP :: Parser Description
 descArgP = MkDescription <$> argument str (metavar "DESC" <> help "Description of ciphertext")
 
 hashOptP :: Parser Id
 hashOptP = MkId <$> strOption def
-  where def = long "hash"
-              <> short 'h'
-              <> metavar "HASH"
-              <> help "SHA1 Hash of desired entry"
+  where
+    def =
+      long "hash"
+        <> short 'h'
+        <> metavar "HASH"
+        <> help "SHA1 Hash of desired entry"
 
 descOptP :: Parser Description
 descOptP = MkDescription <$> strOption def
-  where def = long "description"
-              <> short 'd'
-              <> metavar "DESC"
-              <> help "Description of desired entry"
+  where
+    def =
+      long "description"
+        <> short 'd'
+        <> metavar "DESC"
+        <> help "Description of desired entry"
 
 idenOptP :: Parser Identity
 idenOptP = MkIdentity <$> strOption def
-  where def = long "identity"
-              <> short 'i'
-              <> metavar "ID"
-              <> help "Identity associated with ciphertext"
+  where
+    def =
+      long "identity"
+        <> short 'i'
+        <> metavar "ID"
+        <> help "Identity associated with ciphertext"
 
 metaOptP :: Parser Metadata
 metaOptP = MkMetadata <$> strOption def
-  where def = long "metadata"
-              <> short 'm'
-              <> metavar "META"
-              <> help "Metadata associated with ciphertext"
+  where
+    def =
+      long "metadata"
+        <> short 'm'
+        <> metavar "META"
+        <> help "Metadata associated with ciphertext"
 
 targetP :: Parser Target
 targetP = (TargetId <$> hashOptP) <|> (TargetDescription <$> descOptP)
@@ -58,7 +65,7 @@ modifyP :: Parser Command
 modifyP = Modify <$> targetP <*> modifyCiphertextFlagP <*> optional idenOptP <*> optional metaOptP
 
 redescribeP :: Parser Command
-redescribeP = Redescribe <$> targetP  <*> descArgP
+redescribeP = Redescribe <$> targetP <*> descArgP
 
 removeP :: Parser Command
 removeP = Remove <$> targetP
@@ -68,27 +75,33 @@ checkP = pure CheckForMultipleKeys
 
 cmdAdd :: Mod CommandFields Command
 cmdAdd = command "add" . info addP $ progDesc d
-  where d = "Encrypt a piece of text and add it to the store"
+  where
+    d = "Encrypt a piece of text and add it to the store"
 
 cmdLookup :: Mod CommandFields Command
 cmdLookup = command "lookup" . info lookupP $ progDesc d
-  where d = "Lookup a piece of ciphertext in the store"
+  where
+    d = "Lookup a piece of ciphertext in the store"
 
 cmdModify :: Mod CommandFields Command
 cmdModify = command "modify" . info modifyP $ progDesc d
-  where d = "Modify a piece of ciphertext in the store"
+  where
+    d = "Modify a piece of ciphertext in the store"
 
 cmdRedescribe :: Mod CommandFields Command
 cmdRedescribe = command "redescribe" . info redescribeP $ progDesc d
-  where d = "Modify the description of a piece of ciphertext in the store"
+  where
+    d = "Modify the description of a piece of ciphertext in the store"
 
 cmdRemove :: Mod CommandFields Command
-cmdRemove =command "remove" . info removeP $ progDesc d
-  where d = "Remove a piece of ciphertext from the store"
+cmdRemove = command "remove" . info removeP $ progDesc d
+  where
+    d = "Remove a piece of ciphertext from the store"
 
 cmdCheck :: Mod CommandFields Command
 cmdCheck = command "check" . info checkP $ progDesc d
-  where d = "Check if all entries have the same keyid"
+  where
+    d = "Check if all entries have the same keyid"
 
 pathArgP :: Parser FilePath
 pathArgP = argument str $ metavar "PATH" <> help "Path of JSON file"
@@ -106,14 +119,17 @@ cmdExport :: Mod CommandFields Command
 cmdExport = command "export" . info exportP $ progDesc "Export a JSON file"
 
 master :: Parser Command
-master = hsubparser (cmdAdd
-                     <> cmdLookup
-                     <> cmdImport
-                     <> cmdExport
-                     <> cmdModify
-                     <> cmdRedescribe
-                     <> cmdRemove
-                     <> cmdCheck)
+master =
+  hsubparser
+    ( cmdAdd
+        <> cmdLookup
+        <> cmdImport
+        <> cmdExport
+        <> cmdModify
+        <> cmdRedescribe
+        <> cmdRemove
+        <> cmdCheck
+    )
 
 opts :: ParserInfo Command
 opts = info (master <**> helper) (fullDesc <> progDesc "A minimal password manager")

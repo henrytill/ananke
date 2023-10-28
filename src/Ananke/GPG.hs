@@ -1,18 +1,17 @@
 module Ananke.GPG
-  ( encrypt
-  , decrypt
-  ) where
+  ( encrypt,
+    decrypt,
+  )
+where
 
+import Ananke.Data (Ciphertext, KeyId (..), Plaintext (..), mkCiphertext, unCiphertext)
+import Ananke.Error (AppError (..))
+import Ananke.GPG.Process (readProcessWithExitCode)
 import Control.Exception (throwIO)
 import qualified Data.ByteString as BS
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as Encoding
 import System.Exit (ExitCode (..))
-
-import Ananke.Data (Ciphertext, KeyId (..), Plaintext (..), mkCiphertext, unCiphertext)
-import Ananke.Error (AppError (..))
-import Ananke.GPG.Process (readProcessWithExitCode)
-
 
 gpgEncrypt :: String -> BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)
 gpgEncrypt keyid = readProcessWithExitCode "gpg" ["--batch", "-q", "-e", "-r", keyid]

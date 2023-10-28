@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-
 module Ananke.Parser
   ( runCLIParser
   ) where
@@ -92,7 +90,6 @@ cmdCheck :: Mod CommandFields Command
 cmdCheck = command "check" . info checkP $ progDesc d
   where d = "Check if all entries have the same keyid"
 
-#ifdef BACKEND_JSON
 pathArgP :: Parser FilePath
 pathArgP = argument str $ metavar "PATH" <> help "Path of JSON file"
 
@@ -117,15 +114,6 @@ master = hsubparser (cmdAdd
                      <> cmdRedescribe
                      <> cmdRemove
                      <> cmdCheck)
-#else
-master :: Parser Command
-master = hsubparser (cmdAdd
-                     <> cmdLookup
-                     <> cmdModify
-                     <> cmdRedescribe
-                     <> cmdRemove
-                     <> cmdCheck)
-#endif
 
 opts :: ParserInfo Command
 opts = info (master <**> helper) (fullDesc <> progDesc "A minimal password manager")

@@ -25,10 +25,6 @@ source-repository head
   type:     git
   location: https://github.com/henrytill/ananke.git
 
-flag backend-json
-  description: Build with experimental JSON backend
-  default:     True
-
 executable ananke
   main-is:             Main.hs
   -- other-modules:
@@ -45,6 +41,8 @@ library
                      , Ananke.Backend.SQLite
                      , Ananke.Backend.SQLite.AppContext
                      , Ananke.Backend.SQLite.Database
+                     , Ananke.Backend.JSON
+                     , Ananke.Backend.JSON.AppState
                      , Ananke.Class
                      , Ananke.Configuration
                      , Ananke.Data
@@ -55,7 +53,10 @@ library
                      , Ananke.Parser
                      , Ananke.Printing
                      , Data.ByteString64
+                     , Data.Multimap
   build-depends:       base                 >=4.9   && <5
+                     , aeson                >=1.5   && <3
+                     , aeson-pretty         >=0.8.7 && <0.9
                      , base64-bytestring    >=1.0   && <1.3
                      , bytestring           >=0.10  && <0.12
                      , containers           >=0.6   && <0.7
@@ -74,24 +75,24 @@ library
   default-language:    Haskell98
   ghc-options:         -Wall
 
-  if flag(backend-json)
-    cpp-options:       -DBACKEND_JSON
-    exposed-modules:   Ananke.Backend.JSON
-                     , Ananke.Backend.JSON.AppState
-                     , Data.Multimap
-    build-depends:     aeson        >=1.5   && <3
-                     , aeson-pretty >=0.8.7 && <0.9
 
 test-suite test
   type:                exitcode-stdio-1.0
   main-is:             Main.hs
-  other-modules:       Test.Ananke.Orphans
+  other-modules:       Test.Ananke.Backend.JSON
+                     , Test.Ananke.Orphans
                      , Test.Ananke.Properties
+                     , Test.Data.Multimap
   build-depends:       base          >=4.9   && <5
                      , QuickCheck    >=2.8   && <2.15
+                     , aeson         >=1.5   && <3
+                     , aeson-pretty  >=0.8.7 && <0.9
+                     , bytestring    >=0.10  && <0.12
                      , containers    >=0.6   && <0.7
                      , direct-sqlite >=2.3   && <2.4
                      , directory     >=1.2.3 && <1.4
+                     , dwergaz       >=0.2   && <0.3
+                     , mtl           >=2.2   && <2.4
                      , temporary     >=1.3   && <1.4
                      , text          >=1.2   && <2.2
                      , ananke
@@ -99,12 +100,3 @@ test-suite test
   default-language:    Haskell98
   ghc-options:         -Wall
 
-  if flag(backend-json)
-    cpp-options:       -DBACKEND_JSON
-    other-modules:     Test.Ananke.Backend.JSON
-                     , Test.Data.Multimap
-    build-depends:     aeson        >=1.5   && <3
-                     , aeson-pretty >=0.8.7 && <0.9
-                     , bytestring   >=0.10  && <0.12
-                     , dwergaz      >=0.2   && <0.3
-                     , mtl          >=2.2   && <2.4

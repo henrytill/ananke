@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
@@ -15,13 +14,10 @@ module Ananke.Evaluator
 
 import Prelude hiding (lookup)
 
-#ifdef BACKEND_JSON
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Encode.Pretty as AesonPretty
-import qualified Data.List as List
-#endif
-
 import Data.Char (toLower)
+import qualified Data.List as List
 import Data.Time.Clock (UTCTime)
 
 import Ananke.Class
@@ -59,10 +55,8 @@ data Command
                }
   | Remove { removeTarget :: Target }
   | CheckForMultipleKeys
-#ifdef BACKEND_JSON
   | Import { importFile :: FilePath }
   | Export { exportFile :: FilePath }
-#endif
   deriving Show
 
 -- | 'Response' represents the response to a 'Command'
@@ -238,7 +232,6 @@ check = do
     then return CheckedForMultipleKeys
     else throwDefault "All entries do not have the same keyid"
 
-#ifdef BACKEND_JSON
 importJSON :: (MonadAppError m, MonadFilesystem m, MonadStore m) => FilePath -> m Response
 importJSON jsonFile = do
   input <- readFileBytes jsonFile
@@ -253,7 +246,6 @@ exportJSON jsonFile = do
       output = AesonPretty.encodePretty' aesonCfg . List.sort $ entries
   writeFileBytes jsonFile output
   return Exported
-#endif
 
 eval
   :: ( MonadAppError m
@@ -278,9 +270,7 @@ eval Remove{removeTarget} =
   remove removeTarget
 eval CheckForMultipleKeys =
   check
-#ifdef BACKEND_JSON
 eval Import{importFile} =
   importJSON importFile
 eval Export{exportFile} =
   exportJSON exportFile
-#endif

@@ -1,10 +1,6 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
-
-#ifdef BACKEND_JSON
 {-# LANGUAGE PatternGuards #-}
-#endif
 
 module Ananke.Data
   ( -- * Configuration
@@ -27,9 +23,7 @@ module Ananke.Data
   , ciphertextFromText
     -- * Entries
   , Entry(..)
-#ifdef BACKEND_JSON
   , entryKeyOrder
-#endif
     -- ** their constituents
   , Id(..)
   , Description(..)
@@ -51,11 +45,8 @@ module Ananke.Data
 
 import Prelude hiding (id)
 
-#ifdef BACKEND_JSON
 import Data.Aeson (FromJSON (..), Options, ToJSON (..))
 import qualified Data.Aeson as Aeson
-#endif
-
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import Data.ByteString64 (ByteString64 (..))
@@ -128,13 +119,11 @@ newtype KeyId = MkKeyId { unKeyId :: T.Text }
 instance Show KeyId where
   show (MkKeyId a) = show a
 
-#ifdef BACKEND_JSON
 instance ToJSON KeyId where
   toJSON = toJSON . unKeyId
 
 instance FromJSON KeyId where
   parseJSON = fmap MkKeyId . parseJSON
-#endif
 
 -- * Decrypted and encrypted values
 
@@ -164,13 +153,11 @@ ciphertextToText (MkCiphertext bs64) = BS64.toText bs64
 ciphertextFromText :: MonadFail m => T.Text -> m Ciphertext
 ciphertextFromText t = MkCiphertext <$> BS64.fromText t
 
-#ifdef BACKEND_JSON
 instance ToJSON Ciphertext where
   toJSON (MkCiphertext b) = toJSON b
 
 instance FromJSON Ciphertext where
   parseJSON = fmap MkCiphertext . parseJSON
-#endif
 
 -- * Entries
 
@@ -195,7 +182,6 @@ instance Ord Entry where
               | entryCiphertext x /= entryCiphertext y = Ord.comparing entryCiphertext x y
               | otherwise = Ord.comparing entryMeta x y
 
-#ifdef BACKEND_JSON
 fieldToJSON :: [(String, String)]
 fieldToJSON =
   [ ("entryTimestamp", "timestamp")
@@ -226,7 +212,6 @@ instance ToJSON Entry where
 
 instance FromJSON Entry where
   parseJSON = Aeson.genericParseJSON options
-#endif
 
 -- ** their constituents
 
@@ -237,13 +222,11 @@ newtype Id = MkId { unId :: T.Text }
 instance Show Id where
   show (MkId d) = show d
 
-#ifdef BACKEND_JSON
 instance ToJSON Id where
   toJSON = toJSON . unId
 
 instance FromJSON Id where
   parseJSON = fmap MkId . parseJSON
-#endif
 
 -- | A 'Description' identifies a given 'Entry'.  It could be a URI or a
 -- descriptive name.
@@ -253,13 +236,11 @@ newtype Description = MkDescription { unDescription ::  T.Text }
 instance Show Description where
   show (MkDescription d) = show d
 
-#ifdef BACKEND_JSON
 instance ToJSON Description where
   toJSON = toJSON . unDescription
 
 instance FromJSON Description where
   parseJSON = fmap MkDescription . parseJSON
-#endif
 
 -- | An 'Identity' represents an identifying value.  It could be the username in
 -- a username/password pair
@@ -269,13 +250,11 @@ newtype Identity = MkIdentity { unIdentity :: T.Text }
 instance Show Identity where
   show (MkIdentity i) = show i
 
-#ifdef BACKEND_JSON
 instance ToJSON Identity where
   toJSON = toJSON . unIdentity
 
 instance FromJSON Identity where
   parseJSON = fmap MkIdentity . parseJSON
-#endif
 
 -- | A 'Metadata' value contains additional non-specific information for a given
 -- 'Entry'
@@ -285,13 +264,11 @@ newtype Metadata = MkMetadata { unMetadata :: T.Text }
 instance Show Metadata where
   show (MkMetadata m) = show m
 
-#ifdef BACKEND_JSON
 instance ToJSON Metadata where
   toJSON = toJSON . unMetadata
 
 instance FromJSON Metadata where
   parseJSON = fmap MkMetadata . parseJSON
-#endif
 
 -- ** and related
 

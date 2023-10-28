@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-
 module Ananke
   ( module Ananke.Configuration
   , run
@@ -9,11 +7,8 @@ import qualified Control.Exception as Exception
 import System.Exit (ExitCode (..))
 import qualified System.IO as IO
 
-#ifdef BACKEND_JSON
-import qualified Ananke.Backend.JSON as JSON
-#endif
-
 import Ananke.Backend (currentSchemaVersion)
+import qualified Ananke.Backend.JSON as JSON
 import qualified Ananke.Backend.SQLite as SQLite
 import Ananke.Configuration (Backend (..), Config (..), configure)
 import Ananke.Error (AppError (..))
@@ -22,11 +17,6 @@ import qualified Ananke.Evaluator as Evaluator
 import qualified Ananke.Parser as Parser
 import Ananke.Printing (prettyError, prettyResponse, render)
 
-
-#ifndef BACKEND_JSON
-errJSONBackend :: String
-errJSONBackend = "JSON backend not available.  Please rebuild with backend-json flag enabled."
-#endif
 
 handleError :: AppError -> IO ExitCode
 handleError err =  pr err >> return (ExitFailure 1)
@@ -48,19 +38,13 @@ runSQLiteApp ctx = do
   Exception.catch (SQLite.run (SQLite.setup currentSchemaVersion >> Evaluator.eval cmd) ctx >>= handleResponse)
                   handleError
 
-#ifdef BACKEND_JSON
 runJSONApp :: (Config, JSON.AppState) -> IO ExitCode
 runJSONApp (cfg, state) = do
   cmd <- Parser.runCLIParser
   Exception.catch (JSON.run (Evaluator.eval cmd) state cfg >>= handleResponse)
                   handleError
-#endif
 
 run :: Config -> IO ExitCode
 run cfg = case configBackend cfg of
   SQLite -> Exception.bracket (SQLite.initialize cfg) SQLite.finalize runSQLiteApp
-#ifdef BACKEND_JSON
   JSON -> Exception.bracket (JSON.preInitialize cfg currentSchemaVersion >> JSON.initialize cfg) JSON.finalize runJSONApp
-#else
-  JSON -> Exception.throwIO $ Configuration errJSONBackend
-#endif

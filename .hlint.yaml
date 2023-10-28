@@ -8,7 +8,7 @@
 
 # Specify additional command line arguments
 #
-# - arguments: [--color, --cpp-simple, -XQuasiQuotes]
+- arguments: [-XImportQualifiedPost]
 
 
 # Control which extensions/flags/modules/functions can be used

@@ -6,10 +6,10 @@ module Data.ByteString64
 where
 
 import Data.Aeson (FromJSON (..), ToJSON (..), Value (String))
-import qualified Data.Aeson as Aeson
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Base64 as Base64
-import qualified Data.Text as T
+import Data.Aeson qualified as Aeson
+import Data.ByteString qualified as BS
+import Data.ByteString.Base64 qualified as Base64
+import Data.Text qualified as T
 import Data.Text.Encoding
 
 -- | A ByteString which is displayed and serialized in its base64 encoding

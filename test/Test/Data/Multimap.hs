@@ -3,8 +3,8 @@ module Test.Data.Multimap
   )
 where
 
-import qualified Data.Multimap as Multimap
-import qualified Data.Set as Set
+import Data.Multimap qualified as Multimap
+import Data.Set qualified as Set
 import Test.Dwergaz
 
 testKey1 :: String

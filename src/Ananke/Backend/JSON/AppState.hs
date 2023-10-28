@@ -13,12 +13,12 @@ where
 
 import Ananke.Data
 import Control.Arrow ((&&&))
-import qualified Data.Maybe as Maybe
+import Data.Maybe qualified as Maybe
 import Data.Multimap (Multimap)
-import qualified Data.Multimap as Multimap
+import Data.Multimap qualified as Multimap
 import Data.Set (Set)
-import qualified Data.Set as Set
-import qualified Data.Text as Text
+import Data.Set qualified as Set
+import Data.Text qualified as Text
 
 type EntriesMap = Multimap Description Entry
 

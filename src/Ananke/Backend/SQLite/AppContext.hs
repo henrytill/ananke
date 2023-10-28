@@ -4,7 +4,7 @@ module Ananke.Backend.SQLite.AppContext
 where
 
 import Ananke.Data (Config)
-import qualified Database.SQLite3 as SQLite3
+import Database.SQLite3 qualified as SQLite3
 
 -- | 'AppContext' represents the shared environment for computations which occur
 -- within our application.  Values of this type are created by 'createContext'.

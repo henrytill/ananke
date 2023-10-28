@@ -17,10 +17,10 @@ where
 
 import Ananke.Data
 import Ananke.Error (AppError (..))
-import qualified Control.Exception as Exception
-import qualified Data.Text as T
+import Control.Exception qualified as Exception
+import Data.Text qualified as T
 import Data.Time.Clock (UTCTime)
-import qualified Database.SQLite3 as SQLite3
+import Database.SQLite3 qualified as SQLite3
 
 rethrow :: IO a -> IO a
 rethrow a = Exception.catch a f

@@ -1,12 +1,12 @@
 module Main (main) where
 
 import Control.Monad (unless)
-import qualified System.Exit as Exit
-import qualified Test.Ananke.Backend.JSON as JSON
-import qualified Test.Ananke.Properties as Properties
-import qualified Test.Data.Multimap as Multimap
-import qualified Test.Dwergaz as Dwergaz
-import qualified Test.QuickCheck as QC
+import System.Exit qualified as Exit
+import Test.Ananke.Backend.JSON qualified as JSON
+import Test.Ananke.Properties qualified as Properties
+import Test.Data.Multimap qualified as Multimap
+import Test.Dwergaz qualified as Dwergaz
+import Test.QuickCheck qualified as QC
 
 -- Included for backwards compatibility
 isSuccess :: QC.Result -> Bool

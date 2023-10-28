@@ -12,20 +12,20 @@ where
 
 import Ananke.Data
 import Ananke.Error (AppError (..))
-import qualified Ananke.GPG as GPG
+import Ananke.GPG qualified as GPG
 import Control.Exception (throwIO)
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.State (StateT)
 import Control.Monad.Trans (lift)
-import qualified Data.ByteString.Lazy as BSL
+import Data.ByteString.Lazy qualified as BSL
 import Data.Text (Text)
-import qualified Data.Text.IO as TIO
+import Data.Text.IO qualified as TIO
 import Data.Time.Clock (UTCTime)
-import qualified Data.Time.Clock as Clock
+import Data.Time.Clock qualified as Clock
 import System.Directory (XdgDirectory (..))
-import qualified System.Directory as Directory
-import qualified System.Environment as Env
-import qualified System.IO as IO
+import System.Directory qualified as Directory
+import System.Environment qualified as Env
+import System.IO qualified as IO
 
 -- * MonadAppError
 

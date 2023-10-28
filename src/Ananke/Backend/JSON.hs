@@ -15,19 +15,19 @@ where
 
 import Ananke.Backend
 import Ananke.Backend.JSON.AppState (AppState, appStateDirty)
-import qualified Ananke.Backend.JSON.AppState as AppState
+import Ananke.Backend.JSON.AppState qualified as AppState
 import Ananke.Class
 import Ananke.Data (Config (..), Entry, SchemaVersion (..), configDataFile, configSchemaFile, entryKeyOrder)
 import Control.Monad (unless, when)
 import Control.Monad.Reader (MonadReader, ReaderT, ask, runReaderT)
 import Control.Monad.State (MonadState, StateT, gets, modify, runStateT)
 import Data.Aeson (Value (..))
-import qualified Data.Aeson as Aeson
-import qualified Data.Aeson.Encode.Pretty as AesonPretty
+import Data.Aeson qualified as Aeson
+import Data.Aeson.Encode.Pretty qualified as AesonPretty
 import Data.Aeson.KeyMap (Key, KeyMap)
-import qualified Data.Aeson.KeyMap as KeyMap
-import qualified Data.ByteString.Lazy as BSL
-import qualified Data.List as List
+import Data.Aeson.KeyMap qualified as KeyMap
+import Data.ByteString.Lazy qualified as BSL
+import Data.List qualified as List
 
 errUnableToDecode :: String
 errUnableToDecode = "unable to decode data.json"

@@ -10,9 +10,9 @@ import Ananke.Data
 import Ananke.Error
 import Control.Monad.State (MonadState, StateT, gets, modify, runStateT)
 import Control.Monad.Trans (lift)
-import qualified Data.Aeson as Aeson
-import qualified Data.ByteString.Lazy as BSL
-import qualified Data.ByteString.Lazy.Char8 as Char8
+import Data.Aeson qualified as Aeson
+import Data.ByteString.Lazy qualified as BSL
+import Data.ByteString.Lazy.Char8 qualified as Char8
 import Test.Dwergaz
 
 data TestState = MkTestState

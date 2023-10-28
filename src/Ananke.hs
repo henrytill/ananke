@@ -5,17 +5,17 @@ module Ananke
 where
 
 import Ananke.Backend (currentSchemaVersion)
-import qualified Ananke.Backend.JSON as JSON
-import qualified Ananke.Backend.SQLite as SQLite
+import Ananke.Backend.JSON qualified as JSON
+import Ananke.Backend.SQLite qualified as SQLite
 import Ananke.Configuration (Backend (..), Config (..), configure)
 import Ananke.Error (AppError (..))
 import Ananke.Evaluator (Response (..))
-import qualified Ananke.Evaluator as Evaluator
-import qualified Ananke.Parser as Parser
+import Ananke.Evaluator qualified as Evaluator
+import Ananke.Parser qualified as Parser
 import Ananke.Printing (prettyError, prettyResponse, render)
-import qualified Control.Exception as Exception
+import Control.Exception qualified as Exception
 import System.Exit (ExitCode (..))
-import qualified System.IO as IO
+import System.IO qualified as IO
 
 handleError :: AppError -> IO ExitCode
 handleError err = pr err >> return (ExitFailure 1)

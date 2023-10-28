@@ -15,10 +15,10 @@ where
 
 import Ananke.Class
 import Ananke.Data
-import qualified Data.Aeson as Aeson
-import qualified Data.Aeson.Encode.Pretty as AesonPretty
+import Data.Aeson qualified as Aeson
+import Data.Aeson.Encode.Pretty qualified as AesonPretty
 import Data.Char (toLower)
-import qualified Data.List as List
+import Data.List qualified as List
 import Data.Time.Clock (UTCTime)
 import Prelude hiding (lookup)
 

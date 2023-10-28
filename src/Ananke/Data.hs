@@ -52,17 +52,17 @@ module Ananke.Data
 where
 
 import Data.Aeson (FromJSON (..), Options, ToJSON (..))
-import qualified Data.Aeson as Aeson
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BSL
+import Data.Aeson qualified as Aeson
+import Data.ByteString qualified as BS
+import Data.ByteString.Lazy qualified as BSL
 import Data.ByteString64 (ByteString64 (..))
-import qualified Data.ByteString64 as BS64
-import qualified Data.Digest.Pure.SHA as SHA
+import Data.ByteString64 qualified as BS64
+import Data.Digest.Pure.SHA qualified as SHA
 import Data.Monoid (First)
-import qualified Data.Ord as Ord
-import qualified Data.Semigroup as Sem
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as Encoding
+import Data.Ord qualified as Ord
+import Data.Semigroup qualified as Sem
+import Data.Text qualified as T
+import Data.Text.Encoding qualified as Encoding
 import Data.Time.Clock (UTCTime)
 import Data.Time.Format.ISO8601 (iso8601ParseM, iso8601Show)
 import GHC.Generics (Generic)

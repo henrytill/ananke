@@ -8,9 +8,9 @@ import Ananke.Data (Ciphertext, KeyId (..), Plaintext (..), mkCiphertext, unCiph
 import Ananke.Error (AppError (..))
 import Ananke.GPG.Process (readProcessWithExitCode)
 import Control.Exception (throwIO)
-import qualified Data.ByteString as BS
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as Encoding
+import Data.ByteString qualified as BS
+import Data.Text qualified as T
+import Data.Text.Encoding qualified as Encoding
 import System.Exit (ExitCode (..))
 
 gpgEncrypt :: String -> BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)

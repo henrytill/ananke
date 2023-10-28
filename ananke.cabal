@@ -33,6 +33,7 @@ executable ananke
                      , ananke
   hs-source-dirs:      exe
   default-language:    Haskell98
+  default-extensions:  ImportQualifiedPost
   ghc-options:         -Wall
 
 library
@@ -73,6 +74,7 @@ library
                      , time                 >=1.5   && <2
   hs-source-dirs:      src
   default-language:    Haskell98
+  default-extensions:  ImportQualifiedPost
   ghc-options:         -Wall
 
 
@@ -98,5 +100,6 @@ test-suite test
                      , ananke
   hs-source-dirs:      test
   default-language:    Haskell98
+  default-extensions:  ImportQualifiedPost
   ghc-options:         -Wall
 

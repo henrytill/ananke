@@ -18,12 +18,12 @@ module Data.Multimap
 where
 
 import Data.Map (Map)
-import qualified Data.Map as Map
-import qualified Data.Maybe as Maybe
+import Data.Map qualified as Map
+import Data.Maybe qualified as Maybe
 import Data.Set (Set)
-import qualified Data.Set as Set
+import Data.Set qualified as Set
 import Prelude hiding (foldl, foldr, lookup, null)
-import qualified Prelude
+import Prelude qualified
 
 newtype Multimap k v = MkMultimap {unMultimap :: Map k (Set v)}
   deriving (Eq, Ord, Show)

@@ -3,7 +3,7 @@
 module Test.Ananke.Orphans () where
 
 import Ananke.Data (Description (..), Identity (..), Metadata (..), Plaintext (..))
-import qualified Data.Text as T
+import Data.Text qualified as T
 import Test.QuickCheck (Arbitrary (..))
 
 instance Arbitrary T.Text where

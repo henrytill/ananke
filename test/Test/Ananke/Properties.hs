@@ -8,19 +8,19 @@ where
 
 import Ananke.Backend (currentSchemaVersion)
 import Ananke.Backend.SQLite (AppContext (..))
-import qualified Ananke.Backend.SQLite as SQLite
+import Ananke.Backend.SQLite qualified as SQLite
 import Ananke.Class
-import qualified Ananke.Configuration as Configuration
+import Ananke.Configuration qualified as Configuration
 import Ananke.Data
 import Data.List ((\\))
 import Data.Monoid (First (..))
-import qualified Database.SQLite3 as SQLite3
-import qualified System.Directory as Directory
-import qualified System.IO.Temp as Temp
+import Database.SQLite3 qualified as SQLite3
+import System.Directory qualified as Directory
+import System.IO.Temp qualified as Temp
 import Test.Ananke.Orphans ()
 import Test.QuickCheck (Arbitrary (..), Property, Result)
-import qualified Test.QuickCheck as QuickCheck
-import qualified Test.QuickCheck.Monadic as Monadic
+import Test.QuickCheck qualified as QuickCheck
+import Test.QuickCheck.Monadic qualified as Monadic
 
 data Datum = MkDatum
   { datumDescription :: Description,

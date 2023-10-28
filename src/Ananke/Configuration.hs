@@ -15,11 +15,11 @@ import Ananke.Data (Backend (..), Config (..), KeyId (MkKeyId), PreConfig (..))
 import Control.Monad (foldM)
 import Data.Bool (bool)
 import Data.Ini (Ini)
-import qualified Data.Ini as Ini
+import Data.Ini qualified as Ini
 import Data.Monoid (First (..))
 import Data.String (IsString)
 import Data.Text (Text)
-import qualified Data.Text as T
+import Data.Text qualified as T
 
 envConfigDir, envDataDir, envBackend, envKeyId, envMultKeys :: String
 envConfigDir = "ANANKE_CONFIG_DIR"

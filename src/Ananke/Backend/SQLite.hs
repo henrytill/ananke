@@ -12,14 +12,14 @@ where
 
 import Ananke.Backend
 import Ananke.Backend.SQLite.AppContext (AppContext (..))
-import qualified Ananke.Backend.SQLite.Database as Database
+import Ananke.Backend.SQLite.Database qualified as Database
 import Ananke.Class
 import Ananke.Data (Config (..), SchemaVersion, configDatabaseDir, configDatabaseFile, configSchemaFile)
 import Control.Monad (unless)
 import Control.Monad.IO.Class (MonadIO (..))
 import Control.Monad.Reader (MonadReader, ReaderT, ask, asks, runReaderT)
-import qualified Data.Text as T
-import qualified Database.SQLite3 as SQLite3
+import Data.Text qualified as T
+import Database.SQLite3 qualified as SQLite3
 
 -- * SQLite
 

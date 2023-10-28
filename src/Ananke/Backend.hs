@@ -8,7 +8,7 @@ where
 
 import Ananke.Class (MonadFilesystem (..))
 import Ananke.Data
-import qualified Data.ByteString.Lazy.Char8 as Char8
+import Data.ByteString.Lazy.Char8 qualified as Char8
 
 currentSchemaVersion :: SchemaVersion
 currentSchemaVersion = MkSchemaVersion 3

@@ -7,13 +7,13 @@ import Control.Concurrent (forkIO, killThread)
 import Control.Concurrent.MVar (MVar, newEmptyMVar, putMVar, takeMVar)
 import Control.Exception (SomeException, handle, mask, onException, throwIO, try)
 import Control.Monad (unless)
-import qualified Data.ByteString as BS
+import Data.ByteString qualified as BS
 import Foreign.C.Error (Errno (..), ePIPE)
 import GHC.IO.Exception (IOErrorType (..), IOException (..))
 import GHC.IO.Handle (hClose, hSetBinaryMode)
 import System.Exit (ExitCode (..))
 import System.Process (CreateProcess (..), StdStream (..))
-import qualified System.Process as Process
+import System.Process qualified as Process
 
 ignoreSIGPIPE :: IO () -> IO ()
 ignoreSIGPIPE = handle $ \e -> case e of

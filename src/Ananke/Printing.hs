@@ -8,7 +8,7 @@ where
 import Ananke.Data
 import Ananke.Error (AppError (..))
 import Ananke.Evaluator (Response (..), Verbosity (..))
-import qualified Data.Text as T
+import Data.Text qualified as T
 import Data.Time.Clock (UTCTime)
 import Data.Time.Format.ISO8601 (iso8601Show)
 import Text.PrettyPrint (Doc, Mode (..), Style (..), empty, renderStyle, style, text, ($$), (<+>))

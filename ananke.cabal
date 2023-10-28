@@ -14,7 +14,6 @@ build-type:          Simple
 extra-source-files:
   .gitignore
   .hlint.yaml
-  .stylish-haskell.yaml
   README.md
   example/ananke.ini
   example/gnupg/pubring.gpg

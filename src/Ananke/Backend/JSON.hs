@@ -91,8 +91,8 @@ finalize _ = return ()
 
 -- * Pre-Initialize
 
-keyMapping :: [(Key, Key)]
-keyMapping =
+keyMappings :: [(Key, Key)]
+keyMappings =
   [ ("Timestamp", "timestamp"),
     ("Id", "id"),
     ("KeyId", "keyId"),
@@ -103,14 +103,14 @@ keyMapping =
   ]
 
 remapKeys :: [(Key, Key)] -> KeyMap Value -> KeyMap Value
-remapKeys mapping = KeyMap.mapKeyVal f id
+remapKeys mappings = KeyMap.mapKeyVal f id
   where
     f k
-      | Just mapped <- lookup k mapping = mapped
+      | Just mapped <- lookup k mappings = mapped
       | otherwise = k
 
 remapJSON :: Value -> Value
-remapJSON (Object obj) = Object (remapKeys keyMapping obj)
+remapJSON (Object obj) = Object (remapKeys keyMappings obj)
 remapJSON (Array arr) = Array (fmap remapJSON arr)
 remapJSON other = other
 

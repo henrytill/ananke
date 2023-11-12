@@ -16,25 +16,28 @@ import Text.PrettyPrint (Doc, Mode (..), Style (..), empty, renderStyle, style, 
 prettyText :: T.Text -> Doc
 prettyText = text . T.unpack
 
+prettyTimestamp :: UTCTime -> Doc
+prettyTimestamp = text . iso8601Show
+
 prettyId :: Id -> Doc
 prettyId = prettyText . unId
 
-prettyTimestamp :: UTCTime -> Doc
-prettyTimestamp = text . iso8601Show
+prettyKeyId :: KeyId -> Doc
+prettyKeyId (MkKeyId k) = prettyText k
 
 prettyDescription :: Description -> Doc
 prettyDescription (MkDescription d) = prettyText d
 
-prettyIdentity :: Maybe Identity -> Doc
-prettyIdentity (Just (MkIdentity i)) = prettyText i
-prettyIdentity Nothing = text "<none>"
-
 prettyPlaintext :: Plaintext -> Doc
 prettyPlaintext (MkPlaintext t) = prettyText t
 
+prettyIdentity :: Maybe Identity -> Doc
+prettyIdentity (Just (MkIdentity i)) = prettyText i
+prettyIdentity Nothing = empty
+
 prettyMeta :: Maybe Metadata -> Doc
 prettyMeta (Just (MkMetadata m)) = prettyText m
-prettyMeta Nothing = text "<none>"
+prettyMeta Nothing = empty
 
 printPlain :: DisplayEntry -> Doc
 printPlain = prettyPlaintext . displayPlaintext
@@ -47,8 +50,9 @@ printOne e =
 
 printOneVerbose :: DisplayEntry -> Doc
 printOneVerbose e =
-  prettyId (displayId e)
-    <+> prettyTimestamp (displayTimestamp e)
+  prettyTimestamp (displayTimestamp e)
+    <+> prettyId (displayId e)
+    <+> prettyKeyId (displayKeyId e)
     <+> prettyDescription (displayDescription e)
     <+> prettyIdentity (displayIdentity e)
     <+> prettyPlaintext (displayPlaintext e)

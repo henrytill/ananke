@@ -310,6 +310,7 @@ updateEntry entry@(MkEntry _ keyId timestamp description identity _ _) =
 -- command
 data DisplayEntry = MkDisplayEntry
   { displayId :: Id,
+    displayKeyId :: KeyId,
     displayTimestamp :: UTCTime,
     displayDescription :: Description,
     displayIdentity :: Maybe Identity,

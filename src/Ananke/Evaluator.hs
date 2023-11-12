@@ -147,9 +147,9 @@ lookup description maybeIdentity verbosity = do
     _ -> MultipleEntries <$> mapM f entries <*> pure verbosity
   where
     f :: Entry -> m DisplayEntry
-    f MkEntry {entryId, entryTimestamp, entryDescription, entryIdentity, entryCiphertext, entryMeta} = do
+    f MkEntry {entryId, entryKeyId, entryTimestamp, entryDescription, entryIdentity, entryCiphertext, entryMeta} = do
       plaintext <- decrypt entryCiphertext
-      return $ MkDisplayEntry entryId entryTimestamp entryDescription entryIdentity plaintext entryMeta
+      return $ MkDisplayEntry entryId entryKeyId entryTimestamp entryDescription entryIdentity plaintext entryMeta
 
 pattern EmptyIdentity :: Maybe Identity
 pattern EmptyIdentity = Just (MkIdentity "")

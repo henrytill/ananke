@@ -172,9 +172,9 @@ instance FromJSON Ciphertext where
 -- | An 'Entry' is a record that stores an encrypted value along with associated
 -- information
 data Entry = MkEntry
-  { entryId :: Id,
+  { entryTimestamp :: UTCTime,
+    entryId :: Id,
     entryKeyId :: KeyId,
-    entryTimestamp :: UTCTime,
     entryDescription :: Description,
     entryIdentity :: Maybe Identity,
     entryCiphertext :: Ciphertext,
@@ -292,14 +292,14 @@ generateId (MkKeyId k) t (MkDescription d) (Just (MkIdentity i)) =
 generateId (MkKeyId k) t (MkDescription d) Nothing =
   mkId $ k <> utcTimeToText t <> d
 
-mkEntry :: KeyId -> UTCTime -> Description -> Maybe Identity -> Ciphertext -> Maybe Metadata -> Entry
-mkEntry keyId timestamp description identity ciphertext meta =
-  MkEntry id keyId timestamp description identity ciphertext meta
+mkEntry :: UTCTime -> KeyId -> Description -> Maybe Identity -> Ciphertext -> Maybe Metadata -> Entry
+mkEntry timestamp keyId description identity ciphertext meta =
+  MkEntry timestamp id keyId description identity ciphertext meta
   where
     id = generateId keyId timestamp description identity
 
 updateEntry :: Entry -> Entry
-updateEntry entry@(MkEntry _ keyId timestamp description identity _ _) =
+updateEntry entry@(MkEntry timestamp _ keyId description identity _ _) =
   entry {entryId = id}
   where
     id = generateId keyId timestamp description identity
@@ -309,9 +309,9 @@ updateEntry entry@(MkEntry _ keyId timestamp description identity _ _) =
 -- | A 'DisplayEntry' is a record that is displayed to the user in response to a
 -- command
 data DisplayEntry = MkDisplayEntry
-  { displayId :: Id,
+  { displayTimestamp :: UTCTime,
+    displayId :: Id,
     displayKeyId :: KeyId,
-    displayTimestamp :: UTCTime,
     displayDescription :: Description,
     displayIdentity :: Maybe Identity,
     displayPlaintext :: Plaintext,

@@ -135,7 +135,7 @@ add description maybeIdentity maybeMeta = do
   timestamp <- now
   keyId <- configKeyId <$> askConfig
   ciphertext <- encrypt keyId $ mkPlaintext input
-  put $ mkEntry keyId timestamp description maybeIdentity ciphertext maybeMeta
+  put $ mkEntry timestamp keyId description maybeIdentity ciphertext maybeMeta
   return Added
 
 lookup :: forall m. (MonadEncrypt m, MonadStore m) => Description -> Maybe Identity -> Verbosity -> m Response
@@ -149,7 +149,7 @@ lookup description maybeIdentity verbosity = do
     f :: Entry -> m DisplayEntry
     f MkEntry {entryId, entryKeyId, entryTimestamp, entryDescription, entryIdentity, entryCiphertext, entryMeta} = do
       plaintext <- decrypt entryCiphertext
-      return $ MkDisplayEntry entryId entryKeyId entryTimestamp entryDescription entryIdentity plaintext entryMeta
+      return $ MkDisplayEntry entryTimestamp entryId entryKeyId entryDescription entryIdentity plaintext entryMeta
 
 pattern EmptyIdentity :: Maybe Identity
 pattern EmptyIdentity = Just (MkIdentity "")

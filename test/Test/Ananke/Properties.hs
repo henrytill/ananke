@@ -43,7 +43,7 @@ createEntry d = do
   timestamp <- now
   let keyId = configKeyId cfg
   ciphertext <- encrypt keyId $ datumPlaintext d
-  return $ mkEntry keyId timestamp (datumDescription d) (datumIdentity d) ciphertext (datumMetadata d)
+  return $ mkEntry timestamp keyId (datumDescription d) (datumIdentity d) ciphertext (datumMetadata d)
 
 addEntryToDatabase ::
   (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m, MonadTime m) =>

@@ -44,9 +44,9 @@ columnMaybeText stmt column f =
 getEntry :: SQLite3.Statement -> IO Entry
 getEntry stmt =
   MkEntry
-    <$> getId stmt
+    <$> getTimestamp stmt
+    <*> getId stmt
     <*> getKeyId stmt
-    <*> getTimestamp stmt
     <*> getDescription stmt
     <*> getIdentity stmt
     <*> getCiphertext stmt

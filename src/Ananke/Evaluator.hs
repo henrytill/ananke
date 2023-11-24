@@ -247,8 +247,8 @@ importJSON jsonFile = do
 exportJSON :: (MonadFilesystem m, MonadStore m) => FilePath -> m Response
 exportJSON jsonFile = do
   entries <- selectAll
-  let aesonCfg = AesonPretty.defConfig {AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
-      output = AesonPretty.encodePretty' aesonCfg . List.sort $ entries
+  let aesonConfig = AesonPretty.defConfig {AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
+      output = AesonPretty.encodePretty' aesonConfig . List.sort $ entries
   writeFileBytes jsonFile output
   return Exported
 

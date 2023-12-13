@@ -30,11 +30,7 @@ depends.png: FORCE
 
 .PHONY: nix
 nix:
-	nix build -j auto .#ananke
-
-.PHONY: nix-static
-nix-static:
-	nix build -j auto .#ananke-static
+	nix build -j auto -vL .#ananke .#ananke-static
 
 .PHONY: clean
 clean:

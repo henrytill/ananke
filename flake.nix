@@ -12,7 +12,7 @@
 
   outputs = { self, nixpkgs, flake-utils, ... }:
     let makeAnanke = system:
-      { compiler ? "ghc946"
+      { compiler ? "ghc948"
       , doCheck ? true
       , static ? false
       }:

@@ -10,6 +10,7 @@ module Ananke.Evaluator
     Command (..),
     Response (..),
     eval,
+    showVersion,
   )
 where
 
@@ -20,6 +21,8 @@ import Data.Aeson.Encode.Pretty qualified as AesonPretty
 import Data.Char (toLower)
 import Data.List qualified as List
 import Data.Time.Clock (UTCTime)
+import Data.Version qualified as Version
+import Paths_ananke qualified
 import Prelude hiding (lookup)
 
 data ModifyAction = Keep | Change
@@ -279,3 +282,6 @@ eval Import {importFile} =
   importJSON importFile
 eval Export {exportFile} =
   exportJSON exportFile
+
+showVersion :: String
+showVersion = Version.showVersion Paths_ananke.version

@@ -118,8 +118,8 @@ cmdImport = command "import" . info importP $ progDesc "Import a JSON file"
 cmdExport :: Mod CommandFields Command
 cmdExport = command "export" . info exportP $ progDesc "Export a JSON file"
 
-master :: Parser Command
-master =
+cmd :: Parser Command
+cmd =
   hsubparser
     ( cmdAdd
         <> cmdLookup
@@ -131,8 +131,11 @@ master =
         <> cmdCheck
     )
 
+versioner :: Parser (a -> a)
+versioner = simpleVersioner showVersion
+
 opts :: ParserInfo Command
-opts = info (master <**> helper) (fullDesc <> progDesc "A minimal password manager")
+opts = info (cmd <**> versioner <**> helper) (fullDesc <> progDesc "A minimal password manager")
 
 runCLIParser :: IO Command
 runCLIParser = execParser opts

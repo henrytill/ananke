@@ -54,6 +54,8 @@ library
                      , Ananke.Printing
                      , Data.ByteString64
                      , Data.Multimap
+  autogen-modules:     Paths_ananke
+  other-modules:       Paths_ananke
   build-depends:       base                 >=4.9   && <5
                      , aeson                >=1.5   && <3
                      , aeson-pretty         >=0.8.7 && <0.9

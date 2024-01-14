@@ -49,8 +49,8 @@ metaOptP = MkMetadata <$> strOption def
 targetP :: Parser Target
 targetP = (TargetId <$> hashOptP) <|> (TargetDescription <$> descOptP)
 
-modifyCiphertextFlagP :: Parser ModifyAction
-modifyCiphertextFlagP = flag Keep Change $ long "ciphertext" <> short 'c' <> help "Modify ciphertext"
+modifyPlaintextFlagP :: Parser Bool
+modifyPlaintextFlagP = switch $ long "plaintext" <> short 'p' <> help "Modify plaintext"
 
 verbosityFlagP :: Parser Verbosity
 verbosityFlagP = flag Normal Verbose $ long "verbose" <> short 'v' <> help "Display verbose results"
@@ -62,10 +62,7 @@ lookupP :: Parser Command
 lookupP = Lookup <$> descArgP <*> optional idenOptP <*> verbosityFlagP
 
 modifyP :: Parser Command
-modifyP = Modify <$> targetP <*> modifyCiphertextFlagP <*> optional idenOptP <*> optional metaOptP
-
-redescribeP :: Parser Command
-redescribeP = Redescribe <$> targetP <*> descArgP
+modifyP = Modify <$> targetP <*> modifyPlaintextFlagP <*> optional descArgP <*> optional idenOptP <*> optional metaOptP
 
 removeP :: Parser Command
 removeP = Remove <$> targetP
@@ -86,12 +83,7 @@ cmdLookup = command "lookup" . info lookupP $ progDesc d
 cmdModify :: Mod CommandFields Command
 cmdModify = command "modify" . info modifyP $ progDesc d
   where
-    d = "Modify a piece of ciphertext in the store"
-
-cmdRedescribe :: Mod CommandFields Command
-cmdRedescribe = command "redescribe" . info redescribeP $ progDesc d
-  where
-    d = "Modify the description of a piece of ciphertext in the store"
+    d = "Modify an entry"
 
 cmdRemove :: Mod CommandFields Command
 cmdRemove = command "remove" . info removeP $ progDesc d
@@ -126,7 +118,6 @@ cmd =
         <> cmdImport
         <> cmdExport
         <> cmdModify
-        <> cmdRedescribe
         <> cmdRemove
         <> cmdCheck
     )

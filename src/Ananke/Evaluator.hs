@@ -1,11 +1,9 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Ananke.Evaluator
-  ( ModifyAction (..),
-    Verbosity (..),
+  ( Verbosity (..),
     Target (..),
     Command (..),
     Response (..),
@@ -16,6 +14,7 @@ where
 
 import Ananke.Class
 import Ananke.Data
+import Control.Applicative ((<|>))
 import Data.Aeson qualified as Aeson
 import Data.Aeson.Encode.Pretty qualified as AesonPretty
 import Data.Char (toLower)
@@ -24,9 +23,6 @@ import Data.Time.Clock (UTCTime)
 import Data.Version qualified as Version
 import Paths_ananke qualified
 import Prelude hiding (lookup)
-
-data ModifyAction = Keep | Change
-  deriving (Show, Eq)
 
 data Verbosity = Normal | Verbose
   deriving (Show, Eq)
@@ -50,13 +46,10 @@ data Command
       }
   | Modify
       { modifyTarget :: Target,
-        modifyCiphertext :: ModifyAction,
+        modifyPlaintext :: Bool,
+        modifyDescription :: Maybe Description,
         modifyIdentity :: Maybe Identity,
         modifyMeta :: Maybe Metadata
-      }
-  | Redescribe
-      { redescribeTarget :: Target,
-        redescribeDescription :: Description
       }
   | Remove {removeTarget :: Target}
   | CheckForMultipleKeys
@@ -154,74 +147,62 @@ lookup description maybeIdentity verbosity = do
       plaintext <- decrypt entryCiphertext
       return $ MkDisplayEntry entryTimestamp entryId entryKeyId entryDescription entryIdentity plaintext entryMeta
 
-pattern EmptyIdentity :: Maybe Identity
-pattern EmptyIdentity = Just (MkIdentity "")
+update :: Maybe Description -> Maybe Identity -> Maybe Metadata -> Entry -> UTCTime -> Entry
+update Nothing Nothing Nothing entry _ = entry
+update maybeDescription maybeIdentity maybeMetadata entry entryTimestamp =
+  updateEntry $
+    entry
+      { entryDescription = maybe (entryDescription entry) id (normalizeDescription maybeDescription),
+        entryIdentity = (normalizeIdentity maybeIdentity) <|> entryIdentity entry,
+        entryMeta = (normalizeMetadata maybeMetadata) <|> entryMeta entry,
+        entryTimestamp
+      }
+  where
+    normalizeDescription :: Maybe Description -> Maybe Description
+    normalizeDescription (Just (MkDescription "")) = Nothing
+    normalizeDescription d = d
 
-pattern EmptyMetadata :: Maybe Metadata
-pattern EmptyMetadata = Just (MkMetadata "")
+    normalizeIdentity :: Maybe Identity -> Maybe Identity
+    normalizeIdentity (Just (MkIdentity "")) = Nothing
+    normalizeIdentity i = i
 
-update :: Maybe Identity -> Maybe Metadata -> Entry -> UTCTime -> Entry
-update Nothing Nothing entry _ =
-  entry
-update EmptyIdentity Nothing entry entryTimestamp =
-  updateEntry entry {entryTimestamp, entryIdentity = Nothing}
-update Nothing EmptyMetadata entry entryTimestamp =
-  updateEntry entry {entryTimestamp, entryMeta = Nothing}
-update EmptyIdentity EmptyMetadata entry entryTimestamp =
-  updateEntry entry {entryTimestamp, entryIdentity = Nothing, entryMeta = Nothing}
-update entryIdentity Nothing entry entryTimestamp =
-  updateEntry entry {entryTimestamp, entryIdentity}
-update Nothing entryMeta entry entryTimestamp =
-  updateEntry entry {entryTimestamp, entryMeta}
-update entryIdentity entryMeta entry entryTimestamp =
-  updateEntry entry {entryTimestamp, entryIdentity, entryMeta}
+    normalizeMetadata :: Maybe Metadata -> Maybe Metadata
+    normalizeMetadata (Just (MkMetadata "")) = Nothing
+    normalizeMetadata m = m
 
 updateCiphertext ::
   (MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadTime m) =>
-  ModifyAction ->
+  Bool ->
   Entry ->
   m Entry
-updateCiphertext Change entry = do
+updateCiphertext True entry = do
   input <- prompt "Enter text to encrypt: "
   entryTimestamp <- now
   keyId <- configKeyId <$> askConfig
   entryCiphertext <- encrypt keyId $ mkPlaintext input
   return $ updateEntry entry {entryTimestamp, entryCiphertext}
-updateCiphertext Keep entry =
+updateCiphertext False entry =
   return entry
 
 modify ::
   (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m, MonadTime m) =>
   Target ->
-  ModifyAction ->
+  Bool ->
+  Maybe Description ->
   Maybe Identity ->
   Maybe Metadata ->
   m Response
-modify target modifyAction maybeIdentity maybeMeta = do
+modify target modifyPlaintext maybeDescription maybeIdentity maybeMetadata = do
   entries <- runQuery $ queryFromTarget target
   case entries of
     [entry] -> do
       timestamp <- now
-      updated <- updateCiphertext modifyAction . update maybeIdentity maybeMeta entry $ timestamp
+      let modifiedEntry = update maybeDescription maybeIdentity maybeMetadata entry timestamp
+      updated <- updateCiphertext modifyPlaintext modifiedEntry
       put updated
       delete entry
       return Modified
     [] -> throwAmbiguousInput "There are no entries matching your input criteria."
-    _ -> throwAmbiguousInput "There are multiple entries matching your input criteria."
-
-redescribe ::
-  (MonadAppError m, MonadEncrypt m, MonadInteraction m, MonadStore m, MonadTime m) =>
-  Target ->
-  Description ->
-  m Response
-redescribe target entryDescription = do
-  entries <- runQuery $ queryFromTarget target
-  case entries of
-    [entry] -> do
-      entryTimestamp <- now
-      put $ updateEntry entry {entryTimestamp, entryDescription}
-      delete entry
-      return Redescribed
     _ -> throwAmbiguousInput "There are multiple entries matching your input criteria."
 
 remove :: (MonadAppError m, MonadStore m) => Target -> m Response
@@ -270,10 +251,8 @@ eval Add {addDescription, addIdentity, addMeta} =
   checkKey $ add addDescription addIdentity addMeta
 eval Lookup {lookupDescription, lookupIdentity, lookupVerbosity} =
   lookup lookupDescription lookupIdentity lookupVerbosity
-eval Modify {modifyTarget, modifyCiphertext, modifyIdentity, modifyMeta} =
-  checkKey $ modify modifyTarget modifyCiphertext modifyIdentity modifyMeta
-eval Redescribe {redescribeTarget, redescribeDescription} =
-  checkKey $ redescribe redescribeTarget redescribeDescription
+eval Modify {modifyTarget, modifyPlaintext, modifyDescription, modifyIdentity, modifyMeta} =
+  checkKey $ modify modifyTarget modifyPlaintext modifyDescription modifyIdentity modifyMeta
 eval Remove {removeTarget} =
   remove removeTarget
 eval CheckForMultipleKeys =

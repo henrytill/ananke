@@ -143,9 +143,17 @@ lookup description maybeIdentity verbosity = do
     _ -> MultipleEntries <$> mapM f entries <*> pure verbosity
   where
     f :: Entry -> m DisplayEntry
-    f MkEntry {entryId, entryKeyId, entryTimestamp, entryDescription, entryIdentity, entryCiphertext, entryMeta} = do
-      plaintext <- decrypt entryCiphertext
-      return $ MkDisplayEntry entryTimestamp entryId entryKeyId entryDescription entryIdentity plaintext entryMeta
+    f entry = do
+      plaintext <- decrypt (entryCiphertext entry)
+      return $
+        MkDisplayEntry
+          (entryTimestamp entry)
+          (entryId entry)
+          (entryKeyId entry)
+          (entryDescription entry)
+          (entryIdentity entry)
+          plaintext
+          (entryMeta entry)
 
 update :: Maybe Description -> Maybe Identity -> Maybe Metadata -> Entry -> UTCTime -> Entry
 update Nothing Nothing Nothing entry _ = entry

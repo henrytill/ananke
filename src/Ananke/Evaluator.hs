@@ -45,7 +45,6 @@ data Command
   | Modify
       { modifyTarget :: Target,
         modifyPlaintext :: Bool,
-        modifyDescription :: Maybe Description,
         modifyIdentity :: Maybe Identity,
         modifyMeta :: Maybe Metadata
       }
@@ -194,16 +193,15 @@ modify ::
   (MonadAppError m, MonadConfigReader m, MonadEncrypt m, MonadInteraction m, MonadStore m, MonadTime m) =>
   Target ->
   Bool ->
-  Maybe Description ->
   Maybe Identity ->
   Maybe Metadata ->
   m Response
-modify target modifyPlaintext maybeDescription maybeIdentity maybeMetadata = do
+modify target modifyPlaintext maybeIdentity maybeMetadata = do
   entries <- runQuery $ queryFromTarget target
   case entries of
     [entry] -> do
       timestamp <- now
-      let modifiedEntry = update maybeDescription maybeIdentity maybeMetadata entry timestamp
+      let modifiedEntry = update Nothing maybeIdentity maybeMetadata entry timestamp
       updated <- updateCiphertext modifyPlaintext modifiedEntry
       put updated
       delete entry
@@ -257,8 +255,8 @@ eval Add {addDescription, addIdentity, addMeta} =
   checkKey $ add addDescription addIdentity addMeta
 eval Lookup {lookupDescription, lookupIdentity, lookupVerbose} =
   lookup lookupDescription lookupIdentity lookupVerbose
-eval Modify {modifyTarget, modifyPlaintext, modifyDescription, modifyIdentity, modifyMeta} =
-  checkKey $ modify modifyTarget modifyPlaintext modifyDescription modifyIdentity modifyMeta
+eval Modify {modifyTarget, modifyPlaintext, modifyIdentity, modifyMeta} =
+  checkKey $ modify modifyTarget modifyPlaintext modifyIdentity modifyMeta
 eval Remove {removeTarget} =
   remove removeTarget
 eval CheckForMultipleKeys =

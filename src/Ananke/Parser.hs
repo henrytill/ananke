@@ -62,7 +62,7 @@ lookupP :: Parser Command
 lookupP = Lookup <$> descArgP <*> optional idenOptP <*> verboseFlagP
 
 modifyP :: Parser Command
-modifyP = Modify <$> targetP <*> modifyPlaintextFlagP <*> optional descArgP <*> optional idenOptP <*> optional metaOptP
+modifyP = Modify <$> targetP <*> modifyPlaintextFlagP <*> optional idenOptP <*> optional metaOptP
 
 removeP :: Parser Command
 removeP = Remove <$> targetP

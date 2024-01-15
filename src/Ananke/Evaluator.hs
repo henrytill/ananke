@@ -3,8 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Ananke.Evaluator
-  ( Verbosity (..),
-    Target (..),
+  ( Target (..),
     Command (..),
     Response (..),
     eval,
@@ -24,8 +23,7 @@ import Data.Version qualified as Version
 import Paths_ananke qualified
 import Prelude hiding (lookup)
 
-data Verbosity = Normal | Verbose
-  deriving (Show, Eq)
+type IsVerbose = Bool
 
 data Target
   = TargetId Id
@@ -42,7 +40,7 @@ data Command
   | Lookup
       { lookupDescription :: Description,
         lookupIdentity :: Maybe Identity,
-        lookupVerbosity :: Verbosity
+        lookupVerbose :: IsVerbose
       }
   | Modify
       { modifyTarget :: Target,
@@ -59,8 +57,8 @@ data Command
 
 -- | 'Response' represents the response to a 'Command'
 data Response
-  = SingleEntry DisplayEntry Verbosity
-  | MultipleEntries [DisplayEntry] Verbosity
+  = SingleEntry DisplayEntry IsVerbose
+  | MultipleEntries [DisplayEntry] IsVerbose
   | Added
   | Imported
   | Exported
@@ -134,13 +132,13 @@ add description maybeIdentity maybeMeta = do
   put $ mkEntry timestamp keyId description maybeIdentity ciphertext maybeMeta
   return Added
 
-lookup :: forall m. (MonadEncrypt m, MonadStore m) => Description -> Maybe Identity -> Verbosity -> m Response
-lookup description maybeIdentity verbosity = do
+lookup :: forall m. (MonadEncrypt m, MonadStore m) => Description -> Maybe Identity -> IsVerbose -> m Response
+lookup description maybeIdentity isVerbose = do
   entries <- runQuery $ MkQuery Nothing (Just description) maybeIdentity Nothing
   case entries of
-    [] -> return $ MultipleEntries [] verbosity
-    [entry] -> SingleEntry <$> f entry <*> pure verbosity
-    _ -> MultipleEntries <$> mapM f entries <*> pure verbosity
+    [] -> return $ MultipleEntries [] isVerbose
+    [entry] -> SingleEntry <$> f entry <*> pure isVerbose
+    _ -> MultipleEntries <$> mapM f entries <*> pure isVerbose
   where
     f :: Entry -> m DisplayEntry
     f entry = do
@@ -257,8 +255,8 @@ eval ::
   m Response
 eval Add {addDescription, addIdentity, addMeta} =
   checkKey $ add addDescription addIdentity addMeta
-eval Lookup {lookupDescription, lookupIdentity, lookupVerbosity} =
-  lookup lookupDescription lookupIdentity lookupVerbosity
+eval Lookup {lookupDescription, lookupIdentity, lookupVerbose} =
+  lookup lookupDescription lookupIdentity lookupVerbose
 eval Modify {modifyTarget, modifyPlaintext, modifyDescription, modifyIdentity, modifyMeta} =
   checkKey $ modify modifyTarget modifyPlaintext modifyDescription modifyIdentity modifyMeta
 eval Remove {removeTarget} =

@@ -52,14 +52,14 @@ targetP = (TargetId <$> hashOptP) <|> (TargetDescription <$> descOptP)
 modifyPlaintextFlagP :: Parser Bool
 modifyPlaintextFlagP = switch $ long "plaintext" <> short 'p' <> help "Modify plaintext"
 
-verbosityFlagP :: Parser Verbosity
-verbosityFlagP = flag Normal Verbose $ long "verbose" <> short 'v' <> help "Display verbose results"
+verboseFlagP :: Parser Bool
+verboseFlagP = switch $ long "verbose" <> short 'v' <> help "Display verbose results"
 
 addP :: Parser Command
 addP = Add <$> descArgP <*> optional idenOptP <*> optional metaOptP
 
 lookupP :: Parser Command
-lookupP = Lookup <$> descArgP <*> optional idenOptP <*> verbosityFlagP
+lookupP = Lookup <$> descArgP <*> optional idenOptP <*> verboseFlagP
 
 modifyP :: Parser Command
 modifyP = Modify <$> targetP <*> modifyPlaintextFlagP <*> optional descArgP <*> optional idenOptP <*> optional metaOptP

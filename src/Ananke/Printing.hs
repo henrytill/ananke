@@ -7,7 +7,7 @@ where
 
 import Ananke.Data
 import Ananke.Error (AppError (..))
-import Ananke.Evaluator (Response (..), Verbosity (..))
+import Ananke.Evaluator (Response (..))
 import Data.Text qualified as T
 import Data.Time.Clock (UTCTime)
 import Data.Time.Format.ISO8601 (iso8601Show)
@@ -59,11 +59,11 @@ printOneVerbose e =
     <+> prettyMeta (displayMeta e)
 
 prettyResponse :: Response -> Doc
-prettyResponse (SingleEntry d Normal) = printPlain d
-prettyResponse (SingleEntry d Verbose) = printOneVerbose d
+prettyResponse (SingleEntry d False) = printPlain d
+prettyResponse (SingleEntry d True) = printOneVerbose d
 prettyResponse (MultipleEntries [] _) = empty
-prettyResponse (MultipleEntries ds Normal) = foldl (\acc d -> printOne d $$ acc) empty ds
-prettyResponse (MultipleEntries ds Verbose) = foldl (\acc d -> printOneVerbose d $$ acc) empty ds
+prettyResponse (MultipleEntries ds False) = foldl (\acc d -> printOne d $$ acc) empty ds
+prettyResponse (MultipleEntries ds True) = foldl (\acc d -> printOneVerbose d $$ acc) empty ds
 prettyResponse CheckedForMultipleKeys = text "All entries have the same keyid"
 prettyResponse _ = empty
 

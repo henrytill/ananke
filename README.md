@@ -90,9 +90,6 @@ $ ananke modify -d http://notarealwebsite.com -m "My alternate account"
 $ ananke lookup http://notarealwebsite.com
 anotherfakepassword
 
-# Change the description of an entry
-$ ananke redescribe -d http://notarealwebsite.com http://notarealwebsite.net
-
 # Check if the old entry still exists
 $ ananke lookup http://notarealwebsite.com
 

@@ -55,9 +55,6 @@ dotAnankeDir = "/.ananke"
 anankeIniFile :: FilePath
 anankeIniFile = "/ananke.ini"
 
-trues :: [Text]
-trues = ["true", "t", "yes", "y", "1"]
-
 mkBackend :: Text -> Backend
 mkBackend t = case T.toLower t of
   "sqlite" -> SQLite
@@ -68,6 +65,9 @@ mkBool :: Text -> Bool
 mkBool t
   | elem (T.toLower t) trues = True
   | otherwise = False
+  where
+    trues :: [Text]
+    trues = ["true", "t", "yes", "y", "1"]
 
 fromEnv :: (MonadConfigure m) => (String -> a) -> String -> m (Maybe a)
 fromEnv f name = fmap (fmap f) (getEnv name)

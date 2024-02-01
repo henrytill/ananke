@@ -18,6 +18,7 @@ import Data.Aeson qualified as Aeson
 import Data.Aeson.Encode.Pretty qualified as AesonPretty
 import Data.Char (toLower)
 import Data.List qualified as List
+import Data.Maybe qualified as Maybe
 import Data.Time.Clock (UTCTime)
 import Data.Version qualified as Version
 import Paths_ananke qualified
@@ -157,9 +158,9 @@ update Nothing Nothing Nothing entry _ = entry
 update maybeDescription maybeIdentity maybeMetadata entry entryTimestamp =
   updateEntry $
     entry
-      { entryDescription = maybe (entryDescription entry) id (normalizeDescription maybeDescription),
-        entryIdentity = (normalizeIdentity maybeIdentity) <|> entryIdentity entry,
-        entryMeta = (normalizeMetadata maybeMetadata) <|> entryMeta entry,
+      { entryDescription = Maybe.fromMaybe (entryDescription entry) (normalizeDescription maybeDescription),
+        entryIdentity = normalizeIdentity maybeIdentity <|> entryIdentity entry,
+        entryMeta = normalizeMetadata maybeMetadata <|> entryMeta entry,
         entryTimestamp
       }
   where

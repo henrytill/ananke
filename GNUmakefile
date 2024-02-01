@@ -22,6 +22,9 @@ check test:
 lint:
 	hlint -XHaskell98 exe src test
 
+TAGS: FORCE
+	hasktags -e exe src test
+
 modules.png: FORCE
 	find exe src -name '*.hs' | xargs graphmod -q | dot -Tpng -Gdpi=300 -o $@
 
@@ -35,7 +38,7 @@ nix:
 .PHONY: clean
 clean:
 	cabal v2-clean
-	rm -f modules.png depends.png
+	rm -f TAGS modules.png depends.png
 
 .PHONY: distclean
 distclean: clean

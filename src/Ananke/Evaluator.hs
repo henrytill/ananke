@@ -155,12 +155,12 @@ lookup description maybeIdentity isVerbose = do
 
 update :: Maybe Description -> Maybe Identity -> Maybe Metadata -> Entry -> UTCTime -> Entry
 update Nothing Nothing Nothing entry _ = entry
-update maybeDescription maybeIdentity maybeMetadata entry entryTimestamp =
+update maybeDescription maybeIdentity maybeMeta entry entryTimestamp =
   updateEntry $
     entry
       { entryDescription = Maybe.fromMaybe (entryDescription entry) (normalizeDescription maybeDescription),
         entryIdentity = normalizeIdentity maybeIdentity <|> entryIdentity entry,
-        entryMeta = normalizeMetadata maybeMetadata <|> entryMeta entry,
+        entryMeta = normalizeMetadata maybeMeta <|> entryMeta entry,
         entryTimestamp
       }
   where
@@ -197,12 +197,12 @@ modify ::
   Maybe Identity ->
   Maybe Metadata ->
   m Response
-modify target modifyPlaintext maybeIdentity maybeMetadata = do
+modify target modifyPlaintext maybeIdentity maybeMeta = do
   entries <- runQuery $ queryFromTarget target
   case entries of
     [entry] -> do
       timestamp <- now
-      let modifiedEntry = update Nothing maybeIdentity maybeMetadata entry timestamp
+      let modifiedEntry = update Nothing maybeIdentity maybeMeta entry timestamp
       updated <- updateCiphertext modifyPlaintext modifiedEntry
       put updated
       delete entry

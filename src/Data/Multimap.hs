@@ -3,8 +3,8 @@ module Data.Multimap
     empty,
     null,
     insert,
-    deleteAll,
     delete,
+    deleteAll,
     lookup,
     fromList,
     elems,
@@ -41,9 +41,6 @@ inserter v (Just s) = Just (Set.insert v s)
 insert :: (Ord k, Ord v) => k -> v -> Multimap k v -> Multimap k v
 insert k v (MkMultimap m) = MkMultimap $ Map.alter (inserter v) k m
 
-deleteAll :: (Ord k) => k -> Multimap k v -> Multimap k v
-deleteAll k (MkMultimap m) = MkMultimap $ Map.delete k m
-
 deleter :: (Ord v) => v -> Maybe (Set v) -> Maybe (Set v)
 deleter _ Nothing = Nothing
 deleter v (Just s)
@@ -54,6 +51,9 @@ deleter v (Just s)
 
 delete :: (Ord k, Ord v) => k -> v -> Multimap k v -> Multimap k v
 delete k v (MkMultimap m) = MkMultimap $ Map.alter (deleter v) k m
+
+deleteAll :: (Ord k) => k -> Multimap k v -> Multimap k v
+deleteAll k (MkMultimap m) = MkMultimap $ Map.delete k m
 
 lookup :: (Ord k) => k -> Multimap k v -> Set v
 lookup k (MkMultimap m) = Maybe.fromMaybe Set.empty (Map.lookup k m)

@@ -20,6 +20,7 @@ import Data.Monoid (First (..))
 import Data.String (IsString)
 import Data.Text (Text)
 import Data.Text qualified as T
+import System.FilePath ((<.>), (</>))
 
 envConfigDir, envDataDir, envBackend, envKeyId, envMultKeys :: String
 envConfigDir = "ANANKE_CONFIG_DIR"
@@ -49,11 +50,11 @@ iniKeyKeyId = "key_id"
 iniKeyMultKeys = "allow_multiple_keys"
 
 anankeDir, dotAnankeDir :: FilePath
-anankeDir = "/ananke"
-dotAnankeDir = "/.ananke"
+anankeDir = "ananke"
+dotAnankeDir = ".ananke"
 
 anankeIniFile :: FilePath
-anankeIniFile = "/ananke.ini"
+anankeIniFile = "ananke" <.> "ini"
 
 mkBackend :: Text -> Backend
 mkBackend t = case T.toLower t of
@@ -104,8 +105,8 @@ configureConfigDir a = mappend a <$> mb
     mb = do
       homeDir <- getHomeDir
       configDir <- getConfigDir
-      let homeAnankeDir = homeDir ++ dotAnankeDir
-          configAnankeDir = configDir ++ anankeDir
+      let homeAnankeDir = homeDir </> dotAnankeDir
+          configAnankeDir = configDir </> anankeDir
       preConfigDir <- First . Just . bool homeAnankeDir configAnankeDir <$> doesDirExist configDir
       return mempty {preConfigDir}
 
@@ -114,7 +115,7 @@ configureFromFile a = mappend a <$> mb a
   where
     mb preConfig = do
       configDir <- maybe (throwConfiguration errNoConfigDir) return . getFirst $ preConfigDir preConfig
-      configText <- readFileText $ configDir ++ anankeIniFile
+      configText <- readFileText $ configDir </> anankeIniFile
       configIni <- either throwConfiguration return $ Ini.parseIni configText
       let preConfigDataDir = First $ fromIni T.unpack iniSectionData iniKeyDataDir configIni
           preConfigBackend = First $ fromIni mkBackend iniSectionData iniKeyBackend configIni
@@ -128,8 +129,8 @@ configureFromDefaults a = mappend a <$> mb
     mb = do
       homeDir <- getHomeDir
       dataDir <- getDataDir
-      let homeAnankeDir = homeDir ++ dotAnankeDir
-          dataAnankeDir = dataDir ++ anankeDir
+      let homeAnankeDir = homeDir </> dotAnankeDir
+          dataAnankeDir = dataDir </> anankeDir
       preConfigDataDir <- First . Just . bool homeAnankeDir dataAnankeDir <$> doesDirExist dataDir
       let preConfigMultKeys = First . Just $ False
       return mempty {preConfigDataDir, preConfigMultKeys}

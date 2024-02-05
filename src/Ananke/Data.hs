@@ -66,6 +66,7 @@ import Data.Text.Encoding qualified as Encoding
 import Data.Time.Clock (UTCTime)
 import Data.Time.Format.ISO8601 (iso8601ParseM, iso8601Show)
 import GHC.Generics (Generic)
+import System.FilePath ((<.>), (</>))
 import Prelude hiding (id)
 
 -- * Configuration
@@ -102,16 +103,16 @@ data Config = MkConfig
 
 -- Virtual fields
 configDatabaseDir :: Config -> FilePath
-configDatabaseDir cfg = configDataDir cfg ++ "/db"
+configDatabaseDir cfg = configDataDir cfg </> "db"
 
 configSchemaFile :: Config -> FilePath
-configSchemaFile cfg = configDatabaseDir cfg ++ "/schema"
+configSchemaFile cfg = configDatabaseDir cfg </> "schema"
 
 configDatabaseFile :: Config -> FilePath
-configDatabaseFile cfg = configDatabaseDir cfg ++ "/db.sqlite"
+configDatabaseFile cfg = configDatabaseDir cfg </> "db" <.> "sqlite"
 
 configDataFile :: Config -> FilePath
-configDataFile cfg = configDatabaseDir cfg ++ "/data.json"
+configDataFile cfg = configDatabaseDir cfg </> "data" <.> "json"
 
 -- | A 'SchemaVersion' represents the database's schema version
 newtype SchemaVersion = MkSchemaVersion {unSchemaVersion :: Int}

@@ -16,6 +16,7 @@ import Data.List ((\\))
 import Data.Monoid (First (..))
 import Database.SQLite3 qualified as SQLite3
 import System.Directory qualified as Directory
+import System.FilePath ((<.>), (</>))
 import System.IO.Temp qualified as Temp
 import Test.Ananke.Orphans ()
 import Test.QuickCheck (Arbitrary (..), Property, Result)
@@ -69,7 +70,10 @@ doProperties = do
   tmp <- Temp.getCanonicalTemporaryDirectory
   dir <- Temp.createTempDirectory tmp "ananke"
   print ("dir: " ++ dir)
-  _ <- Directory.copyFile "./example/ananke.ini" (dir ++ "/ananke.ini")
+  let anankeIni = "ananke" <.> "ini"
+      src = "example" </> anankeIni
+      dest = dir </> anankeIni
+  _ <- Directory.copyFile src dest
   let preConfigDir = First (Just dir)
       preConfigDataDir = First (Just dir)
       preConfigBackend = First (Just SQLite)

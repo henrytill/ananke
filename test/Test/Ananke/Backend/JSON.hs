@@ -13,6 +13,7 @@ import Control.Monad.Trans (lift)
 import Data.Aeson qualified as Aeson
 import Data.ByteString.Lazy qualified as BSL
 import Data.ByteString.Lazy.Char8 qualified as Char8
+import System.FilePath ((<.>), (</>))
 import Test.Dwergaz
 
 data TestState = MkTestState
@@ -58,26 +59,42 @@ instance MonadAppError TestMigrate where
   throwMigration = err . Migration
   throwDefault = err . Default
 
-instance MonadFilesystem TestMigrate where
-  doesFileExist "data/db/data.json" = ok True
-  doesFileExist "data/db/schema" = ok True
-  doesFileExist _ = ok False
+dataDir :: FilePath
+dataDir = "data"
 
-  doesDirExist "data" = ok True
-  doesDirExist "data/db" = ok True
-  doesDirExist _ = ok True
+dbDir :: FilePath
+dbDir = dataDir </> "db"
+
+dataJsonFile :: FilePath
+dataJsonFile = dbDir </> "data" <.> "json"
+
+schemaFile :: FilePath
+schemaFile = dbDir </> "schema"
+
+instance MonadFilesystem TestMigrate where
+  doesFileExist path
+    | path == dataJsonFile = ok True
+    | path == schemaFile = ok True
+    | otherwise = ok False
+
+  doesDirExist path
+    | path == dataDir = ok True
+    | path == dbDir = ok True
+    | otherwise = ok True
 
   createDir _ = ok ()
 
   readFileText _ = error "readFileText is not implemented"
 
-  readFileBytes "data/db/data.json" = gets testStateInput
-  readFileBytes "data/db/schema" = gets testSchemaInput
-  readFileBytes path = err . Filesystem $ path ++ " does not exist"
+  readFileBytes path
+    | path == dataJsonFile = gets testStateInput
+    | path == schemaFile = gets testSchemaInput
+    | otherwise = err . Filesystem $ path ++ " does not exist"
 
-  writeFileBytes "data/db/data.json" bytes = modify $ \s -> s {testStateOutput = Just bytes}
-  writeFileBytes "data/db/schema" bytes = modify $ \s -> s {testSchemaOutput = Just bytes}
-  writeFileBytes path _ = err . Filesystem $ path ++ " does not exist"
+  writeFileBytes path bytes
+    | path == dataJsonFile = modify $ \s -> s {testStateOutput = Just bytes}
+    | path == schemaFile = modify $ \s -> s {testSchemaOutput = Just bytes}
+    | otherwise = err . Filesystem $ path ++ " does not exist"
 
 instance MonadInteraction TestMigrate where
   message _ = ok ()
@@ -95,8 +112,8 @@ config =
 
 migrateV3 :: IO Test
 migrateV3 = do
-  input <- BSL.readFile $ "test" ++ "/data-schema-v2.json"
-  expected <- BSL.readFile $ "test" ++ "/data-schema-v3.json"
+  input <- BSL.readFile $ "test" </> "data-schema-v2" <.> "json"
+  expected <- BSL.readFile $ "test" </> "data-schema-v3" <.> "json"
   result <- return . go . mkTestState input $ MkSchemaVersion 2
   case result of
     Left failure -> error . show $ failure
@@ -107,7 +124,7 @@ migrateV3 = do
 
 roundtripJson :: IO Test
 roundtripJson = do
-  input <- BSL.readFile "example/db/data.json"
+  input <- BSL.readFile $ "example" </> "db" </> "data" <.> "json"
   let maybeOutput = encodeJSON <$> Aeson.decode input
   return $ Expect "json to roundtrip" (==) maybeOutput (Just input)
 

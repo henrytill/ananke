@@ -1,5 +1,6 @@
 module Ananke
   ( module Ananke.Configuration,
+    module Ananke.Parser,
     run,
   )
 where
@@ -9,9 +10,9 @@ import Ananke.Backend.JSON qualified as JSON
 import Ananke.Backend.SQLite qualified as SQLite
 import Ananke.Configuration (Backend (..), Config (..), configure)
 import Ananke.Error (AppError (..))
-import Ananke.Evaluator (Response (..))
+import Ananke.Evaluator (Command, Response (..))
 import Ananke.Evaluator qualified as Evaluator
-import Ananke.Parser qualified as Parser
+import Ananke.Parser (parseCommand)
 import Ananke.Printing (prettyError, prettyResponse, render)
 import Control.Exception qualified as Exception
 import System.Exit (ExitCode (..))
@@ -32,21 +33,19 @@ handleResponse res = case res of
         | doc == mempty -> return ()
         | otherwise -> putStrLn . render $ doc
 
-runSQLiteApp :: SQLite.AppContext -> IO ExitCode
-runSQLiteApp ctx = do
-  cmd <- Parser.runCLIParser
+runSQLiteApp :: Command -> SQLite.AppContext -> IO ExitCode
+runSQLiteApp cmd ctx =
   Exception.catch
     (SQLite.run (SQLite.setup currentSchemaVersion >> Evaluator.eval cmd) ctx >>= handleResponse)
     handleError
 
-runJSONApp :: (Config, JSON.AppState) -> IO ExitCode
-runJSONApp (cfg, state) = do
-  cmd <- Parser.runCLIParser
+runJSONApp :: Command -> (Config, JSON.AppState) -> IO ExitCode
+runJSONApp cmd (cfg, state) =
   Exception.catch
     (JSON.run (Evaluator.eval cmd) state cfg >>= handleResponse)
     handleError
 
-run :: Config -> IO ExitCode
-run cfg = case configBackend cfg of
-  SQLite -> Exception.bracket (SQLite.initialize cfg) SQLite.finalize runSQLiteApp
-  JSON -> Exception.bracket (JSON.preInitialize cfg currentSchemaVersion >> JSON.initialize cfg) JSON.finalize runJSONApp
+run :: Command -> Config -> IO ExitCode
+run cmd cfg = case configBackend cfg of
+  SQLite -> Exception.bracket (SQLite.initialize cfg) SQLite.finalize (runSQLiteApp cmd)
+  JSON -> Exception.bracket (JSON.preInitialize cfg currentSchemaVersion >> JSON.initialize cfg) JSON.finalize (runJSONApp cmd)

@@ -1,5 +1,5 @@
 module Ananke.Parser
-  ( runCLIParser,
+  ( parseCommand,
   )
 where
 
@@ -128,5 +128,5 @@ versioner = simpleVersioner showVersion
 opts :: ParserInfo Command
 opts = info (cmd <**> versioner <**> helper) (fullDesc <> progDesc "A minimal password manager")
 
-runCLIParser :: IO Command
-runCLIParser = execParser opts
+parseCommand :: IO Command
+parseCommand = execParser opts

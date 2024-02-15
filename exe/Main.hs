@@ -1,7 +1,11 @@
 module Main (main) where
 
-import Ananke (configure, run)
+import Ananke (configure, parseCommand, run)
 import System.Exit qualified as Exit
 
 main :: IO ()
-main = configure >>= run >>= Exit.exitWith
+main = do
+  cmd <- parseCommand
+  cfg <- configure
+  ret <- run cmd cfg
+  Exit.exitWith ret

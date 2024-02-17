@@ -17,7 +17,7 @@ module Ananke.Data.Entry
   )
 where
 
-import Ananke.Data.Core (Description, Id, Identity, KeyId, Metadata, generateId)
+import Ananke.Data.Common (Description, Id, Identity, KeyId, Metadata, generateId)
 import Data.Aeson (FromJSON (..), Options, ToJSON (..))
 import Data.Aeson qualified as Aeson
 import Data.ByteString qualified as BS

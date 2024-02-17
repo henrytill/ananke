@@ -1,4 +1,4 @@
-module Ananke.Data.Core
+module Ananke.Data.Common
   ( -- ** Configuration
     Backend (..),
     PreConfig (..),

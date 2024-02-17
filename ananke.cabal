@@ -56,7 +56,7 @@ library
                      , Data.Multimap
   autogen-modules:     Paths_ananke
   other-modules:       Paths_ananke
-                     , Ananke.Data.Core
+                     , Ananke.Data.Common
                      , Ananke.Data.Entry
   build-depends:       base                 >=4.9   && <5
                      , aeson                >=1.5   && <3

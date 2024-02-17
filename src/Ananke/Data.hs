@@ -1,11 +1,11 @@
 module Ananke.Data
-  ( -- * Core
-    module Ananke.Data.Core,
+  ( -- * Common
+    module Ananke.Data.Common,
 
     -- * Entry
     module Ananke.Data.Entry,
   )
 where
 
-import Ananke.Data.Core
+import Ananke.Data.Common
 import Ananke.Data.Entry

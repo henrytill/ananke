@@ -1,3 +1,5 @@
+{-# LANGUAGE PatternGuards #-}
+
 module Ananke.Data.Common
   ( -- ** Configuration
     Backend (..),
@@ -33,6 +35,7 @@ module Ananke.Data.Common
     -- ** Helpers
     utcTimeToText,
     utcTimeFromText,
+    remapField,
   )
 where
 
@@ -116,13 +119,19 @@ instance FromJSON KeyId where
 
 -- | A 'Plaintext' represents a decrypted value
 newtype Plaintext = MkPlaintext T.Text
-  deriving (Eq)
+  deriving (Eq, Ord)
 
 instance Show Plaintext where
   show (MkPlaintext t) = show t
 
 mkPlaintext :: String -> Plaintext
 mkPlaintext = MkPlaintext . T.pack
+
+instance ToJSON Plaintext where
+  toJSON (MkPlaintext a) = toJSON a
+
+instance FromJSON Plaintext where
+  parseJSON = fmap MkPlaintext . parseJSON
 
 -- | A 'Id' identifies a given 'Entry'.
 newtype Id = MkId {unId :: T.Text}
@@ -222,3 +231,8 @@ utcTimeToText = T.pack . iso8601Show
 
 utcTimeFromText :: (MonadFail m) => T.Text -> m UTCTime
 utcTimeFromText = iso8601ParseM . T.unpack
+
+remapField :: [(String, String)] -> String -> String
+remapField mappings field
+  | Just mapped <- lookup field mappings = mapped
+  | otherwise = field

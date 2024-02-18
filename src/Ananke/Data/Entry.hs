@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE PatternGuards #-}
 
 module Ananke.Data.Entry
   ( -- ** Ciphertext
@@ -17,7 +16,8 @@ module Ananke.Data.Entry
   )
 where
 
-import Ananke.Data.Common (Description, Id, Identity, KeyId, Metadata, generateId)
+import Ananke.Data.Common (Description, Id, Identity, KeyId, Metadata)
+import Ananke.Data.Common qualified as Common
 import Data.Aeson (FromJSON (..), Options, ToJSON (..))
 import Data.Aeson qualified as Aeson
 import Data.ByteString qualified as BS
@@ -88,15 +88,10 @@ fieldToJSON =
 entryKeyOrder :: [T.Text]
 entryKeyOrder = map (T.pack . snd) fieldToJSON
 
-remapField :: [(String, String)] -> String -> String
-remapField mappings field
-  | Just mapped <- lookup field mappings = mapped
-  | otherwise = field
-
 options :: Options
 options =
   Aeson.defaultOptions
-    { Aeson.fieldLabelModifier = remapField fieldToJSON,
+    { Aeson.fieldLabelModifier = Common.remapField fieldToJSON,
       Aeson.omitNothingFields = True
     }
 
@@ -110,10 +105,10 @@ mkEntry :: UTCTime -> KeyId -> Description -> Maybe Identity -> Ciphertext -> Ma
 mkEntry timestamp keyId description identity ciphertext meta =
   MkEntry timestamp id keyId description identity ciphertext meta
   where
-    id = generateId keyId timestamp description identity
+    id = Common.generateId keyId timestamp description identity
 
 updateEntry :: Entry -> Entry
 updateEntry entry@(MkEntry timestamp _ keyId description identity _ _) =
   entry {entryId = id}
   where
-    id = generateId keyId timestamp description identity
+    id = Common.generateId keyId timestamp description identity

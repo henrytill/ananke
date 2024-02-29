@@ -24,7 +24,8 @@ import Data.ByteString qualified as BS
 import Data.ByteString64 (ByteString64 (..))
 import Data.ByteString64 qualified as BS64
 import Data.Ord qualified as Ord
-import Data.Text qualified as T
+import Data.Text (Text)
+import Data.Text qualified as Text
 import Data.Time.Clock (UTCTime)
 import GHC.Generics (Generic)
 import Prelude hiding (id)
@@ -39,10 +40,10 @@ mkCiphertext = MkCiphertext . MkByteString64
 unCiphertext :: Ciphertext -> BS.ByteString
 unCiphertext (MkCiphertext bs64) = unByteString64 bs64
 
-ciphertextToText :: Ciphertext -> T.Text
+ciphertextToText :: Ciphertext -> Text
 ciphertextToText (MkCiphertext bs64) = BS64.toText bs64
 
-ciphertextFromText :: (MonadFail m) => T.Text -> m Ciphertext
+ciphertextFromText :: (MonadFail m) => Text -> m Ciphertext
 ciphertextFromText t = MkCiphertext <$> BS64.fromText t
 
 instance ToJSON Ciphertext where
@@ -85,8 +86,8 @@ fieldToJSON =
     ("entryMeta", "meta")
   ]
 
-entryKeyOrder :: [T.Text]
-entryKeyOrder = map (T.pack . snd) fieldToJSON
+entryKeyOrder :: [Text]
+entryKeyOrder = map (Text.pack . snd) fieldToJSON
 
 options :: Options
 options =

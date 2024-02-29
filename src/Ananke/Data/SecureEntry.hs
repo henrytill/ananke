@@ -11,7 +11,8 @@ import Ananke.Data.Common qualified as Common
 import Data.Aeson (FromJSON (..), Options, ToJSON (..))
 import Data.Aeson qualified as Aeson
 import Data.Ord qualified as Ord
-import Data.Text qualified as T
+import Data.Text (Text)
+import Data.Text qualified as Text
 import Data.Time.Clock (UTCTime)
 import GHC.Generics (Generic)
 
@@ -47,8 +48,8 @@ fieldToJSON =
     ("entryMeta", "meta")
   ]
 
-secureEntryKeyOrder :: [T.Text]
-secureEntryKeyOrder = map (T.pack . snd) fieldToJSON
+secureEntryKeyOrder :: [Text]
+secureEntryKeyOrder = map (Text.pack . snd) fieldToJSON
 
 options :: Options
 options =

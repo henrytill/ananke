@@ -44,7 +44,8 @@ import Data.ByteString.Lazy qualified as BSL
 import Data.Digest.Pure.SHA qualified as SHA
 import Data.Monoid (First)
 import Data.Semigroup qualified as Sem
-import Data.Text qualified as T
+import Data.Text (Text)
+import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Encoding
 import Data.Time.Clock (UTCTime)
 import Data.Time.Format.ISO8601 (iso8601ParseM, iso8601Show)
@@ -105,7 +106,7 @@ instance Show SchemaVersion where
   show = show . unSchemaVersion
 
 -- | A 'KeyId' represents a GPG Key Id
-newtype KeyId = MkKeyId {unKeyId :: T.Text}
+newtype KeyId = MkKeyId {unKeyId :: Text}
   deriving (Eq, Ord)
 
 instance Show KeyId where
@@ -118,14 +119,14 @@ instance FromJSON KeyId where
   parseJSON = fmap MkKeyId . parseJSON
 
 -- | A 'Plaintext' represents a decrypted value
-newtype Plaintext = MkPlaintext T.Text
+newtype Plaintext = MkPlaintext Text
   deriving (Eq, Ord)
 
 instance Show Plaintext where
   show (MkPlaintext t) = show t
 
 mkPlaintext :: String -> Plaintext
-mkPlaintext = MkPlaintext . T.pack
+mkPlaintext = MkPlaintext . Text.pack
 
 instance ToJSON Plaintext where
   toJSON (MkPlaintext a) = toJSON a
@@ -134,7 +135,7 @@ instance FromJSON Plaintext where
   parseJSON = fmap MkPlaintext . parseJSON
 
 -- | A 'Id' identifies a given 'Entry'.
-newtype Id = MkId {unId :: T.Text}
+newtype Id = MkId {unId :: Text}
   deriving (Eq, Ord)
 
 instance Show Id where
@@ -148,7 +149,7 @@ instance FromJSON Id where
 
 -- | A 'Description' identifies a given 'Entry'.  It could be a URI or a
 -- descriptive name.
-newtype Description = MkDescription {unDescription :: T.Text}
+newtype Description = MkDescription {unDescription :: Text}
   deriving (Eq, Ord)
 
 instance Show Description where
@@ -162,7 +163,7 @@ instance FromJSON Description where
 
 -- | An 'Identity' represents an identifying value.  It could be the username in
 -- a username/password pair
-newtype Identity = MkIdentity {unIdentity :: T.Text}
+newtype Identity = MkIdentity {unIdentity :: Text}
   deriving (Eq, Ord)
 
 instance Show Identity where
@@ -176,7 +177,7 @@ instance FromJSON Identity where
 
 -- | A 'Metadata' value contains additional non-specific information for a given
 -- 'Entry'
-newtype Metadata = MkMetadata {unMetadata :: T.Text}
+newtype Metadata = MkMetadata {unMetadata :: Text}
   deriving (Eq, Ord)
 
 instance Show Metadata where
@@ -188,8 +189,8 @@ instance ToJSON Metadata where
 instance FromJSON Metadata where
   parseJSON = fmap MkMetadata . parseJSON
 
-mkId :: T.Text -> Id
-mkId = MkId . T.pack . SHA.showDigest . SHA.sha1 . BSL.fromStrict . Encoding.encodeUtf8
+mkId :: Text -> Id
+mkId = MkId . Text.pack . SHA.showDigest . SHA.sha1 . BSL.fromStrict . Encoding.encodeUtf8
 
 generateId :: KeyId -> UTCTime -> Description -> Maybe Identity -> Id
 generateId (MkKeyId k) t (MkDescription d) (Just (MkIdentity i)) =
@@ -226,11 +227,11 @@ queryIsEmpty :: Query -> Bool
 queryIsEmpty (MkQuery Nothing Nothing Nothing Nothing) = True
 queryIsEmpty _ = False
 
-utcTimeToText :: UTCTime -> T.Text
-utcTimeToText = T.pack . iso8601Show
+utcTimeToText :: UTCTime -> Text
+utcTimeToText = Text.pack . iso8601Show
 
-utcTimeFromText :: (MonadFail m) => T.Text -> m UTCTime
-utcTimeFromText = iso8601ParseM . T.unpack
+utcTimeFromText :: (MonadFail m) => Text -> m UTCTime
+utcTimeFromText = iso8601ParseM . Text.unpack
 
 remapField :: [(String, String)] -> String -> String
 remapField mappings field

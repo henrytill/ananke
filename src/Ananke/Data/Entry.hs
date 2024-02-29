@@ -52,15 +52,21 @@ instance ToJSON Ciphertext where
 instance FromJSON Ciphertext where
   parseJSON = fmap MkCiphertext . parseJSON
 
--- | An 'Entry' is a record that stores an encrypted value along with associated
--- information
+-- | A record that stores an encrypted value along with associated information.
 data Entry = MkEntry
-  { entryTimestamp :: UTCTime,
+  { -- | The entry creation time.
+    entryTimestamp :: UTCTime,
+    -- | A unique identifier.
     entryId :: Id,
+    -- | The GPG key id used to encrypt the ciphertext.
     entryKeyId :: KeyId,
+    -- | A URI or descriptive name.
     entryDescription :: Description,
+    -- | An optional identifying value, such as a username.
     entryIdentity :: Maybe Identity,
+    -- | The encrypted value.
     entryCiphertext :: Ciphertext,
+    -- | Additional non-specific information.
     entryMeta :: Maybe Metadata
   }
   deriving (Show, Eq, Generic)

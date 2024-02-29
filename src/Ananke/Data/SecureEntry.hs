@@ -18,15 +18,15 @@ import GHC.Generics (Generic)
 
 -- | A record that stores a plaintext value along with associated information.
 data SecureEntry = MkSecureEntry
-  { -- | The time the entry was created
+  { -- | The entry creation time.
     entryTimestamp :: UTCTime,
-    -- | Description of the entry. Can be a URI or a descriptive name.
+    -- | A URI or a descriptive name.
     entryDescription :: Description,
-    -- | Optional identifying value, such as a username.
+    -- | An optional identifying value, such as a username.
     entryIdentity :: Maybe Identity,
-    -- | Holds the plaintext value of the entry.
+    -- | The plaintext value.
     entryPlaintext :: Plaintext,
-    -- | Optional field for additional non-specific information.
+    -- | Additional non-specific information.
     entryMeta :: Maybe Metadata
   }
   deriving (Show, Eq, Generic)

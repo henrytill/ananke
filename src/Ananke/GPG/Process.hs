@@ -7,7 +7,8 @@ import Control.Concurrent (forkIO, killThread)
 import Control.Concurrent.MVar (MVar, newEmptyMVar, putMVar, takeMVar)
 import Control.Exception (SomeException, handle, mask, onException, throwIO, try)
 import Control.Monad (unless)
-import Data.ByteString qualified as BS
+import Data.ByteString (ByteString)
+import Data.ByteString qualified as ByteString
 import Foreign.C.Error (Errno (..), ePIPE)
 import GHC.IO.Exception (IOErrorType (..), IOException (..))
 import GHC.IO.Handle (hClose, hSetBinaryMode)
@@ -29,7 +30,7 @@ forkWait a = do
     let thunk = takeMVar mres >>= either throwIO return
     return $ onException (restore thunk) (killThread tid)
 
-readProcessWithExitCode :: FilePath -> [String] -> BS.ByteString -> IO (ExitCode, BS.ByteString, BS.ByteString)
+readProcessWithExitCode :: FilePath -> [String] -> ByteString -> IO (ExitCode, ByteString, ByteString)
 readProcessWithExitCode cmd args input =
   let cp = (Process.proc cmd args) {std_in = CreatePipe, std_out = CreatePipe, std_err = CreatePipe}
    in Process.withCreateProcess cp $ \stdin stdout stderr ph ->
@@ -39,9 +40,9 @@ readProcessWithExitCode cmd args input =
               hSetBinaryMode inh True
               hSetBinaryMode outh True
               hSetBinaryMode errh True
-              outThunk <- forkWait (BS.hGetContents outh)
-              errThunk <- forkWait (BS.hGetContents errh)
-              unless (BS.null input) (ignoreSIGPIPE (BS.hPutStr inh input))
+              outThunk <- forkWait (ByteString.hGetContents outh)
+              errThunk <- forkWait (ByteString.hGetContents errh)
+              unless (ByteString.null input) (ignoreSIGPIPE (ByteString.hPutStr inh input))
               ignoreSIGPIPE (hClose inh)
               out <- outThunk
               err <- errThunk

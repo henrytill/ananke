@@ -17,9 +17,10 @@ import Control.Exception (throwIO)
 import Control.Monad.Reader (ReaderT)
 import Control.Monad.State (StateT)
 import Control.Monad.Trans (lift)
-import Data.ByteString.Lazy qualified as BSL
+import Data.ByteString.Lazy (ByteString)
+import Data.ByteString.Lazy qualified as ByteString
 import Data.Text (Text)
-import Data.Text.IO qualified as TIO
+import Data.Text.IO qualified as Text
 import Data.Time.Clock (UTCTime)
 import Data.Time.Clock qualified as Clock
 import System.Directory (XdgDirectory (..))
@@ -109,16 +110,16 @@ class (Monad m) => MonadFilesystem m where
   doesDirExist :: FilePath -> m Bool
   createDir :: FilePath -> m ()
   readFileText :: FilePath -> m Text
-  readFileBytes :: FilePath -> m BSL.ByteString
-  writeFileBytes :: FilePath -> BSL.ByteString -> m ()
+  readFileBytes :: FilePath -> m ByteString
+  writeFileBytes :: FilePath -> ByteString -> m ()
 
 instance MonadFilesystem IO where
   doesFileExist = Directory.doesFileExist
   doesDirExist = Directory.doesDirectoryExist
   createDir = Directory.createDirectory
-  readFileText = TIO.readFile
-  readFileBytes = BSL.readFile
-  writeFileBytes = BSL.writeFile
+  readFileText = Text.readFile
+  readFileBytes = ByteString.readFile
+  writeFileBytes = ByteString.writeFile
 
 instance (MonadFilesystem m) => MonadFilesystem (ReaderT r m) where
   doesFileExist = lift . doesFileExist

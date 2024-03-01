@@ -8,13 +8,14 @@ where
 import Ananke.Data
 import Ananke.Error (AppError (..))
 import Ananke.Evaluator (Response (..))
-import Data.Text qualified as T
+import Data.Text (Text)
+import Data.Text qualified as Text
 import Data.Time.Clock (UTCTime)
 import Data.Time.Format.ISO8601 (iso8601Show)
 import Text.PrettyPrint (Doc, Mode (..), Style (..), empty, renderStyle, style, text, ($$), (<+>))
 
-prettyText :: T.Text -> Doc
-prettyText = text . T.unpack
+prettyText :: Text -> Doc
+prettyText = text . Text.unpack
 
 prettyTimestamp :: UTCTime -> Doc
 prettyTimestamp = text . iso8601Show

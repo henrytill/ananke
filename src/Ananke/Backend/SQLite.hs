@@ -18,7 +18,7 @@ import Ananke.Data (Config (..), SchemaVersion, configDatabaseDir, configDatabas
 import Control.Monad (unless)
 import Control.Monad.IO.Class (MonadIO (..))
 import Control.Monad.Reader (MonadReader, ReaderT, ask, asks, runReaderT)
-import Data.Text qualified as T
+import Data.Text qualified as Text
 import Database.SQLite3 qualified as SQLite3
 
 -- * SQLite
@@ -49,7 +49,7 @@ initialize cfg = do
       dbFile = configDatabaseFile cfg
   dbDirExists <- doesDirExist dbDir
   unless dbDirExists (createDir dbDir)
-  MkAppContext cfg <$> SQLite3.open (T.pack dbFile)
+  MkAppContext cfg <$> SQLite3.open (Text.pack dbFile)
 
 finalize :: AppContext -> IO ()
 finalize = SQLite3.close . appContextDatabase

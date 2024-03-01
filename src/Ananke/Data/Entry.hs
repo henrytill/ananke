@@ -20,9 +20,9 @@ import Ananke.Data.Common (Description, Id, Identity, KeyId, Metadata)
 import Ananke.Data.Common qualified as Common
 import Data.Aeson (FromJSON (..), Options, ToJSON (..))
 import Data.Aeson qualified as Aeson
-import Data.ByteString qualified as BS
+import Data.ByteString (ByteString)
 import Data.ByteString64 (ByteString64 (..))
-import Data.ByteString64 qualified as BS64
+import Data.ByteString64 qualified as ByteString64
 import Data.Ord qualified as Ord
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -34,17 +34,17 @@ import Prelude hiding (id)
 newtype Ciphertext = MkCiphertext ByteString64
   deriving (Show, Eq, Ord)
 
-mkCiphertext :: BS.ByteString -> Ciphertext
+mkCiphertext :: ByteString -> Ciphertext
 mkCiphertext = MkCiphertext . MkByteString64
 
-unCiphertext :: Ciphertext -> BS.ByteString
+unCiphertext :: Ciphertext -> ByteString
 unCiphertext (MkCiphertext bs64) = unByteString64 bs64
 
 ciphertextToText :: Ciphertext -> Text
-ciphertextToText (MkCiphertext bs64) = BS64.toText bs64
+ciphertextToText (MkCiphertext bs64) = ByteString64.toText bs64
 
 ciphertextFromText :: (MonadFail m) => Text -> m Ciphertext
-ciphertextFromText t = MkCiphertext <$> BS64.fromText t
+ciphertextFromText t = MkCiphertext <$> ByteString64.fromText t
 
 instance ToJSON Ciphertext where
   toJSON (MkCiphertext b) = toJSON b

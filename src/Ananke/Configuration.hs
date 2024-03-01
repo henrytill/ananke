@@ -19,7 +19,7 @@ import Data.Ini qualified as Ini
 import Data.Monoid (First (..))
 import Data.String (IsString)
 import Data.Text (Text)
-import Data.Text qualified as T
+import Data.Text qualified as Text
 import System.FilePath ((<.>), (</>))
 
 envConfigDir, envDataDir, envBackend, envKeyId, envMultKeys :: String
@@ -57,14 +57,14 @@ anankeIniFile :: FilePath
 anankeIniFile = "ananke" <.> "ini"
 
 mkBackend :: Text -> Backend
-mkBackend t = case T.toLower t of
+mkBackend t = case Text.toLower t of
   "sqlite" -> SQLite
   "json" -> JSON
   _ -> SQLite
 
 mkBool :: Text -> Bool
 mkBool t
-  | elem (T.toLower t) trues = True
+  | elem (Text.toLower t) trues = True
   | otherwise = False
   where
     trues :: [Text]
@@ -87,9 +87,9 @@ configureFromEnv a = mappend a <$> mb
     mb = do
       preConfigDir <- First <$> getEnv envConfigDir
       preConfigDataDir <- First <$> getEnv envDataDir
-      preConfigBackend <- First <$> fromEnv (mkBackend . T.pack) envBackend
-      preConfigKeyId <- First <$> fromEnv (MkKeyId . T.pack) envKeyId
-      preConfigMultKeys <- First <$> fromEnv (mkBool . T.pack) envMultKeys
+      preConfigBackend <- First <$> fromEnv (mkBackend . Text.pack) envBackend
+      preConfigKeyId <- First <$> fromEnv (MkKeyId . Text.pack) envKeyId
+      preConfigMultKeys <- First <$> fromEnv (mkBool . Text.pack) envMultKeys
       return
         MkPreConfig
           { preConfigDir,
@@ -117,7 +117,7 @@ configureFromFile a = mappend a <$> mb a
       configDir <- maybe (throwConfiguration errNoConfigDir) return . getFirst $ preConfigDir preConfig
       configText <- readFileText $ configDir </> anankeIniFile
       configIni <- either throwConfiguration return $ Ini.parseIni configText
-      let preConfigDataDir = First $ fromIni T.unpack iniSectionData iniKeyDataDir configIni
+      let preConfigDataDir = First $ fromIni Text.unpack iniSectionData iniKeyDataDir configIni
           preConfigBackend = First $ fromIni mkBackend iniSectionData iniKeyBackend configIni
           preConfigKeyId = First $ fromIni MkKeyId iniSectionGPG iniKeyKeyId configIni
           preConfigMultKeys = First $ fromIni mkBool iniSectionData iniKeyMultKeys configIni

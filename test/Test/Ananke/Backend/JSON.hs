@@ -11,20 +11,21 @@ import Ananke.Error
 import Control.Monad.State (MonadState, StateT, gets, modify, runStateT)
 import Control.Monad.Trans (lift)
 import Data.Aeson qualified as Aeson
-import Data.ByteString.Lazy qualified as BSL
+import Data.ByteString.Lazy (ByteString)
+import Data.ByteString.Lazy qualified as ByteString
 import Data.ByteString.Lazy.Char8 qualified as Char8
 import System.FilePath ((<.>), (</>))
 import Test.Dwergaz
 
 data TestState = MkTestState
-  { testStateInput :: BSL.ByteString,
-    testSchemaInput :: BSL.ByteString,
-    testStateOutput :: Maybe BSL.ByteString,
-    testSchemaOutput :: Maybe BSL.ByteString
+  { testStateInput :: ByteString,
+    testSchemaInput :: ByteString,
+    testStateOutput :: Maybe ByteString,
+    testSchemaOutput :: Maybe ByteString
   }
   deriving (Show)
 
-mkTestState :: BSL.ByteString -> SchemaVersion -> TestState
+mkTestState :: ByteString -> SchemaVersion -> TestState
 mkTestState input schemaVersion =
   MkTestState
     { testStateInput = input,
@@ -112,8 +113,8 @@ config =
 
 migrateV3 :: IO Test
 migrateV3 = do
-  input <- BSL.readFile $ "test" </> "data-schema-v2" <.> "json"
-  expected <- BSL.readFile $ "test" </> "data-schema-v3" <.> "json"
+  input <- ByteString.readFile $ "test" </> "data-schema-v2" <.> "json"
+  expected <- ByteString.readFile $ "test" </> "data-schema-v3" <.> "json"
   result <- return . go . mkTestState input $ MkSchemaVersion 2
   case result of
     Left failure -> error . show $ failure
@@ -124,7 +125,7 @@ migrateV3 = do
 
 roundtripJson :: IO Test
 roundtripJson = do
-  input <- BSL.readFile $ "example" </> "db" </> "data" <.> "json"
+  input <- ByteString.readFile $ "example" </> "db" </> "data" <.> "json"
   let maybeOutput = encodeJSON <$> Aeson.decode input
   return $ Expect "json to roundtrip" (==) maybeOutput (Just input)
 

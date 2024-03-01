@@ -15,7 +15,7 @@ import Ananke.Class
 import Ananke.Data
 import Control.Applicative ((<|>))
 import Data.Aeson qualified as Aeson
-import Data.Aeson.Encode.Pretty qualified as AesonPretty
+import Data.Aeson.Encode.Pretty qualified as Pretty
 import Data.Char (toLower)
 import Data.List qualified as List
 import Data.Maybe qualified as Maybe
@@ -236,8 +236,8 @@ importJSON jsonFile = do
 exportJSON :: (MonadFilesystem m, MonadStore m) => FilePath -> m Response
 exportJSON jsonFile = do
   entries <- selectAll
-  let aesonConfig = AesonPretty.defConfig {AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
-      output = AesonPretty.encodePretty' aesonConfig . List.sort $ entries
+  let aesonConfig = Pretty.defConfig {Pretty.confCompare = Pretty.keyOrder entryKeyOrder}
+      output = Pretty.encodePretty' aesonConfig . List.sort $ entries
   writeFileBytes jsonFile output
   return Exported
 

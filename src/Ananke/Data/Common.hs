@@ -40,10 +40,9 @@ module Ananke.Data.Common
 where
 
 import Data.Aeson (FromJSON (..), ToJSON (..))
-import Data.ByteString.Lazy qualified as BSL
+import Data.ByteString.Lazy qualified as ByteString
 import Data.Digest.Pure.SHA qualified as SHA
 import Data.Monoid (First)
-import Data.Semigroup qualified as Sem
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Encoding
@@ -65,7 +64,7 @@ data PreConfig = MkPreConfig
   }
   deriving (Show, Eq)
 
-instance Sem.Semigroup PreConfig where
+instance Semigroup PreConfig where
   MkPreConfig a b c d e <> MkPreConfig n o p q r =
     MkPreConfig (a <> n) (b <> o) (c <> p) (d <> q) (e <> r)
 
@@ -190,7 +189,7 @@ instance FromJSON Metadata where
   parseJSON = fmap MkMetadata . parseJSON
 
 mkId :: Text -> Id
-mkId = MkId . Text.pack . SHA.showDigest . SHA.sha1 . BSL.fromStrict . Encoding.encodeUtf8
+mkId = MkId . Text.pack . SHA.showDigest . SHA.sha1 . ByteString.fromStrict . Encoding.encodeUtf8
 
 generateId :: KeyId -> UTCTime -> Description -> Maybe Identity -> Id
 generateId (MkKeyId k) t (MkDescription d) (Just (MkIdentity i)) =

@@ -23,10 +23,11 @@ import Control.Monad.Reader (MonadReader, ReaderT, ask, runReaderT)
 import Control.Monad.State (MonadState, StateT, gets, modify, runStateT)
 import Data.Aeson (Value (..))
 import Data.Aeson qualified as Aeson
-import Data.Aeson.Encode.Pretty qualified as AesonPretty
+import Data.Aeson.Encode.Pretty qualified as Pretty
 import Data.Aeson.KeyMap (Key, KeyMap)
 import Data.Aeson.KeyMap qualified as KeyMap
-import Data.ByteString.Lazy qualified as BSL
+import Data.ByteString.Lazy (ByteString)
+import Data.ByteString.Lazy qualified as ByteString
 import Data.List qualified as List
 
 errUnableToDecode :: String
@@ -51,14 +52,14 @@ newtype JSON a = MkJSON {unJSON :: ReaderT Config (StateT AppState IO) a}
 runJSON :: JSON a -> AppState -> Config -> IO (a, AppState)
 runJSON m state cfg = runStateT (runReaderT (unJSON m) cfg) state
 
-aesonConfig :: AesonPretty.Config
-aesonConfig = AesonPretty.defConfig {AesonPretty.confCompare = AesonPretty.keyOrder entryKeyOrder}
+aesonConfig :: Pretty.Config
+aesonConfig = Pretty.defConfig {Pretty.confCompare = Pretty.keyOrder entryKeyOrder}
 
-appendNewline :: BSL.ByteString -> BSL.ByteString
-appendNewline = flip BSL.append "\n"
+appendNewline :: ByteString -> ByteString
+appendNewline = flip ByteString.append "\n"
 
-encodeJSON :: [Entry] -> BSL.ByteString
-encodeJSON = appendNewline . AesonPretty.encodePretty' aesonConfig . List.sort
+encodeJSON :: [Entry] -> ByteString
+encodeJSON = appendNewline . Pretty.encodePretty' aesonConfig . List.sort
 
 writeState :: AppState -> Config -> IO ()
 writeState state cfg = when (appStateDirty state) $ writeFileBytes jsonFile output
@@ -120,7 +121,7 @@ migrate cfg (MkSchemaVersion 2) = do
   jsonData <- readFileBytes dataFile
   decodedData <- maybe (throwMigration errUnableToDecode) return (Aeson.decode jsonData)
   let remappedData = remapJSON decodedData
-  writeFileBytes dataFile . appendNewline . AesonPretty.encodePretty' aesonConfig $ remappedData
+  writeFileBytes dataFile . appendNewline . Pretty.encodePretty' aesonConfig $ remappedData
   return ()
 migrate _ (MkSchemaVersion v) =
   throwMigration $ "no supported migration path for schema version " ++ show v

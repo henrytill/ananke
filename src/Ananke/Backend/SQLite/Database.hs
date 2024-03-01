@@ -18,7 +18,8 @@ where
 import Ananke.Data
 import Ananke.Error (AppError (..))
 import Control.Exception qualified as Exception
-import Data.Text qualified as T
+import Data.Text (Text)
+import Data.Text qualified as Text
 import Data.Time.Clock (UTCTime)
 import Database.SQLite3 qualified as SQLite3
 
@@ -26,7 +27,7 @@ rethrow :: IO a -> IO a
 rethrow a = Exception.catch a f
   where
     f :: SQLite3.SQLError -> IO a
-    f = Exception.throwIO . Database . T.unpack . SQLite3.sqlErrorDetails
+    f = Exception.throwIO . Database . Text.unpack . SQLite3.sqlErrorDetails
 
 executeStatement :: SQLite3.Statement -> IO ()
 executeStatement stmt =
@@ -34,7 +35,7 @@ executeStatement stmt =
     SQLite3.Row -> executeStatement stmt
     SQLite3.Done -> return ()
 
-columnMaybeText :: SQLite3.Statement -> SQLite3.ColumnIndex -> (T.Text -> a) -> IO (Maybe a)
+columnMaybeText :: SQLite3.Statement -> SQLite3.ColumnIndex -> (Text -> a) -> IO (Maybe a)
 columnMaybeText stmt column f =
   SQLite3.column stmt column >>= \case
     SQLite3.SQLText text -> return . Just . f $ text
@@ -199,31 +200,31 @@ getCountOf db (MkKeyId keyId) =
   where
     s = "SELECT count(*) FROM entries WHERE keyid = :keyid"
 
-idMatcher :: Id -> (T.Text, [(T.Text, SQLite3.SQLData)])
+idMatcher :: Id -> (Text, [(Text, SQLite3.SQLData)])
 idMatcher (MkId i) =
   ("id = :id", [(":id", SQLite3.SQLText i)])
 
-descriptionMatcher :: Description -> (T.Text, [(T.Text, SQLite3.SQLData)])
+descriptionMatcher :: Description -> (Text, [(Text, SQLite3.SQLData)])
 descriptionMatcher (MkDescription d) =
   ("description LIKE :description", [(":description", SQLite3.SQLText ("%" <> d <> "%"))])
 
-identityMatcher :: Identity -> (T.Text, [(T.Text, SQLite3.SQLData)])
+identityMatcher :: Identity -> (Text, [(Text, SQLite3.SQLData)])
 identityMatcher (MkIdentity i) =
   ("identity LIKE :identity", [(":identity", SQLite3.SQLText i)])
 
-metadataMatcher :: Metadata -> (T.Text, [(T.Text, SQLite3.SQLData)])
+metadataMatcher :: Metadata -> (Text, [(Text, SQLite3.SQLData)])
 metadataMatcher (MkMetadata m) =
   ("meta LIKE :meta", [(":meta", SQLite3.SQLText m)])
 
 queryFolder ::
-  (T.Text, [(T.Text, SQLite3.SQLData)]) ->
-  Maybe (T.Text, [(T.Text, SQLite3.SQLData)]) ->
-  (T.Text, [(T.Text, SQLite3.SQLData)])
+  (Text, [(Text, SQLite3.SQLData)]) ->
+  Maybe (Text, [(Text, SQLite3.SQLData)]) ->
+  (Text, [(Text, SQLite3.SQLData)])
 queryFolder ("", []) (Just (qs, np)) = (qs, np)
 queryFolder (accQs, accNp) (Just (qs, np)) = (accQs <> " AND " <> qs, accNp <> np)
 queryFolder (accQs, accNp) Nothing = (accQs, accNp)
 
-queryParts :: Query -> [Maybe (T.Text, [(T.Text, SQLite3.SQLData)])]
+queryParts :: Query -> [Maybe (Text, [(Text, SQLite3.SQLData)])]
 queryParts query =
   [ idMatcher <$> queryId query,
     descriptionMatcher <$> queryDescription query,
@@ -231,7 +232,7 @@ queryParts query =
     metadataMatcher <$> queryMeta query
   ]
 
-generateQuery :: Query -> (T.Text, [(T.Text, SQLite3.SQLData)])
+generateQuery :: Query -> (Text, [(Text, SQLite3.SQLData)])
 generateQuery = (select <>) . foldl queryFolder ("", []) . queryParts
   where
     q = "SELECT id, keyid, timestamp, description, identity, ciphertext, meta FROM entries WHERE "

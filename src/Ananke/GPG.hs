@@ -9,7 +9,7 @@ import Ananke.Error (AppError (..))
 import Ananke.GPG.Process (readProcessWithExitCode)
 import Control.Exception (throwIO)
 import Data.ByteString qualified as BS
-import Data.Text qualified as T
+import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Encoding
 import System.Exit (ExitCode (..))
 
@@ -24,12 +24,12 @@ handleGPGExit f ma = do
   (exitCode, stdout, stderr) <- ma
   case exitCode of
     ExitSuccess -> return $ f stdout
-    ExitFailure _ -> throwIO . GPG . T.unpack . Encoding.decodeUtf8 $ stderr
+    ExitFailure _ -> throwIO . GPG . Text.unpack . Encoding.decodeUtf8 $ stderr
 
 encrypt :: KeyId -> Plaintext -> IO Ciphertext
 encrypt (MkKeyId keyid) (MkPlaintext pt) = handleGPGExit mkCiphertext ma
   where
-    ma = gpgEncrypt (T.unpack keyid) (Encoding.encodeUtf8 pt)
+    ma = gpgEncrypt (Text.unpack keyid) (Encoding.encodeUtf8 pt)
 
 decrypt :: Ciphertext -> IO Plaintext
 decrypt ct = handleGPGExit (MkPlaintext . Encoding.decodeUtf8) ma

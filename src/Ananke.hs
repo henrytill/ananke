@@ -47,5 +47,13 @@ runJSONApp cmd (cfg, state) =
 
 run :: Command -> Config -> IO ExitCode
 run cmd cfg = case configBackend cfg of
-  SQLite -> Exception.bracket (SQLite.initialize cfg) SQLite.finalize (runSQLiteApp cmd)
-  JSON -> Exception.bracket (JSON.preInitialize cfg currentSchemaVersion >> JSON.initialize cfg) JSON.finalize (runJSONApp cmd)
+  SQLite ->
+    Exception.bracket
+      (SQLite.initialize cfg)
+      SQLite.finalize
+      (runSQLiteApp cmd)
+  JSON ->
+    Exception.bracket
+      (JSON.preInitialize cfg currentSchemaVersion >> JSON.initialize cfg)
+      JSON.finalize
+      (runJSONApp cmd)

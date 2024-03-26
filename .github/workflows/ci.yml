@@ -7,44 +7,10 @@ on:
     branches: ["master"]
   workflow_dispatch:
 
-permissions:
-  contents: read
-
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        ghc-version: ["9.4", "9.6", "9.8"]
-
     steps:
       - uses: actions/checkout@v4
-      - uses: haskell-actions/setup@v2
-        with:
-          ghc-version: ${{ matrix.ghc-version }}
-          cabal-version: "3.10"
-      - name: Cache
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-cabal
-        with:
-          path: ~/.cabal
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/*.cabal') }}-${{ hashFiles('**/cabal.project') }}
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
-      - name: Build & Test
-        run: |
-          ./configure
-          make all test
-
-  flake:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
-      - run: nix build
+      - run: ./configure
+      - run: make

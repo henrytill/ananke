@@ -1,6 +1,6 @@
 # ananke
 
-[![Haskell CI](https://github.com/henrytill/ananke/actions/workflows/haskell.yml/badge.svg)](https://github.com/henrytill/ananke/actions/workflows/haskell.yml)
+[![CI](https://github.com/henrytill/ananke/actions/workflows/ci.yml/badge.svg)](https://github.com/henrytill/ananke/actions/workflows/ci.yml)
 
 `ananke` is a minimal password manager with a command-line interface.  Like [`pass`](https://www.passwordstore.org/), it uses [GnuPG](https://gnupg.org/) for asymmetric encryption of passwords.  Unlike `pass`, it stores all information in an [SQLite](https://sqlite.org) database.
 

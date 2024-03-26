@@ -16,3 +16,4 @@ jobs:
           submodules: recursive
       - run: ./configure
       - run: make
+      - run: make check

@@ -11,7 +11,7 @@ use time::{
 macro_rules! wrap_string {
     ($name:ident) => {
         /// A newtype that wraps a [`String`].
-        #[derive(Serialize, Deserialize, Debug, Clone)]
+        #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
         pub struct $name(String);
 
         impl $name {
@@ -47,6 +47,7 @@ wrap_string!(KeyId);
 wrap_string!(Description);
 wrap_string!(Identity);
 wrap_string!(Metadata);
+wrap_string!(Plaintext);
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Timestamp(#[serde(with = "iso8601")] OffsetDateTime);

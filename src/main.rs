@@ -35,7 +35,7 @@ mod command {
     use anyhow::Result;
     use clap::ArgMatches;
 
-    use ananke::config::ConfigBuilder;
+    use ananke::ConfigBuilder;
 
     pub fn lookup(matches: &ArgMatches) -> Result<()> {
         println!(

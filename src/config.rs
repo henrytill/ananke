@@ -29,7 +29,7 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Backend {
     Sqlite,
     Json,
@@ -37,11 +37,33 @@ pub enum Backend {
 
 #[derive(Debug)]
 pub struct Config {
-    pub config_dir: PathBuf,
-    pub data_dir: PathBuf,
-    pub backend: Backend,
-    pub key_id: KeyId,
-    pub mult_keys: bool,
+    config_dir: PathBuf,
+    data_dir: PathBuf,
+    backend: Backend,
+    key_id: KeyId,
+    mult_keys: bool,
+}
+
+impl Config {
+    pub fn config_dir(&self) -> &PathBuf {
+        &self.config_dir
+    }
+
+    pub fn data_dir(&self) -> &PathBuf {
+        &self.data_dir
+    }
+
+    pub fn backend(&self) -> Backend {
+        self.backend
+    }
+
+    pub fn key_id(&self) -> &KeyId {
+        &self.key_id
+    }
+
+    pub fn mult_keys(&self) -> bool {
+        self.mult_keys
+    }
 }
 
 #[derive(Debug)]

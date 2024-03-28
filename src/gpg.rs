@@ -7,6 +7,7 @@ use std::{
 
 use crate::data::{Ciphertext, KeyId, Plaintext};
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum Error {
     Io(io::Error),
@@ -28,6 +29,7 @@ impl From<string::FromUtf8Error> for Error {
     }
 }
 
+#[allow(dead_code)]
 pub fn encrypt<I, K, V>(key_id: KeyId, plaintext: &Plaintext, vars: I) -> Result<Ciphertext, Error>
 where
     I: IntoIterator<Item = (K, V)>,
@@ -65,6 +67,7 @@ where
     Ok(Ciphertext::new(buf))
 }
 
+#[allow(dead_code)]
 pub fn decrypt<I, K, V>(ciphertext: &Ciphertext, vars: I) -> Result<Plaintext, Error>
 where
     I: IntoIterator<Item = (K, V)>,

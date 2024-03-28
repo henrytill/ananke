@@ -14,6 +14,7 @@ macro_rules! wrap_string {
         #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
         pub struct $name(String);
 
+        #[allow(dead_code)]
         impl $name {
             pub const fn new(value: String) -> Self {
                 Self(value)
@@ -62,10 +63,6 @@ pub struct Ciphertext(#[serde(with = "base64")] Vec<u8>);
 impl Ciphertext {
     pub const fn new(value: Vec<u8>) -> Self {
         Self(value)
-    }
-
-    pub fn into_inner(self) -> Vec<u8> {
-        self.0
     }
 }
 

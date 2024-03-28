@@ -1,5 +1,5 @@
-pub mod config;
-#[allow(dead_code)]
+mod config;
 mod data;
-#[allow(dead_code)]
 mod gpg;
+
+pub use config::{Config, ConfigBuilder};

@@ -7,20 +7,19 @@
 
 const char *const DATA_JSON = "./example/db/data.json";
 
-typedef struct result result;
-
-struct result {
+struct error {
     int rc;
     const char *msg;
 };
 
 enum {
-    MISSING_KEY = 1,
-    WRONG_TYPE = 2,
+    JSON = 1,
+    MISSING_KEY = 2,
+    WRONG_TYPE = 3,
 };
 
-#define MSG_MISSING_KEY "Missing key: "
-#define MSG_WRONG_TYPE  "Wrong type for key: "
+#define MSG_MISSING_KEY "missing key: "
+#define MSG_WRONG_TYPE  "wrong type for key: "
 
 #ifdef PRINT
 static void print_entry(struct entry *e)
@@ -49,11 +48,10 @@ static inline void print_entries(struct entries *es)
 }
 #endif
 
-static result make_entry(yyjson_val *entry_val, struct entry *out)
+static int make_entry(yyjson_val *entry_val, struct entry *out, struct error *out_err)
 {
     assert(yyjson_get_type(entry_val) == YYJSON_TYPE_OBJ);
 
-    result ret = {0};
     yyjson_val *val = NULL;
     const char *str = NULL;
 
@@ -61,15 +59,15 @@ static result make_entry(yyjson_val *entry_val, struct entry *out)
     do {                                         \
         val = yyjson_obj_get(entry_val, (name)); \
         if (val == NULL) {                       \
-            ret.rc = -MISSING_KEY;               \
-            ret.msg = MSG_MISSING_KEY name;      \
-            return ret;                          \
+            out_err->rc = -MISSING_KEY;          \
+            out_err->msg = MSG_MISSING_KEY name; \
+            return -MISSING_KEY;                 \
         };                                       \
         str = yyjson_get_str(val);               \
         if (str == NULL) {                       \
-            ret.rc = -WRONG_TYPE;                \
-            ret.msg = MSG_WRONG_TYPE name;       \
-            return ret;                          \
+            out_err->rc = -WRONG_TYPE;           \
+            out_err->msg = MSG_WRONG_TYPE name;  \
+            return -WRONG_TYPE;                  \
         };                                       \
         (dest) = calloc(1, strlen(str) + 1);     \
         strcpy((dest), str);                     \
@@ -83,8 +81,9 @@ static result make_entry(yyjson_val *entry_val, struct entry *out)
         };                                       \
         str = yyjson_get_str(val);               \
         if (str == NULL) {                       \
-            ret.rc = -WRONG_TYPE;                \
-            ret.msg = MSG_WRONG_TYPE name;       \
+            out_err->rc = -WRONG_TYPE;           \
+            out_err->msg = MSG_WRONG_TYPE name;  \
+            return -WRONG_TYPE;                  \
         };                                       \
         (dest) = calloc(1, strlen(str) + 1);     \
         strcpy((dest), str);                     \
@@ -99,48 +98,58 @@ static result make_entry(yyjson_val *entry_val, struct entry *out)
     OPTIONAL("identity", out->identity);
     OPTIONAL("meta", out->metadata);
 
-    return ret;
+    assert(out_err->rc == 0);
+    assert(out_err->msg == NULL);
+    return 0;
 #undef REQUIRED
 #undef OPTIONAL
 }
 
-static struct entries *deserialize(size_t buf_len, char buf[buf_len])
+static struct entries *deserialize(size_t buf_len, char buf[buf_len], struct error *err)
 {
     struct entries *ret = NULL;
 
     yyjson_doc *doc = yyjson_read(buf, buf_len, 0);
     if (doc == NULL) {
-        (void)fprintf(stderr, "yyjson_read failed.\n");
+        err->rc = JSON;
+        err->msg = "yyjson_read failed";
         return ret;
     }
 
     yyjson_val *root = yyjson_doc_get_root(doc);
     if (root == NULL) {
-        (void)fprintf(stderr, "root should not be NULL.\n");
+        err->rc = JSON;
+        err->msg = "root should be non-NULL";
         goto out_free_doc;
     }
 
     yyjson_type root_type = yyjson_get_type(root);
     if (root_type != YYJSON_TYPE_ARR) {
-        (void)fprintf(stderr, "root_type should be array.\n");
+        err->rc = JSON;
+        err->msg = "root_type should be YYJSON_TYPE_ARR";
         goto out_free_doc;
     }
 
     size_t arr_size = yyjson_arr_size(root);
     struct entries *tmp = entries_create(arr_size);
 
-    result res = {0};
     yyjson_val *val = NULL;
+    int rc = 0;
     for (size_t i = 0; i < tmp->len; ++i) {
         val = yyjson_arr_get(root, i);
         assert(val != NULL);
-        res = make_entry(val, &tmp->data[i]);
-        if (res.rc != 0) {
-            (void)fprintf(stderr, "%s\n", res.msg);
+        rc = make_entry(val, &tmp->data[i], err);
+        if (rc != 0) {
             entries_destroy(tmp);
+            assert(err->rc != 0);
+            assert(err->msg != NULL);
+            assert(ret == NULL);
             goto out_free_doc;
         }
     }
+
+    assert(err->rc == 0);
+    assert(err->msg == NULL);
 
     ret = tmp;
 out_free_doc:
@@ -225,9 +234,10 @@ int main(int argc, char *argv[])
     fread(buf, fsize, 1, fp);
     fclose(fp);
 
-    struct entries *es = deserialize(fsize, buf);
-    if (es == NULL) {
-        (void)fprintf(stderr, "deserialize failed.\n");
+    struct error err = {0};
+    struct entries *es = deserialize(fsize, buf, &err);
+    if (es == NULL || err.rc != 0) {
+        (void)fprintf(stderr, "deserialize failed: %s\n", err.msg);
         goto out_free_buf;
     };
 
@@ -246,6 +256,9 @@ int main(int argc, char *argv[])
     } else {
         ret = EXIT_FAILURE;
     }
+
+    assert(err.rc == 0);
+    assert(err.msg == NULL);
 
     free(json);
 out_destroy_es:

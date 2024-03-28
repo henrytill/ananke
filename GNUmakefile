@@ -6,9 +6,11 @@ HEADERS += include/entry.h
 HEADERS += include/yyjson.h
 
 OBJECTS =
+OBJECTS += src/entry.o
 OBJECTS += src/yyjson.o
 
 TEST_OBJECTS =
+TEST_OBJECTS += src/entry.o
 TEST_OBJECTS += src/yyjson.o
 TEST_OBJECTS += test/json_parse_test.o
 

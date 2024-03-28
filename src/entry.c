@@ -6,8 +6,7 @@
 struct entries *entries_create(size_t len)
 {
     struct entries *ret = calloc(1, sizeof(*ret) + (sizeof(struct entry) * len));
-    assert(ret != NULL);
-    ret->len = len;
+    if (ret != NULL) { ret->len = len; }
     return ret;
 }
 

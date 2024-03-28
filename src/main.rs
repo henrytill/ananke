@@ -1,3 +1,4 @@
+use anyhow::Result;
 use clap::{Arg, Command};
 
 fn command() -> Command {
@@ -21,7 +22,7 @@ fn command() -> Command {
         .subcommand(lookup)
 }
 
-fn main() {
+fn main() -> Result<()> {
     let matches = command().get_matches();
     match matches.subcommand() {
         Some(("lookup", sub_matches)) => command::lookup(sub_matches),
@@ -31,13 +32,21 @@ fn main() {
 }
 
 mod command {
+    use anyhow::Result;
     use clap::ArgMatches;
 
-    pub fn lookup(matches: &ArgMatches) {
+    use ananke::config::ConfigBuilder;
+
+    pub fn lookup(matches: &ArgMatches) -> Result<()> {
         println!(
             "lookup {}",
             matches.get_one::<String>("DESCRIPTION").expect("required")
-        )
+        );
+
+        let mut config_builder = ConfigBuilder::new("ananke");
+        config_builder = config_builder.with_defaults()?;
+        let _config = config_builder.build()?;
+        Ok(())
     }
 }
 

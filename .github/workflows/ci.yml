@@ -2,13 +2,13 @@ name: CI
 
 on:
   push:
-    branches: ["master"]
+    branches: ['master']
   pull_request:
-    branches: ["master"]
+    branches: ['master']
   workflow_dispatch:
 
 jobs:
-  build:
+  linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,3 +17,37 @@ jobs:
       - run: ./configure
       - run: make
       - run: make check
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: ./configure
+      - run: make
+      - run: make check
+  windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - { sys: mingw64, env: x86_64 }
+          - { sys: clang64, env: clang-x86_64 }
+          - { sys: ucrt64, env: ucrt-x86_64 }
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{matrix.sys}}
+          install: >-
+            mingw-w64-${{matrix.env}}-toolchain
+      - name: Check MSYSTEM
+        run: echo $MSYSTEM
+      - run: ./configure
+      - run: mingw32-make
+      - run: mingw32-make check

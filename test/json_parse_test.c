@@ -76,7 +76,7 @@ static int make_entry(yyjson_val *entry_val, struct entry *out, struct error *er
             err->msg = "calloc failed";          \
             return -ALLOC;                       \
         }                                        \
-        strcpy((dest), str);                     \
+        strncpy((dest), str, strlen(str));       \
     } while (0)
 
 #define OPTIONAL(name, dest)                     \
@@ -97,7 +97,7 @@ static int make_entry(yyjson_val *entry_val, struct entry *out, struct error *er
             err->msg = "calloc failed";          \
             return -ALLOC;                       \
         }                                        \
-        strcpy((dest), str);                     \
+        strncpy((dest), str, strlen(str));       \
     } while (0)
 
     REQUIRED("id", out->id);

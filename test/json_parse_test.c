@@ -121,10 +121,11 @@ static struct entries *deserialize(size_t buf_len, char buf[buf_len], struct err
 {
     struct entries *ret = NULL;
 
-    yyjson_doc *doc = yyjson_read(buf, buf_len, 0);
+    yyjson_read_err yyjson_err = {0};
+    yyjson_doc *doc = yyjson_read_opts(buf, buf_len, 0, NULL, &yyjson_err);
     if (doc == NULL) {
         err->rc = -JSON;
-        err->msg = "yyjson_read failed";
+        err->msg = yyjson_err.msg;
         return ret;
     }
 

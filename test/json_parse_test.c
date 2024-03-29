@@ -249,7 +249,9 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    FILE *fp = fopen(file, "r");
+    printf("file: %s\n", file);
+
+    FILE *fp = fopen(file, "rb");
     fseek(fp, 0, SEEK_END);
     const size_t fsize = (size_t)ftell(fp);
     fseek(fp, 0, SEEK_SET);

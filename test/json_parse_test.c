@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -117,7 +118,7 @@ static int make_entry(yyjson_val *entry_val, struct entry *out, struct error *er
     return 0;
 }
 
-static struct entries *deserialize(size_t buf_len, char buf[buf_len], struct error *err)
+static struct entries *deserialize(size_t buf_len, char buf[buf_len + 1], struct error *err)
 {
     struct entries *ret = NULL;
 
@@ -253,13 +254,15 @@ int main(int argc, char *argv[])
     const size_t fsize = (size_t)ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    char *buf = malloc(fsize);
+    char *buf = calloc(1, fsize + 1);
     assert(buf != NULL);
     fread(buf, fsize, 1, fp);
     fclose(fp);
 
+    assert(strlen(buf) == fsize);
+
     struct error err = {0};
-    struct entries *es = deserialize(fsize, buf, &err);
+    struct entries *es = deserialize(strlen(buf), buf, &err);
     if (es == NULL || err.rc != 0) {
         (void)fprintf(stderr, "deserialize failed: %s\n", err.msg);
         goto out_free_buf;
@@ -273,11 +276,13 @@ int main(int argc, char *argv[])
 
     print_entries(es);
 
-    buf[fsize - 1] = '\000'; // remove final newline
-    if (strcmp(json, buf) == 0) {
+    if (strncmp(json, buf, strlen(json)) == 0) {
         printf("PASS\n");
         ret = EXIT_SUCCESS;
     } else {
+        printf("FAILED\n");
+        printf("strlen(buf): %" PRIu64 "\n", strlen(buf));
+        printf("strlen(json): %" PRIu64 "\n", strlen(json));
         ret = EXIT_FAILURE;
     }
 

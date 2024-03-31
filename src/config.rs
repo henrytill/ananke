@@ -1,25 +1,25 @@
-use std::{env, fmt, path::PathBuf};
+use std::{env::VarError, fmt, path::PathBuf};
 
 use crate::data::KeyId;
 
 #[derive(Debug)]
 pub enum Error {
-    Var(env::VarError, &'static str),
+    Var(VarError, &'static str),
     MissingConfigDir,
     MissingDataDir,
     MissingKeyId,
 }
 
-impl From<(env::VarError, &'static str)> for Error {
-    fn from((err, msg): (env::VarError, &'static str)) -> Self {
-        Error::Var(err, msg)
+impl From<(VarError, &'static str)> for Error {
+    fn from((err, var): (VarError, &'static str)) -> Self {
+        Error::Var(err, var)
     }
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::Var(err, string) => write!(f, "{}: {}", err, string),
+            Error::Var(err, var) => write!(f, "{}: {}", err, var),
             Error::MissingConfigDir => write!(f, "missing config_dir"),
             Error::MissingDataDir => write!(f, "missing data_dir"),
             Error::MissingKeyId => write!(f, "missing key_id"),
@@ -117,14 +117,14 @@ impl ConfigBuilder {
 
 mod internal {
     use std::{
-        env,
+        env::VarError,
         path::{Path, PathBuf},
     };
 
     use cfg_if::cfg_if;
 
     #[inline]
-    pub fn config_dir(name: impl AsRef<Path>) -> Result<PathBuf, (env::VarError, &'static str)> {
+    pub fn config_dir(name: impl AsRef<Path>) -> Result<PathBuf, (VarError, &'static str)> {
         cfg_if! {
             if #[cfg(target_os = "windows")] {
                 windows::local_app_data(name)
@@ -137,7 +137,7 @@ mod internal {
     }
 
     #[inline]
-    pub fn data_dir(name: impl AsRef<Path>) -> Result<PathBuf, (env::VarError, &'static str)> {
+    pub fn data_dir(name: impl AsRef<Path>) -> Result<PathBuf, (VarError, &'static str)> {
         cfg_if! {
             if #[cfg(target_os = "windows")] {
                 windows::app_data(name)
@@ -152,14 +152,12 @@ mod internal {
     #[cfg(target_os = "windows")]
     mod windows {
         use std::{
-            env,
+            env::{self, VarError},
             path::{Path, PathBuf},
         };
 
         #[inline]
-        pub fn local_app_data(
-            name: impl AsRef<Path>,
-        ) -> Result<PathBuf, (env::VarError, &'static str)> {
+        pub fn local_app_data(name: impl AsRef<Path>) -> Result<PathBuf, (VarError, &'static str)> {
             let var = "LOCALAPPDATA";
             match env::var(var) {
                 Ok(dir) => {
@@ -172,7 +170,7 @@ mod internal {
         }
 
         #[inline]
-        pub fn app_data(name: impl AsRef<Path>) -> Result<PathBuf, (env::VarError, &'static str)> {
+        pub fn app_data(name: impl AsRef<Path>) -> Result<PathBuf, (VarError, &'static str)> {
             let var = "APPDATA";
             match env::var(var) {
                 Ok(dir) => {
@@ -188,14 +186,12 @@ mod internal {
     #[cfg(target_os = "macos")]
     mod macos {
         use std::{
-            env,
+            env::{self, VarError},
             path::{Path, PathBuf},
         };
 
         #[inline]
-        pub fn support_dir(
-            name: impl AsRef<Path>,
-        ) -> Result<PathBuf, (env::VarError, &'static str)> {
+        pub fn support_dir(name: impl AsRef<Path>) -> Result<PathBuf, (VarError, &'static str)> {
             let var = "HOME";
             match env::var(var) {
                 Ok(dir) => {
@@ -213,15 +209,12 @@ mod internal {
     #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     mod xdg {
         use std::{
-            env,
-            env::VarError,
+            env::{self, VarError},
             path::{Path, PathBuf},
         };
 
         #[inline]
-        pub fn config_dir(
-            name: impl AsRef<Path>,
-        ) -> Result<PathBuf, (env::VarError, &'static str)> {
+        pub fn config_dir(name: impl AsRef<Path>) -> Result<PathBuf, (VarError, &'static str)> {
             let var = "XDG_CONFIG_DIR";
             match env::var(var) {
                 Ok(dir) => {
@@ -245,7 +238,7 @@ mod internal {
         }
 
         #[inline]
-        pub fn data_dir(name: impl AsRef<Path>) -> Result<PathBuf, (env::VarError, &'static str)> {
+        pub fn data_dir(name: impl AsRef<Path>) -> Result<PathBuf, (VarError, &'static str)> {
             let var = "XDG_DATA_DIR";
             match env::var(var) {
                 Ok(dir) => {

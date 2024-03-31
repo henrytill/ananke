@@ -196,6 +196,57 @@ mod internal {
                 Err(err) => Err((err, var)),
             }
         }
+
+        #[cfg(test)]
+        mod tests {
+            use std::{env::VarError, path::PathBuf};
+
+            #[test]
+            fn local_app_data_returns_ok() {
+                let local_app_data = String::from("C:\\Users\\test\\AppData\\Local");
+                let getenv = |s: &'static str| {
+                    if s == "LOCALAPPDATA" {
+                        Ok(local_app_data.clone())
+                    } else {
+                        Err(VarError::NotPresent)
+                    }
+                };
+                let expected: PathBuf = [local_app_data.as_str(), "test"].into_iter().collect();
+                let actual = super::local_app_data(&getenv, "test").expect("should return path");
+                assert_eq!(expected, actual)
+            }
+
+            #[test]
+            fn local_app_data_returns_err() {
+                let getenv = |_| Err(VarError::NotPresent);
+                let expected = Err((VarError::NotPresent, "LOCALAPPDATA"));
+                let actual = super::local_app_data(&getenv, "test");
+                assert_eq!(expected, actual);
+            }
+
+            #[test]
+            fn app_data_returns_ok() {
+                let app_data = String::from("C:\\Users\\test\\AppData\\Roaming");
+                let getenv = |s: &'static str| {
+                    if s == "APPDATA" {
+                        Ok(app_data.clone())
+                    } else {
+                        Err(VarError::NotPresent)
+                    }
+                };
+                let expected: PathBuf = [app_data.as_str(), "test"].into_iter().collect();
+                let actual = super::app_data(&getenv, "test").expect("should return path");
+                assert_eq!(expected, actual)
+            }
+
+            #[test]
+            fn app_data_returns_err() {
+                let getenv = |_| Err(VarError::NotPresent);
+                let expected = Err((VarError::NotPresent, "APPDATA"));
+                let actual = super::app_data(&getenv, "test");
+                assert_eq!(expected, actual);
+            }
+        }
     }
 
     #[cfg(target_os = "macos")]
@@ -220,6 +271,36 @@ mod internal {
                     Ok(ret)
                 }
                 Err(err) => Err((err, var)),
+            }
+        }
+
+        #[cfg(test)]
+        mod tests {
+            use std::{env::VarError, path::PathBuf};
+
+            #[test]
+            fn support_dir_returns_ok() {
+                let home = String::from("/Users/test");
+                let getenv = |s: &'static str| {
+                    if s == "HOME" {
+                        Ok(home.clone())
+                    } else {
+                        Err(VarError::NotPresent)
+                    }
+                };
+                let expected: PathBuf = [home.as_str(), "Library", "Application Support", "test"]
+                    .into_iter()
+                    .collect();
+                let actual = super::support_dir(&getenv, "test").expect("should return path");
+                assert_eq!(expected, actual)
+            }
+
+            #[test]
+            fn support_dir_returns_err() {
+                let getenv = |_| Err(VarError::NotPresent);
+                let expected = Err((VarError::NotPresent, "HOME"));
+                let actual = super::support_dir(&getenv, "test");
+                assert_eq!(expected, actual);
             }
         }
     }
@@ -285,8 +366,88 @@ mod internal {
                 Err(err) => Err((err, var)),
             }
         }
-    }
 
-    #[cfg(test)]
-    mod tests {}
+        #[cfg(test)]
+        mod tests {
+            use std::{env::VarError, path::PathBuf};
+
+            #[test]
+            fn config_dir_returns_ok() {
+                let home = String::from("/home/test");
+                let getenv = |s: &'static str| {
+                    if s == "HOME" {
+                        Ok(home.clone())
+                    } else {
+                        Err(VarError::NotPresent)
+                    }
+                };
+                let expected: PathBuf = [home.as_str(), ".config", "test"].into_iter().collect();
+                let actual = super::config_dir(&getenv, "test").expect("should return path");
+                assert_eq!(expected, actual)
+            }
+
+            #[test]
+            fn config_dir_returns_ok_custom_xdg() {
+                let xdg_config_dir = String::from("/tmp/config");
+                let getenv = |s: &'static str| {
+                    if s == "XDG_CONFIG_DIR" {
+                        Ok(xdg_config_dir.clone())
+                    } else {
+                        Err(VarError::NotPresent)
+                    }
+                };
+                let expected: PathBuf = [xdg_config_dir.as_str(), "test"].into_iter().collect();
+                let actual = super::config_dir(&getenv, "test").expect("should return path");
+                assert_eq!(expected, actual);
+            }
+
+            #[test]
+            fn config_dir_returns_err() {
+                let getenv = |_| Err(VarError::NotPresent);
+                let expected = Err((VarError::NotPresent, "HOME"));
+                let actual = super::config_dir(&getenv, "test");
+                assert_eq!(expected, actual);
+            }
+
+            #[test]
+            fn data_dir_returns_ok() {
+                let home = String::from("/home/test");
+                let getenv = |s: &'static str| {
+                    if s == "HOME" {
+                        Ok(home.clone())
+                    } else {
+                        Err(VarError::NotPresent)
+                    }
+                };
+                let expected: PathBuf = [home.as_str(), ".local", "share", "test"]
+                    .into_iter()
+                    .collect();
+                let actual = super::data_dir(&getenv, "test").expect("should return path");
+                assert_eq!(expected, actual)
+            }
+
+            #[test]
+            fn data_dir_returns_ok_custom_xdg() {
+                let xdg_data_dir = String::from("/tmp/data");
+                let getenv = |s: &'static str| {
+                    if s == "XDG_DATA_DIR" {
+                        Ok(xdg_data_dir.clone())
+                    } else {
+                        Err(VarError::NotPresent)
+                    }
+                };
+                let expected: PathBuf = [xdg_data_dir.as_str(), "test"].into_iter().collect();
+                let actual = super::data_dir(&getenv, "test").expect("should return path");
+                assert_eq!(expected, actual);
+            }
+
+            #[test]
+            fn data_dir_returns_err() {
+                let getenv = |_| Err(VarError::NotPresent);
+                let expected = Err((VarError::NotPresent, "HOME"));
+                let actual = super::data_dir(&getenv, "test");
+                assert_eq!(expected, actual);
+            }
+        }
+    }
 }

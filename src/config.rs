@@ -1,10 +1,4 @@
-use std::{
-    env,
-    ffi::OsString,
-    fmt, fs, io,
-    path::PathBuf,
-    str::{FromStr, ParseBoolError},
-};
+use std::{convert::Infallible, env, ffi::OsString, fmt, fs, io, path::PathBuf, str::FromStr};
 
 use configparser::ini::Ini;
 
@@ -98,27 +92,27 @@ impl Config {
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
-struct Bool(bool);
+struct Flag(bool);
 
-impl From<Bool> for bool {
-    fn from(value: Bool) -> Self {
+impl From<Flag> for bool {
+    fn from(value: Flag) -> Self {
         value.0
     }
 }
 
-impl From<bool> for Bool {
+impl From<bool> for Flag {
     fn from(value: bool) -> Self {
-        Bool(value)
+        Flag(value)
     }
 }
 
-impl FromStr for Bool {
-    type Err = ParseBoolError;
+impl FromStr for Flag {
+    type Err = Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "true" | "t" | "yes" | "y" | "1" => Ok(Bool(true)),
-            _ => Ok(Bool(false)),
+            "true" | "t" | "yes" | "y" | "1" => Ok(Flag(true)),
+            _ => Ok(Flag(false)),
         }
     }
 }
@@ -130,7 +124,7 @@ pub struct ConfigBuilder {
     maybe_data_dir: Option<PathBuf>,
     backend: Backend,
     maybe_key_id: Option<KeyId>,
-    mult_keys: Bool,
+    mult_keys: Flag,
 }
 
 impl ConfigBuilder {
@@ -140,7 +134,7 @@ impl ConfigBuilder {
             maybe_config_dir: None,
             maybe_data_dir: None,
             backend: Backend::default(),
-            mult_keys: Bool::default(),
+            mult_keys: Flag::default(),
             maybe_key_id: None,
         }
     }
@@ -184,7 +178,7 @@ impl ConfigBuilder {
         }
         if let Some(mult_keys) = config
             .get("data", "allow_multiple_keys")
-            .and_then(|mult_keys| mult_keys.parse::<Bool>().ok())
+            .and_then(|mult_keys| mult_keys.parse::<Flag>().ok())
         {
             self.mult_keys = mult_keys
         }
@@ -213,7 +207,7 @@ impl ConfigBuilder {
         }
         if let Some(mult_keys) = getenv(format!("{}_ALLOW_MULTIPLE_KEYS", name).into())
             .ok()
-            .and_then(|mult_keys| mult_keys.parse::<Bool>().ok())
+            .and_then(|mult_keys| mult_keys.parse::<Flag>().ok())
         {
             self.mult_keys = mult_keys
         }

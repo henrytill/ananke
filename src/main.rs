@@ -5,9 +5,8 @@ fn command() -> Command {
     let version = version::version_info().to_string();
 
     let lookup = {
-        let arg_description = Arg::new("DESCRIPTION")
-            .value_name("DESCRIPTION")
-            .help("Description or URL");
+        let arg_description =
+            Arg::new("DESCRIPTION").value_name("DESCRIPTION").help("Description or URL");
         Command::new("lookup")
             .about("Lookup an entry")
             .arg(arg_description)
@@ -38,10 +37,7 @@ mod command {
     use ananke::ConfigBuilder;
 
     pub fn lookup(matches: &ArgMatches) -> Result<()> {
-        println!(
-            "lookup {}",
-            matches.get_one::<String>("DESCRIPTION").expect("required")
-        );
+        println!("lookup {}", matches.get_one::<String>("DESCRIPTION").expect("required"));
 
         let mut config_builder = ConfigBuilder::new();
         config_builder = config_builder
@@ -88,15 +84,8 @@ mod version {
         let commit_info = option_env_str!("ANANKE_COMMIT_HASH").map(|commit_hash| {
             let short_commit_hash = option_env_str!("ANANKE_COMMIT_SHORT_HASH").unwrap();
             let commit_date = option_env_str!("ANANKE_COMMIT_DATE").unwrap();
-            CommitInfo {
-                short_commit_hash,
-                commit_hash,
-                commit_date,
-            }
+            CommitInfo { short_commit_hash, commit_hash, commit_date }
         });
-        VersionInfo {
-            version,
-            commit_info,
-        }
+        VersionInfo { version, commit_info }
     }
 }

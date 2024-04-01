@@ -268,21 +268,12 @@ impl ConfigBuilder {
     }
 
     pub fn build(mut self) -> Result<Config, Error> {
-        let config_dir = self
-            .maybe_config_dir
-            .take()
-            .ok_or(Error::MissingConfigDir)?;
+        let config_dir = self.maybe_config_dir.take().ok_or(Error::MissingConfigDir)?;
         let data_dir = self.maybe_data_dir.take().ok_or(Error::MissingDataDir)?;
         let backend = self.backend;
         let key_id = self.maybe_key_id.take().ok_or(Error::MissingKeyId)?;
         let mult_keys = self.mult_keys.into();
-        Ok(Config {
-            config_dir,
-            data_dir,
-            backend,
-            key_id,
-            mult_keys,
-        })
+        Ok(Config { config_dir, data_dir, backend, key_id, mult_keys })
     }
 }
 
@@ -456,9 +447,8 @@ mod internal {
                         Err(VarError::NotPresent)
                     }
                 };
-                let expected: PathBuf = [home, "Library", "Application Support", "test"]
-                    .into_iter()
-                    .collect();
+                let expected: PathBuf =
+                    [home, "Library", "Application Support", "test"].into_iter().collect();
                 let actual = super::support_dir(&getenv, "test").expect("should return path");
                 assert_eq!(expected, actual)
             }
@@ -653,9 +643,7 @@ allow_multiple_keys={}
             key_id.to_string(),
             mult_keys.to_string()
         );
-        let actual = ConfigBuilder::new()
-            .with_config(Some(input))
-            .expect("should parse");
+        let actual = ConfigBuilder::new().with_config(Some(input)).expect("should parse");
         assert_eq!(expected, actual);
     }
 
@@ -663,9 +651,7 @@ allow_multiple_keys={}
     fn with_config_parses_empty_ini() {
         let expected = ConfigBuilder::new();
         let input = String::new();
-        let actual = ConfigBuilder::new()
-            .with_config(Some(input))
-            .expect("should parse");
+        let actual = ConfigBuilder::new().with_config(Some(input)).expect("should parse");
         assert_eq!(expected, actual);
     }
 
@@ -701,9 +687,7 @@ allow_multiple_keys={}
             maybe_key_id: Some(key_id),
             mult_keys,
         };
-        let actual = ConfigBuilder::new()
-            .with_env(&getenv)
-            .expect("should parse");
+        let actual = ConfigBuilder::new().with_env(&getenv).expect("should parse");
         assert_eq!(expected, actual);
     }
 }

@@ -58,10 +58,7 @@ where
     thread_result?;
 
     if !status.success() {
-        return Err(Error::from(io::Error::other(format!(
-            "gpg exited with status {}",
-            status
-        ))));
+        return Err(Error::from(io::Error::other(format!("gpg exited with status {}", status))));
     }
 
     Ok(Ciphertext::new(buf))
@@ -96,10 +93,7 @@ where
     thread_result?;
 
     if !status.success() {
-        return Err(Error::from(io::Error::other(format!(
-            "gpg exited with status {}",
-            status
-        ))));
+        return Err(Error::from(io::Error::other(format!("gpg exited with status {}", status))));
     }
 
     let txt = String::from_utf8(buf)?;

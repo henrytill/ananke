@@ -1,4 +1,4 @@
-use std::{convert::Infallible, env, ffi::OsString, fmt, fs, io, path::PathBuf, str::FromStr};
+use std::{convert::Infallible, env, fmt, fs, io, path::PathBuf, str::FromStr};
 
 use configparser::ini::Ini;
 
@@ -6,7 +6,7 @@ use crate::data::KeyId;
 
 #[derive(Debug)]
 pub enum Error {
-    Var(env::VarError, String),
+    Var(env::VarError, &'static str),
     Io(io::Error),
     Ini(String),
     MissingConfigDir,
@@ -14,8 +14,8 @@ pub enum Error {
     MissingKeyId,
 }
 
-impl From<(env::VarError, String)> for Error {
-    fn from((err, var): (env::VarError, String)) -> Self {
+impl From<(env::VarError, &'static str)> for Error {
+    fn from((err, var): (env::VarError, &'static str)) -> Self {
         Error::Var(err, var)
     }
 }
@@ -23,6 +23,12 @@ impl From<(env::VarError, String)> for Error {
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
         Error::Io(err)
+    }
+}
+
+impl From<Infallible> for Error {
+    fn from(_: Infallible) -> Self {
+        unreachable!()
     }
 }
 
@@ -60,6 +66,16 @@ impl FromStr for Backend {
     }
 }
 
+impl ToString for Backend {
+    fn to_string(&self) -> String {
+        let str = match self {
+            Backend::Json => "json",
+            Backend::Sqlite => "sqlite",
+        };
+        String::from(str)
+    }
+}
+
 #[derive(Debug)]
 pub struct Config {
     config_dir: PathBuf,
@@ -91,7 +107,7 @@ impl Config {
     }
 }
 
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 struct Flag(bool);
 
 impl From<Flag> for bool {
@@ -117,9 +133,14 @@ impl FromStr for Flag {
     }
 }
 
+impl ToString for Flag {
+    fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct ConfigBuilder {
-    name: String,
     maybe_config_dir: Option<PathBuf>,
     maybe_data_dir: Option<PathBuf>,
     backend: Backend,
@@ -127,10 +148,38 @@ pub struct ConfigBuilder {
     mult_keys: Flag,
 }
 
+impl Default for ConfigBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+struct IniSelector {
+    section: &'static str,
+    key: &'static str,
+}
+
+impl IniSelector {
+    const fn new(section: &'static str, key: &'static str) -> Self {
+        Self { section, key }
+    }
+}
+
 impl ConfigBuilder {
-    pub fn new(name: impl Into<String>) -> Self {
+    const NAME: &'static str = "ananke";
+    const CONFIG_FILE: &'static str = "ananke.ini";
+    const ENV_CONFIG_DIR: &'static str = "ANANKE_CONFIG_DIR";
+    const ENV_DATA_DIR: &'static str = "ANANKE_DATA_DIR";
+    const ENV_BACKEND: &'static str = "ANANKE_BACKEND";
+    const ENV_KEY_ID: &'static str = "ANANKE_KEY_ID";
+    const ENV_MULT_KEYS: &'static str = "ANANKE_ALLOW_MULTIPLE_KEYS";
+    const INI_DATA_DIR: IniSelector = IniSelector::new("data", "dir");
+    const INI_BACKEND: IniSelector = IniSelector::new("data", "backend");
+    const INI_KEY_ID: IniSelector = IniSelector::new("gpg", "key_id");
+    const INI_MULT_KEYS: IniSelector = IniSelector::new("gpg", "allow_multiple_keys");
+
+    pub fn new() -> Self {
         Self {
-            name: name.into(),
             maybe_config_dir: None,
             maybe_data_dir: None,
             backend: Backend::default(),
@@ -139,14 +188,20 @@ impl ConfigBuilder {
         }
     }
 
-    pub fn with_defaults(
+    pub fn with_dirs(
         mut self,
-        getenv: &impl Fn(OsString) -> Result<String, env::VarError>,
+        getenv: &impl Fn(&'static str) -> Result<String, env::VarError>,
     ) -> Result<ConfigBuilder, Error> {
-        let config_dir = internal::config_dir(getenv, self.name.as_str())?;
-        let data_dir = internal::data_dir(getenv, self.name.as_str())?;
-        self.maybe_config_dir = Some(config_dir);
+        if let Some(config_dir) = getenv(Self::ENV_CONFIG_DIR).ok() {
+            self.maybe_config_dir = Some(PathBuf::from(config_dir))
+        } else {
+            let config_dir = internal::config_dir(getenv, Self::NAME)?;
+            self.maybe_config_dir = Some(config_dir)
+        }
+
+        let data_dir = internal::data_dir(getenv, Self::NAME)?;
         self.maybe_data_dir = Some(data_dir);
+
         Ok(self)
     }
 
@@ -157,66 +212,58 @@ impl ConfigBuilder {
         let input = if let Some(input) = maybe_input {
             input.into()
         } else if let Some(mut path) = self.maybe_config_dir.to_owned() {
-            path.push(format!("{}.ini", self.name));
+            path.push(Self::CONFIG_FILE);
             fs::read_to_string(path)?
         } else {
             return Err(Error::MissingConfigDir);
         };
+
         let mut config = Ini::new();
         config.read(input).map_err(Error::Ini)?;
-        if let maybe_data_dir @ Some(_) = config
-            .get("data", "dir")
-            .and_then(|data_dir| data_dir.parse::<PathBuf>().ok())
-        {
-            self.maybe_data_dir = maybe_data_dir;
+
+        if let Some(data_dir) = config.get(Self::INI_DATA_DIR.section, Self::INI_DATA_DIR.key) {
+            self.maybe_data_dir = Some(PathBuf::from(data_dir))
         }
-        if let Some(backend) = config
-            .get("data", "backend")
-            .and_then(|backend| backend.parse::<Backend>().ok())
-        {
-            self.backend = backend;
+
+        if let Some(backend) = config.get(Self::INI_BACKEND.section, Self::INI_BACKEND.key) {
+            if let Some(backend) = backend.parse::<Backend>().ok() {
+                self.backend = backend
+            }
         }
-        if let Some(mult_keys) = config
-            .get("data", "allow_multiple_keys")
-            .and_then(|mult_keys| mult_keys.parse::<Flag>().ok())
-        {
-            self.mult_keys = mult_keys
+
+        if let Some(key_id) = config.get(Self::INI_KEY_ID.section, Self::INI_KEY_ID.key) {
+            self.maybe_key_id = Some(KeyId::from(key_id))
         }
-        if let maybe_key_id @ Some(_) = config.get("gpg", "key_id").map(KeyId::from) {
-            self.maybe_key_id = maybe_key_id;
+
+        if let Some(mult_keys) = config.get(Self::INI_MULT_KEYS.section, Self::INI_MULT_KEYS.key) {
+            self.mult_keys = mult_keys.parse::<Flag>()?
         }
+
         Ok(self)
     }
 
     pub fn with_env(
         mut self,
-        getenv: &impl Fn(OsString) -> Result<String, env::VarError>,
+        getenv: &impl Fn(&'static str) -> Result<String, env::VarError>,
     ) -> Result<ConfigBuilder, Error> {
-        let name = self.name.to_uppercase();
-        if let maybe_data_dir @ Some(_) = getenv(format!("{}_DATA_DIR", name).into())
-            .ok()
-            .and_then(|data_dir| data_dir.parse::<PathBuf>().ok())
-        {
-            self.maybe_data_dir = maybe_data_dir
+        if let Some(data_dir) = getenv(Self::ENV_DATA_DIR).ok() {
+            self.maybe_data_dir = Some(PathBuf::from(data_dir))
         }
-        if let Some(backend) = getenv(format!("{}_BACKEND", name).into())
-            .ok()
-            .and_then(|backend| backend.parse::<Backend>().ok())
-        {
-            self.backend = backend
+
+        if let Some(backend) = getenv(Self::ENV_BACKEND).ok() {
+            if let Some(backend) = backend.parse::<Backend>().ok() {
+                self.backend = backend
+            }
         }
-        if let Some(mult_keys) = getenv(format!("{}_ALLOW_MULTIPLE_KEYS", name).into())
-            .ok()
-            .and_then(|mult_keys| mult_keys.parse::<Flag>().ok())
-        {
-            self.mult_keys = mult_keys
+
+        if let Some(key_id) = getenv(Self::ENV_KEY_ID).ok() {
+            self.maybe_key_id = Some(KeyId::from(key_id))
         }
-        if let maybe_key_id @ Some(_) = getenv(format!("{}_KEY_ID", name).into())
-            .ok()
-            .map(KeyId::from)
-        {
-            self.maybe_key_id = maybe_key_id
+
+        if let Some(mult_keys) = getenv(Self::ENV_MULT_KEYS).ok() {
+            self.mult_keys = mult_keys.parse::<Flag>()?
         }
+
         Ok(self)
     }
 
@@ -242,7 +289,6 @@ impl ConfigBuilder {
 mod internal {
     use std::{
         env::VarError,
-        ffi::OsString,
         path::{Path, PathBuf},
     };
 
@@ -250,9 +296,9 @@ mod internal {
 
     #[inline]
     pub fn config_dir(
-        getenv: &impl Fn(OsString) -> Result<String, VarError>,
+        getenv: &impl Fn(&'static str) -> Result<String, VarError>,
         name: impl AsRef<Path>,
-    ) -> Result<PathBuf, (VarError, String)> {
+    ) -> Result<PathBuf, (VarError, &'static str)> {
         cfg_if! {
             if #[cfg(target_os = "windows")] {
                 windows::local_app_data(getenv, name)
@@ -266,9 +312,9 @@ mod internal {
 
     #[inline]
     pub fn data_dir(
-        getenv: &impl Fn(OsString) -> Result<String, VarError>,
+        getenv: &impl Fn(&'static str) -> Result<String, VarError>,
         name: impl AsRef<Path>,
-    ) -> Result<PathBuf, (VarError, String)> {
+    ) -> Result<PathBuf, (VarError, &'static str)> {
         cfg_if! {
             if #[cfg(target_os = "windows")] {
                 windows::app_data(getenv, name)
@@ -284,39 +330,38 @@ mod internal {
     mod windows {
         use std::{
             env::VarError,
-            ffi::OsString,
             path::{Path, PathBuf},
         };
 
         #[inline]
         pub fn local_app_data(
-            getenv: &impl Fn(OsString) -> Result<String, VarError>,
+            getenv: &impl Fn(&'static str) -> Result<String, VarError>,
             name: impl AsRef<Path>,
-        ) -> Result<PathBuf, (VarError, String)> {
+        ) -> Result<PathBuf, (VarError, &'static str)> {
             let var = "LOCALAPPDATA";
-            match getenv(var.into()) {
+            match getenv(var) {
                 Ok(dir) => {
                     let mut ret = PathBuf::from(dir);
                     ret.push(name);
                     Ok(ret)
                 }
-                Err(err) => Err((err, var.into())),
+                Err(err) => Err((err, var)),
             }
         }
 
         #[inline]
         pub fn app_data(
-            getenv: &impl Fn(OsString) -> Result<String, VarError>,
+            getenv: &impl Fn(&'static str) -> Result<String, VarError>,
             name: impl AsRef<Path>,
-        ) -> Result<PathBuf, (VarError, String)> {
+        ) -> Result<PathBuf, (VarError, &'static str)> {
             let var = "APPDATA";
-            match getenv(var.into()) {
+            match getenv(var) {
                 Ok(dir) => {
                     let mut ret = PathBuf::from(dir);
                     ret.push(name);
                     Ok(ret)
                 }
-                Err(err) => Err((err, var.into())),
+                Err(err) => Err((err, var)),
             }
         }
 
@@ -342,7 +387,7 @@ mod internal {
             #[test]
             fn local_app_data_returns_err() {
                 let getenv = |_| Err(VarError::NotPresent);
-                let expected = Err((VarError::NotPresent, String::from("LOCALAPPDATA")));
+                let expected = Err((VarError::NotPresent, "LOCALAPPDATA"));
                 let actual = super::local_app_data(&getenv, "test");
                 assert_eq!(expected, actual);
             }
@@ -365,7 +410,7 @@ mod internal {
             #[test]
             fn app_data_returns_err() {
                 let getenv = |_| Err(VarError::NotPresent);
-                let expected = Err((VarError::NotPresent, String::from("APPDATA")));
+                let expected = Err((VarError::NotPresent, "APPDATA"));
                 let actual = super::app_data(&getenv, "test");
                 assert_eq!(expected, actual);
             }
@@ -376,17 +421,16 @@ mod internal {
     mod macos {
         use std::{
             env::VarError,
-            ffi::OsString,
             path::{Path, PathBuf},
         };
 
         #[inline]
         pub fn support_dir(
-            getenv: &impl Fn(OsString) -> Result<String, VarError>,
+            getenv: &impl Fn(&'static str) -> Result<String, VarError>,
             name: impl AsRef<Path>,
-        ) -> Result<PathBuf, (VarError, String)> {
+        ) -> Result<PathBuf, (VarError, &'static str)> {
             let var = "HOME";
-            match getenv(var.into()) {
+            match getenv(var) {
                 Ok(dir) => {
                     let mut ret = PathBuf::from(dir);
                     ret.push("Library");
@@ -394,7 +438,7 @@ mod internal {
                     ret.push(name);
                     Ok(ret)
                 }
-                Err(err) => Err((err, var.into())),
+                Err(err) => Err((err, var)),
             }
         }
 
@@ -422,7 +466,7 @@ mod internal {
             #[test]
             fn support_dir_returns_err() {
                 let getenv = |_| Err(VarError::NotPresent);
-                let expected = Err((VarError::NotPresent, String::from("HOME")));
+                let expected = Err((VarError::NotPresent, "HOME"));
                 let actual = super::support_dir(&getenv, "test");
                 assert_eq!(expected, actual);
             }
@@ -433,54 +477,53 @@ mod internal {
     mod xdg {
         use std::{
             env::VarError,
-            ffi::OsString,
             path::{Path, PathBuf},
         };
 
         #[inline]
         pub fn config_dir(
-            getenv: &impl Fn(OsString) -> Result<String, VarError>,
+            getenv: &impl Fn(&'static str) -> Result<String, VarError>,
             name: impl AsRef<Path>,
-        ) -> Result<PathBuf, (VarError, String)> {
+        ) -> Result<PathBuf, (VarError, &'static str)> {
             let var = "XDG_CONFIG_DIR";
-            match getenv(var.into()) {
+            match getenv(var) {
                 Ok(dir) => {
                     let mut ret = PathBuf::from(dir);
                     ret.push(name);
                     return Ok(ret);
                 }
-                Err(err @ VarError::NotUnicode(_)) => return Err((err, var.into())),
+                Err(err @ VarError::NotUnicode(_)) => return Err((err, var)),
                 Err(VarError::NotPresent) => (),
             }
             let var = "HOME";
-            match getenv(var.into()) {
+            match getenv(var) {
                 Ok(dir) => {
                     let mut ret = PathBuf::from(dir);
                     ret.push(".config");
                     ret.push(name);
                     Ok(ret)
                 }
-                Err(err) => Err((err, var.into())),
+                Err(err) => Err((err, var)),
             }
         }
 
         #[inline]
         pub fn data_dir(
-            getenv: &impl Fn(OsString) -> Result<String, VarError>,
+            getenv: &impl Fn(&'static str) -> Result<String, VarError>,
             name: impl AsRef<Path>,
-        ) -> Result<PathBuf, (VarError, String)> {
+        ) -> Result<PathBuf, (VarError, &'static str)> {
             let var = "XDG_DATA_DIR";
-            match getenv(var.into()) {
+            match getenv(var) {
                 Ok(dir) => {
                     let mut ret = PathBuf::from(dir);
                     ret.push(name);
                     return Ok(ret);
                 }
-                Err(err @ VarError::NotUnicode(_)) => return Err((err, var.into())),
+                Err(err @ VarError::NotUnicode(_)) => return Err((err, var)),
                 Err(VarError::NotPresent) => (),
             }
             let var = "HOME";
-            match getenv(var.into()) {
+            match getenv(var) {
                 Ok(dir) => {
                     let mut ret = PathBuf::from(dir);
                     ret.push(".local");
@@ -488,7 +531,7 @@ mod internal {
                     ret.push(name);
                     Ok(ret)
                 }
-                Err(err) => Err((err, var.into())),
+                Err(err) => Err((err, var)),
             }
         }
 
@@ -529,7 +572,7 @@ mod internal {
             #[test]
             fn config_dir_returns_err() {
                 let getenv = |_| Err(VarError::NotPresent);
-                let expected = Err((VarError::NotPresent, String::from("HOME")));
+                let expected = Err((VarError::NotPresent, "HOME"));
                 let actual = super::config_dir(&getenv, "test");
                 assert_eq!(expected, actual);
             }
@@ -567,7 +610,7 @@ mod internal {
             #[test]
             fn data_dir_returns_err() {
                 let getenv = |_| Err(VarError::NotPresent);
-                let expected = Err((VarError::NotPresent, String::from("HOME")));
+                let expected = Err((VarError::NotPresent, "HOME"));
                 let actual = super::data_dir(&getenv, "test");
                 assert_eq!(expected, actual);
             }
@@ -577,31 +620,40 @@ mod internal {
 
 #[cfg(test)]
 mod tests {
-    use std::{env::VarError, ffi::OsString, path::PathBuf};
+    use std::{env::VarError, path::PathBuf};
 
-    use super::{Backend, ConfigBuilder, Error};
+    use super::{Backend, ConfigBuilder, Error, Flag};
     use crate::data::KeyId;
 
     #[test]
     fn with_config_parses_ini() {
+        let data_dir = "/tmp/data";
+        let backend = Backend::Sqlite;
+        let key_id = KeyId::from("371C136C");
+        let mult_keys = Flag::from(true);
         let expected = ConfigBuilder {
-            name: String::from("test"),
             maybe_config_dir: None,
-            maybe_data_dir: Some(PathBuf::from("/tmp/ananke")),
-            backend: Backend::Sqlite,
-            maybe_key_id: Some(KeyId::from("371C136C")),
+            maybe_data_dir: Some(PathBuf::from(data_dir)),
+            backend,
+            maybe_key_id: Some(key_id.clone()),
             mult_keys: true.into(),
         };
-        let input = "\
+        let input = format!(
+            "\
 [data]
-backend=sqlite
-dir=/tmp/ananke
-allow_multiple_keys=true
+dir={}
+backend={}
 
 [gpg]
-key_id=371C136C
-";
-        let actual = ConfigBuilder::new("test")
+key_id={}
+allow_multiple_keys={}
+",
+            data_dir,
+            backend.to_string(),
+            key_id.to_string(),
+            mult_keys.to_string()
+        );
+        let actual = ConfigBuilder::new()
             .with_config(Some(input))
             .expect("should parse");
         assert_eq!(expected, actual);
@@ -609,9 +661,9 @@ key_id=371C136C
 
     #[test]
     fn with_config_parses_empty_ini() {
-        let expected = ConfigBuilder::new("test");
+        let expected = ConfigBuilder::new();
         let input = String::new();
-        let actual = ConfigBuilder::new("test")
+        let actual = ConfigBuilder::new()
             .with_config(Some(input))
             .expect("should parse");
         assert_eq!(expected, actual);
@@ -619,9 +671,8 @@ key_id=371C136C
 
     #[test]
     fn with_config_returns_missing_config_dir() {
-        if let Err(Error::MissingConfigDir) =
-            ConfigBuilder::new("test").with_config(Option::<String>::None)
-        {
+        let result = ConfigBuilder::new().with_config(Option::<String>::None);
+        if let Err(Error::MissingConfigDir) = result {
             return;
         }
         panic!("Expected: {:?}", Error::MissingConfigDir)
@@ -630,23 +681,27 @@ key_id=371C136C
     #[test]
     fn with_env_parses_env() {
         let data_dir = "/tmp/data";
-        let key_id = "371C136C";
-        let getenv = |s: OsString| match s.to_str() {
-            Some("TEST_DATA_DIR") => Ok(String::from(data_dir)),
-            Some("TEST_BACKEND") => Ok(String::from("sqlite")),
-            Some("TEST_ALLOW_MULTIPLE_KEYS") => Ok(String::from("true")),
-            Some("TEST_KEY_ID") => Ok(String::from(key_id)),
-            _ => Err(VarError::NotPresent),
+        let backend = Backend::Sqlite;
+        let key_id = KeyId::from("371C136C");
+        let mult_keys = Flag::from(true);
+        let getenv = {
+            let key_id = key_id.clone();
+            move |s| match s {
+                ConfigBuilder::ENV_DATA_DIR => Ok(String::from(data_dir)),
+                ConfigBuilder::ENV_BACKEND => Ok(backend.clone().to_string()),
+                ConfigBuilder::ENV_KEY_ID => Ok(key_id.to_string()),
+                ConfigBuilder::ENV_MULT_KEYS => Ok(mult_keys.to_string()),
+                _ => Err(VarError::NotPresent),
+            }
         };
         let expected = ConfigBuilder {
-            name: String::from("test"),
             maybe_config_dir: None,
             maybe_data_dir: Some(PathBuf::from(data_dir)),
-            backend: Backend::Sqlite,
-            maybe_key_id: Some(KeyId::from(key_id)),
-            mult_keys: true.into(),
+            backend,
+            maybe_key_id: Some(key_id),
+            mult_keys,
         };
-        let actual = ConfigBuilder::new("test")
+        let actual = ConfigBuilder::new()
             .with_env(&getenv)
             .expect("should parse");
         assert_eq!(expected, actual);

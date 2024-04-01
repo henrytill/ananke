@@ -40,6 +40,12 @@ macro_rules! wrap_string {
                 Self(name.to_string())
             }
         }
+
+        impl ToString for $name {
+            fn to_string(&self) -> String {
+                self.0.to_string()
+            }
+        }
     };
 }
 

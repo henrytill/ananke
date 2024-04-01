@@ -43,9 +43,9 @@ mod command {
             matches.get_one::<String>("DESCRIPTION").expect("required")
         );
 
-        let mut config_builder = ConfigBuilder::new("ananke");
+        let mut config_builder = ConfigBuilder::new();
         config_builder = config_builder
-            .with_defaults(&std::env::var)?
+            .with_dirs(&std::env::var)?
             .with_config(Option::<String>::None)?
             .with_env(&std::env::var)?;
         let _config = config_builder.build()?;

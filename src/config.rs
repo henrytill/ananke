@@ -1,18 +1,32 @@
-use std::{env::VarError, fmt, path::PathBuf};
+use std::{
+    env, fmt, fs, io,
+    path::PathBuf,
+    str::{FromStr, ParseBoolError},
+};
+
+use configparser::ini::Ini;
 
 use crate::data::KeyId;
 
 #[derive(Debug)]
 pub enum Error {
-    Var(VarError, &'static str),
+    Var(env::VarError, &'static str),
+    Io(io::Error),
+    Ini(String),
     MissingConfigDir,
     MissingDataDir,
     MissingKeyId,
 }
 
-impl From<(VarError, &'static str)> for Error {
-    fn from((err, var): (VarError, &'static str)) -> Self {
+impl From<(env::VarError, &'static str)> for Error {
+    fn from((err, var): (env::VarError, &'static str)) -> Self {
         Error::Var(err, var)
+    }
+}
+
+impl From<io::Error> for Error {
+    fn from(err: io::Error) -> Self {
+        Error::Io(err)
     }
 }
 
@@ -20,6 +34,8 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::Var(err, var) => write!(f, "{}: {}", err, var),
+            Error::Io(err) => write!(f, "{}", err),
+            Error::Ini(why) => write!(f, "ini: {}", why),
             Error::MissingConfigDir => write!(f, "missing config_dir"),
             Error::MissingDataDir => write!(f, "missing data_dir"),
             Error::MissingKeyId => write!(f, "missing key_id"),
@@ -29,10 +45,23 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub enum Backend {
-    Sqlite,
+    #[default]
     Json,
+    Sqlite,
+}
+
+impl FromStr for Backend {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "sqlite" | "SQLITE" | "Sqlite" | "SQLite" => Ok(Backend::Sqlite),
+            "json" | "JSON" | "Json" => Ok(Backend::Json),
+            _ => Err(()),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -66,14 +95,40 @@ impl Config {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default, PartialEq, Eq)]
+struct Bool(bool);
+
+impl From<Bool> for bool {
+    fn from(value: Bool) -> Self {
+        value.0
+    }
+}
+
+impl From<bool> for Bool {
+    fn from(value: bool) -> Self {
+        Bool(value)
+    }
+}
+
+impl FromStr for Bool {
+    type Err = ParseBoolError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "true" | "t" | "yes" | "y" | "1" => Ok(Bool(true)),
+            _ => Ok(Bool(false)),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub struct ConfigBuilder {
     name: String,
     maybe_config_dir: Option<PathBuf>,
     maybe_data_dir: Option<PathBuf>,
     backend: Backend,
     maybe_key_id: Option<KeyId>,
-    mult_keys: bool,
+    mult_keys: Bool,
 }
 
 impl ConfigBuilder {
@@ -82,20 +137,58 @@ impl ConfigBuilder {
             name: name.into(),
             maybe_config_dir: None,
             maybe_data_dir: None,
-            backend: Backend::Json,
-            mult_keys: false,
+            backend: Backend::default(),
+            mult_keys: Bool::default(),
             maybe_key_id: None,
         }
     }
 
     pub fn with_defaults(
         mut self,
-        getenv: &impl Fn(&'static str) -> Result<String, VarError>,
+        getenv: &impl Fn(&'static str) -> Result<String, env::VarError>,
     ) -> Result<ConfigBuilder, Error> {
-        let config_dir = internal::config_dir(getenv, &self.name)?;
-        let data_dir = internal::data_dir(getenv, &self.name)?;
+        let config_dir = internal::config_dir(getenv, self.name.as_str())?;
+        let data_dir = internal::data_dir(getenv, self.name.as_str())?;
         self.maybe_config_dir = Some(config_dir);
         self.maybe_data_dir = Some(data_dir);
+        Ok(self)
+    }
+
+    pub fn with_config(
+        mut self,
+        maybe_input: Option<impl Into<String>>,
+    ) -> Result<ConfigBuilder, Error> {
+        let input = if let Some(input) = maybe_input {
+            input.into()
+        } else if let Some(mut path) = self.maybe_config_dir.to_owned() {
+            path.push(format!("{}.ini", self.name));
+            fs::read_to_string(path)?
+        } else {
+            return Err(Error::MissingConfigDir);
+        };
+        let mut config = Ini::new();
+        config.read(input).map_err(Error::Ini)?;
+        if let maybe_data_dir @ Some(_) = config
+            .get("data", "dir")
+            .and_then(|data_dir| data_dir.parse::<PathBuf>().ok())
+        {
+            self.maybe_data_dir = maybe_data_dir;
+        }
+        if let Some(backend) = config
+            .get("data", "backend")
+            .and_then(|backend| backend.parse::<Backend>().ok())
+        {
+            self.backend = backend;
+        }
+        if let Some(mult_keys) = config
+            .get("data", "allow_multiple_keys")
+            .and_then(|mult_keys| mult_keys.parse::<Bool>().ok())
+        {
+            self.mult_keys = mult_keys
+        }
+        if let maybe_key_id @ Some(_) = config.get("gpg", "key_id").map(KeyId::from) {
+            self.maybe_key_id = maybe_key_id;
+        }
         Ok(self)
     }
 
@@ -107,7 +200,7 @@ impl ConfigBuilder {
         let data_dir = self.maybe_data_dir.take().ok_or(Error::MissingDataDir)?;
         let backend = self.backend;
         let key_id = self.maybe_key_id.take().ok_or(Error::MissingKeyId)?;
-        let mult_keys = self.mult_keys;
+        let mult_keys = self.mult_keys.into();
         Ok(Config {
             config_dir,
             data_dir,
@@ -449,5 +542,58 @@ mod internal {
                 assert_eq!(expected, actual);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use super::{Backend, ConfigBuilder, Error};
+    use crate::data::KeyId;
+
+    #[test]
+    fn with_config_parses_ini() {
+        let expected = ConfigBuilder {
+            name: String::from("test"),
+            maybe_config_dir: None,
+            maybe_data_dir: Some(PathBuf::from("/tmp/ananke")),
+            backend: Backend::Sqlite,
+            maybe_key_id: Some(KeyId::from("371C136C")),
+            mult_keys: true.into(),
+        };
+        let input = "\
+[data]
+backend=sqlite
+dir=/tmp/ananke
+allow_multiple_keys=true
+
+[gpg]
+key_id=371C136C
+";
+        let actual = ConfigBuilder::new("test")
+            .with_config(Some(input))
+            .expect("should parse");
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn with_config_parses_empty_ini() {
+        let expected = ConfigBuilder::new("test");
+        let input = "";
+        let actual = ConfigBuilder::new("test")
+            .with_config(Some(input))
+            .expect("should parse");
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn with_config_returns_missing_config_dir() {
+        if let Err(Error::MissingConfigDir) =
+            ConfigBuilder::new("test").with_config(Option::<String>::None)
+        {
+            return;
+        }
+        panic!("Expected: {:?}", Error::MissingConfigDir)
     }
 }

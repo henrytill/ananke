@@ -9,6 +9,7 @@ dependencies = [
  "anyhow",
  "cfg-if",
  "clap",
+ "configparser",
  "data-encoding",
  "rand",
  "serde",
@@ -58,6 +59,12 @@ name = "clap_lex"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98cc8fbded0c607b7ba9dd60cd98df59af97e84d24e49c8557331cfc26d301ce"
+
+[[package]]
+name = "configparser"
+version = "3.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ec6d3da8e550377a85339063af6e3735f4b1d9392108da4e083a1b3b9820288"
 
 [[package]]
 name = "data-encoding"

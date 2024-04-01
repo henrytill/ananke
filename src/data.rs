@@ -135,7 +135,7 @@ mod tests {
             let mut ser = Serializer::with_formatter(&mut buf, formatter);
             entries.serialize(&mut ser).expect("should serialize");
             let mut ret = String::from_utf8(buf).expect("should convert to string");
-            ret.push_str("\n");
+            ret.push('\n');
             ret
         };
         #[cfg(target_os = "windows")]

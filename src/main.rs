@@ -44,7 +44,10 @@ mod command {
         );
 
         let mut config_builder = ConfigBuilder::new("ananke");
-        config_builder = config_builder.with_defaults(&std::env::var)?;
+        config_builder = config_builder
+            .with_defaults(&std::env::var)?
+            .with_config(Option::<String>::None)?
+            .with_env(&std::env::var)?;
         let _config = config_builder.build()?;
         Ok(())
     }

@@ -58,48 +58,48 @@ static int make_entry(yyjson_val *entry_val, struct entry *out, struct error *er
     yyjson_val *val = NULL;
     const char *str = NULL;
 
-#define REQUIRED(name, dest)                     \
-    do {                                         \
-        val = yyjson_obj_get(entry_val, (name)); \
-        if (val == NULL) {                       \
-            err->rc = -MISSING_KEY;              \
-            err->msg = MSG_MISSING_KEY name;     \
-            return -MISSING_KEY;                 \
-        };                                       \
-        str = yyjson_get_str(val);               \
-        if (str == NULL) {                       \
-            err->rc = -WRONG_TYPE;               \
-            err->msg = MSG_WRONG_TYPE name;      \
-            return -WRONG_TYPE;                  \
-        };                                       \
-        (dest) = calloc(1, strlen(str) + 1);     \
-        if ((dest) == NULL) {                    \
-            err->rc = -ALLOC;                    \
-            err->msg = MSG_CALLOC_FAILED;        \
-            return -ALLOC;                       \
-        }                                        \
-        strncpy((dest), str, strlen(str));       \
+#define REQUIRED(name, dest)                            \
+    do {                                                \
+        val = yyjson_obj_get(entry_val, (name));        \
+        if (val == NULL) {                              \
+            err->rc = -MISSING_KEY;                     \
+            err->msg = MSG_MISSING_KEY name;            \
+            return -MISSING_KEY;                        \
+        };                                              \
+        str = yyjson_get_str(val);                      \
+        if (str == NULL) {                              \
+            err->rc = -WRONG_TYPE;                      \
+            err->msg = MSG_WRONG_TYPE name;             \
+            return -WRONG_TYPE;                         \
+        };                                              \
+        (dest) = calloc(strlen(str) + 1, sizeof(char)); \
+        if ((dest) == NULL) {                           \
+            err->rc = -ALLOC;                           \
+            err->msg = MSG_CALLOC_FAILED;               \
+            return -ALLOC;                              \
+        }                                               \
+        strncpy((dest), str, strlen(str));              \
     } while (0)
 
-#define OPTIONAL(name, dest)                     \
-    do {                                         \
-        val = yyjson_obj_get(entry_val, (name)); \
-        if (val == NULL) {                       \
-            break;                               \
-        };                                       \
-        str = yyjson_get_str(val);               \
-        if (str == NULL) {                       \
-            err->rc = -WRONG_TYPE;               \
-            err->msg = MSG_WRONG_TYPE name;      \
-            return -WRONG_TYPE;                  \
-        };                                       \
-        (dest) = calloc(1, strlen(str) + 1);     \
-        if ((dest) == NULL) {                    \
-            err->rc = -ALLOC;                    \
-            err->msg = MSG_CALLOC_FAILED;        \
-            return -ALLOC;                       \
-        }                                        \
-        strncpy((dest), str, strlen(str));       \
+#define OPTIONAL(name, dest)                            \
+    do {                                                \
+        val = yyjson_obj_get(entry_val, (name));        \
+        if (val == NULL) {                              \
+            break;                                      \
+        };                                              \
+        str = yyjson_get_str(val);                      \
+        if (str == NULL) {                              \
+            err->rc = -WRONG_TYPE;                      \
+            err->msg = MSG_WRONG_TYPE name;             \
+            return -WRONG_TYPE;                         \
+        };                                              \
+        (dest) = calloc(strlen(str) + 1, sizeof(char)); \
+        if ((dest) == NULL) {                           \
+            err->rc = -ALLOC;                           \
+            err->msg = MSG_CALLOC_FAILED;               \
+            return -ALLOC;                              \
+        }                                               \
+        strncpy((dest), str, strlen(str));              \
     } while (0)
 
     REQUIRED("id", out->id);
@@ -223,7 +223,7 @@ static char *serialize(struct entries *es, struct error *err)
 
     yyjson_mut_doc_set_root(doc, arr);
     char *json = yyjson_mut_write(doc, YYJSON_WRITE_PRETTY, NULL);
-    char *ret = calloc(1, strlen(json) + 1);
+    char *ret = calloc(strlen(json) + 1, sizeof(*ret));
     if (ret == NULL) {
         err->rc = -ALLOC;
         err->msg = MSG_CALLOC_FAILED;
@@ -257,7 +257,7 @@ int main(int argc, char *argv[])
     const size_t fsize = (size_t)ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    char *buf = calloc(1, fsize + 1);
+    char *buf = calloc(fsize + 1, sizeof(*buf));
     assert(buf != NULL);
     fread(buf, fsize, 1, fp);
     fclose(fp);

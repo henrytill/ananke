@@ -20,8 +20,9 @@ enum {
     WRONG_TYPE = 4,
 };
 
-#define MSG_MISSING_KEY "missing key: "
-#define MSG_WRONG_TYPE  "wrong type for key: "
+#define MSG_CALLOC_FAILED "calloc failed"
+#define MSG_MISSING_KEY   "missing key: "
+#define MSG_WRONG_TYPE    "wrong type for key: "
 
 #ifdef PRINT
 static void print_entry(struct entry *e)
@@ -74,7 +75,7 @@ static int make_entry(yyjson_val *entry_val, struct entry *out, struct error *er
         (dest) = calloc(1, strlen(str) + 1);     \
         if ((dest) == NULL) {                    \
             err->rc = -ALLOC;                    \
-            err->msg = "calloc failed";          \
+            err->msg = MSG_CALLOC_FAILED;        \
             return -ALLOC;                       \
         }                                        \
         strncpy((dest), str, strlen(str));       \
@@ -95,7 +96,7 @@ static int make_entry(yyjson_val *entry_val, struct entry *out, struct error *er
         (dest) = calloc(1, strlen(str) + 1);     \
         if ((dest) == NULL) {                    \
             err->rc = -ALLOC;                    \
-            err->msg = "calloc failed";          \
+            err->msg = MSG_CALLOC_FAILED;        \
             return -ALLOC;                       \
         }                                        \
         strncpy((dest), str, strlen(str));       \
@@ -225,7 +226,7 @@ static char *serialize(struct entries *es, struct error *err)
     char *ret = calloc(1, strlen(json) + 1);
     if (ret == NULL) {
         err->rc = -ALLOC;
-        err->msg = "calloc failed";
+        err->msg = MSG_CALLOC_FAILED;
         return NULL;
     }
     strcpy(ret, json);

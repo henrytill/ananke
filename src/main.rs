@@ -1,15 +1,122 @@
+use std::io::{self, BufRead, Write};
+
 use anyhow::Result;
-use clap::{Arg, Command};
+use clap::{Arg, ArgGroup, Command};
 
 fn command() -> Command {
     let version = version::version_info().to_string();
 
+    let add = {
+        let arg_description =
+            Arg::new("description").value_name("DESCRIPTION").help("URL or description");
+        let arg_identity = Arg::new("identity")
+            .short('i')
+            .long("identity")
+            .value_name("IDENTITY")
+            .help("username or email address");
+        let arg_meta = Arg::new("metadata")
+            .short('m')
+            .long("meta")
+            .value_name("METADATA")
+            .help("additional metadata");
+        Command::new("add")
+            .about("add an entry")
+            .arg(arg_description)
+            .arg(arg_identity)
+            .arg(arg_meta)
+            .arg_required_else_help(true)
+    };
+
     let lookup = {
         let arg_description =
-            Arg::new("DESCRIPTION").value_name("DESCRIPTION").help("Description or URL");
+            Arg::new("description").value_name("DESCRIPTION").help("URL or description");
+        let arg_identity = Arg::new("identity")
+            .short('i')
+            .long("identity")
+            .value_name("IDENTITY")
+            .help("username or email address");
+        let arg_verbose = Arg::new("verbose")
+            .short('v')
+            .long("verbose")
+            .num_args(0)
+            .help("enable verbose output");
         Command::new("lookup")
-            .about("Lookup an entry")
+            .about("lookup an entry")
             .arg(arg_description)
+            .arg(arg_identity)
+            .arg(arg_verbose)
+            .arg_required_else_help(true)
+    };
+
+    let modify = {
+        let arg_description = Arg::new("description")
+            .short('d')
+            .long("description")
+            .value_name("DESCRIPTION")
+            .help("URL or description");
+        let arg_entry_id = Arg::new("entry-id")
+            .short('e')
+            .long("entry-id")
+            .value_name("ENTRY_ID")
+            .help("entry_id");
+        let arg_plaintext = Arg::new("plaintext")
+            .short('p')
+            .long("plaintext")
+            .num_args(0)
+            .help("prompt for plaintext");
+        let arg_identity = Arg::new("identity")
+            .short('i')
+            .long("identity")
+            .value_name("IDENTITY")
+            .help("username or email address");
+        let arg_meta = Arg::new("metadata")
+            .short('m')
+            .long("meta")
+            .value_name("METADATA")
+            .help("additional metadata");
+        Command::new("modify")
+            .about("modify an entry")
+            .arg(arg_description)
+            .arg(arg_entry_id)
+            .arg(arg_plaintext)
+            .arg(arg_identity)
+            .arg(arg_meta)
+            .group(ArgGroup::new("modify").args(["description", "entry-id"]))
+            .arg_required_else_help(true)
+    };
+
+    let remove = {
+        let arg_description = Arg::new("description")
+            .short('d')
+            .long("description")
+            .value_name("DESCRIPTION")
+            .help("URL or description");
+        let arg_entry_id = Arg::new("entry-id")
+            .short('e')
+            .long("entry-id")
+            .value_name("ENTRY_ID")
+            .help("entry_id");
+        Command::new("remove")
+            .about("remove an entry")
+            .arg(arg_description)
+            .arg(arg_entry_id)
+            .group(ArgGroup::new("remove").args(["description", "entry-id"]))
+            .arg_required_else_help(true)
+    };
+
+    let import = {
+        let arg_file = Arg::new("file").value_name("FILE").help("file to import from");
+        Command::new("import")
+            .about("import entries from JSON file")
+            .arg(arg_file)
+            .arg_required_else_help(true)
+    };
+
+    let export = {
+        let arg_file = Arg::new("file").value_name("FILE").help("file to export to");
+        Command::new("export")
+            .about("export entries to JSON file")
+            .arg(arg_file)
             .arg_required_else_help(true)
     };
 
@@ -17,16 +124,74 @@ fn command() -> Command {
         .about("A password manager")
         .version(version)
         .subcommand_required(true)
-        .arg_required_else_help(true)
+        .subcommand(add)
         .subcommand(lookup)
+        .subcommand(modify)
+        .subcommand(remove)
+        .subcommand(import)
+        .subcommand(export)
+        .arg_required_else_help(true)
+}
+
+fn prompt(display: &str) -> Result<String, io::Error> {
+    print!("{}", display);
+    io::stdout().flush()?;
+    let mut ret = String::new();
+    let stdin = io::stdin();
+    stdin.lock().read_line(&mut ret)?;
+    ret.truncate(ret.len() - 1);
+    Ok(ret)
 }
 
 fn main() -> Result<()> {
     let matches = command().get_matches();
     match matches.subcommand() {
+        Some(("add", sub_matches)) => {
+            let description = sub_matches.get_one::<String>("description").expect("required");
+            let identity = sub_matches.get_one::<String>("identity").map(String::as_str);
+            let metadata = sub_matches.get_one::<String>("metadata").map(String::as_str);
+            let plaintext = prompt("Enter plaintext: ")?;
+            command::add(description, &plaintext, identity, metadata)?;
+            Ok(())
+        }
         Some(("lookup", sub_matches)) => {
-            let description = sub_matches.get_one::<String>("DESCRIPTION").expect("required");
-            command::lookup(description, None)
+            let description = sub_matches.get_one::<String>("description").expect("required");
+            let identity = sub_matches.get_one::<String>("identity").map(String::as_str);
+            let verbose = sub_matches.get_one::<bool>("verbose").copied().unwrap_or(false);
+            command::lookup(description, identity, verbose)
+        }
+        Some(("modify", sub_matches)) => {
+            let description = sub_matches.get_one::<String>("description").map(String::as_str);
+            let entry_id = sub_matches.get_one::<String>("entry-id").map(String::as_str);
+            let plaintext = sub_matches.get_one::<bool>("plaintext").copied().unwrap_or(false);
+            let identity = sub_matches.get_one::<String>("identity").map(String::as_str);
+            let metadata = sub_matches.get_one::<String>("metadata").map(String::as_str);
+            println!("description: {:?}", description);
+            println!("entry_id: {:?}", entry_id);
+            println!("plaintext: {:?}", plaintext);
+            println!("identity: {:?}", identity);
+            println!("metadata: {:?}", metadata);
+            let maybe_plaintext = if plaintext {
+                let plaintext = prompt("Enter plaintext: ")?;
+                Some(plaintext)
+            } else {
+                None
+            };
+            let maybe_plaintext = maybe_plaintext.as_ref().map(String::as_str);
+            command::modify(description, entry_id, None, maybe_plaintext, identity, metadata)
+        }
+        Some(("remove", sub_matches)) => {
+            let description = sub_matches.get_one::<String>("description").map(String::as_str);
+            let entry_id = sub_matches.get_one::<String>("entry-id").map(String::as_str);
+            command::remove(description, entry_id)
+        }
+        Some(("import", sub_matches)) => {
+            let file = sub_matches.get_one::<String>("file").expect("required");
+            command::import(&file)
+        }
+        Some(("export", sub_matches)) => {
+            let file = sub_matches.get_one::<String>("file").expect("required");
+            command::export(&file)
         }
         Some((&_, _)) => panic!(),
         None => panic!(),
@@ -34,12 +199,14 @@ fn main() -> Result<()> {
 }
 
 mod command {
+    use std::path::PathBuf;
+
     use anyhow::Result;
 
     use ananke::{
-        application::{json::JsonApplication, sqlite::SqliteApplication},
+        application::{common::Target, json::JsonApplication, sqlite::SqliteApplication},
         config::{Backend, Config, ConfigBuilder},
-        data::{Description, Entry, Identity, Plaintext},
+        data::{Description, Entry, Id, Identity, Metadata, Plaintext},
     };
 
     fn configure() -> Result<Config> {
@@ -52,7 +219,10 @@ mod command {
         Ok(config)
     }
 
-    fn print_result(result: &[(Entry, Plaintext)], _verbose: bool) {
+    fn print_result(result: &[(Entry, Plaintext)], verbose: bool) {
+        if verbose {
+            println!("should be verbose")
+        }
         if result.len() == 1 {
             let (_, plaintext) = &result[0];
             println!("{}", plaintext.to_string());
@@ -68,7 +238,31 @@ mod command {
         }
     }
 
-    pub fn lookup(description: &str, maybe_identity: Option<&str>) -> Result<()> {
+    pub fn add(
+        description: &str,
+        plaintext: &str,
+        maybe_identity: Option<&str>,
+        maybe_metadata: Option<&str>,
+    ) -> Result<()> {
+        let description = Description::from(description);
+        let plaintext = Plaintext::from(plaintext);
+        let maybe_identity = maybe_identity.map(Identity::from);
+        let maybe_metadata = maybe_metadata.map(Metadata::from);
+        let config = configure()?;
+        match config.backend() {
+            Backend::Json => {
+                let mut app = JsonApplication::new(config)?;
+                app.add(description, plaintext, maybe_identity, maybe_metadata)?;
+            }
+            Backend::Sqlite => {
+                let mut app = SqliteApplication::new(config)?;
+                app.add(description, plaintext, maybe_identity, maybe_metadata)?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn lookup(description: &str, maybe_identity: Option<&str>, verbose: bool) -> Result<()> {
         let description = Description::from(description);
         let maybe_identity = maybe_identity.map(Identity::from);
         let config = configure()?;
@@ -76,12 +270,109 @@ mod command {
             Backend::Json => {
                 let app = JsonApplication::new(config)?;
                 let result = app.lookup(description, maybe_identity)?;
-                print_result(&result, false)
+                print_result(&result, verbose)
             }
             Backend::Sqlite => {
                 let app = SqliteApplication::new(config)?;
                 let result = app.lookup(description, maybe_identity)?;
-                print_result(&result, false)
+                print_result(&result, verbose)
+            }
+        }
+        Ok(())
+    }
+
+    pub fn modify(
+        target_description: Option<&str>,
+        target_id: Option<&str>,
+        maybe_description: Option<&str>,
+        maybe_plaintext: Option<&str>,
+        maybe_identity: Option<&str>,
+        maybe_metadata: Option<&str>,
+    ) -> Result<()> {
+        let target = match (target_description, target_id) {
+            (Some(d), None) => Target::Description(Description::from(d)),
+            (None, Some(i)) => Target::Id(Id::from(i)),
+            (Some(_), Some(_)) => panic!(),
+            (None, None) => panic!(),
+        };
+        let maybe_description = maybe_description.map(Description::from);
+        let maybe_plaintext = maybe_plaintext.map(Plaintext::from);
+        let maybe_identity = maybe_identity.map(Identity::from);
+        let maybe_metadata = maybe_metadata.map(Metadata::from);
+        let config = configure()?;
+        match config.backend() {
+            Backend::Json => {
+                let mut app = JsonApplication::new(config)?;
+                app.modify(
+                    target,
+                    maybe_description,
+                    maybe_plaintext,
+                    maybe_identity,
+                    maybe_metadata,
+                )?;
+            }
+            Backend::Sqlite => {
+                let mut app = SqliteApplication::new(config)?;
+                app.modify(
+                    target,
+                    maybe_description,
+                    maybe_plaintext,
+                    maybe_identity,
+                    maybe_metadata,
+                )?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn remove(target_description: Option<&str>, target_id: Option<&str>) -> Result<()> {
+        let target = match (target_description, target_id) {
+            (Some(d), None) => Target::Description(Description::from(d)),
+            (None, Some(i)) => Target::Id(Id::from(i)),
+            (Some(_), Some(_)) => panic!(),
+            (None, None) => panic!(),
+        };
+        let config = configure()?;
+        match config.backend() {
+            Backend::Json => {
+                let mut app = JsonApplication::new(config)?;
+                app.remove(target)?;
+            }
+            Backend::Sqlite => {
+                let mut app = SqliteApplication::new(config)?;
+                app.remove(target)?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn import(path: &str) -> Result<()> {
+        let path = PathBuf::from(path);
+        let config = configure()?;
+        match config.backend() {
+            Backend::Json => {
+                let mut app = JsonApplication::new(config)?;
+                app.import(path)?;
+            }
+            Backend::Sqlite => {
+                let mut app = SqliteApplication::new(config)?;
+                app.import(path)?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn export(path: &str) -> Result<()> {
+        let path = PathBuf::from(path);
+        let config = configure()?;
+        match config.backend() {
+            Backend::Json => {
+                let app = JsonApplication::new(config)?;
+                app.export(path)?;
+            }
+            Backend::Sqlite => {
+                let app = SqliteApplication::new(config)?;
+                app.export(path)?;
             }
         }
         Ok(())
@@ -126,13 +417,5 @@ mod version {
             CommitInfo { short_commit_hash, commit_hash, commit_date }
         });
         VersionInfo { version, commit_info }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn main_test() {
-        assert!(true)
     }
 }

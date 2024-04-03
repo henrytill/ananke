@@ -1,4 +1,8 @@
+use std::hash::{Hash, Hasher};
+
+use data_encoding::BASE64;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use time::{
     format_description::well_known::{
         iso8601::{Config, EncodedConfig},
@@ -56,14 +60,58 @@ wrap_string!(Identity);
 wrap_string!(Metadata);
 wrap_string!(Plaintext);
 
-#[derive(Serialize, Deserialize, Debug)]
+impl Id {
+    pub fn generate(
+        key_id: &KeyId,
+        timestamp: &Timestamp,
+        description: &Description,
+        maybe_identity: Option<&Identity>,
+    ) -> Result<Self, time::error::Format> {
+        let mut input =
+            format!("{}{}{}", key_id.to_string(), timestamp.isoformat()?, description.to_string());
+        if let Some(identity) = maybe_identity {
+            input.push_str(identity.as_str())
+        }
+        let digest = {
+            let mut hasher = Sha256::new();
+            hasher.update(input.as_bytes());
+            let bytes = hasher.finalize();
+            BASE64.encode(&bytes)
+        };
+        Ok(Id(digest))
+    }
+}
+
+impl Description {
+    pub fn contains(&self, pat: &str) -> bool {
+        self.0.contains(pat)
+    }
+}
+
+impl Hash for Description {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Timestamp(#[serde(with = "iso8601")] OffsetDateTime);
+
+impl Timestamp {
+    pub fn now() -> Self {
+        Timestamp(OffsetDateTime::now_utc())
+    }
+
+    fn isoformat(&self) -> Result<String, time::error::Format> {
+        self.0.format(&Iso8601::DEFAULT)
+    }
+}
 
 const FORMAT_CONFIG: EncodedConfig = Config::DEFAULT.set_year_is_six_digits(false).encode();
 const FORMAT: Iso8601<FORMAT_CONFIG> = Iso8601::<FORMAT_CONFIG>;
 time::serde::format_description!(iso8601, OffsetDateTime, FORMAT);
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Ciphertext(#[serde(with = "base64")] Vec<u8>);
 
 impl Ciphertext {
@@ -105,7 +153,7 @@ mod base64 {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Entry {
     pub timestamp: Timestamp,
@@ -117,6 +165,29 @@ pub struct Entry {
     pub ciphertext: Ciphertext,
     #[serde(skip_serializing_if = "Option::is_none", rename = "meta")]
     pub metadata: Option<Metadata>,
+}
+
+impl PartialEq for Entry {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Eq for Entry {}
+
+impl Hash for Entry {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.0.hash(state)
+    }
+}
+
+impl Entry {
+    pub fn update(&mut self) -> Result<(), time::error::Format> {
+        let timestamp = Timestamp::now();
+        let id = Id::generate(&self.key_id, &timestamp, &self.description, self.identity.as_ref())?;
+        self.id = id;
+        Ok(())
+    }
 }
 
 #[cfg(test)]

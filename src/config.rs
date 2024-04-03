@@ -105,6 +105,13 @@ impl Config {
     pub fn mult_keys(&self) -> bool {
         self.mult_keys
     }
+
+    pub fn data_file(&self) -> PathBuf {
+        let mut ret = self.data_dir.to_owned();
+        ret.push("db");
+        ret.push("data.json");
+        ret
+    }
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]

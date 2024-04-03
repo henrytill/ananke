@@ -30,7 +30,7 @@ impl From<string::FromUtf8Error> for Error {
 }
 
 #[allow(dead_code)]
-pub fn encrypt<I, K, V>(key_id: KeyId, plaintext: &Plaintext, vars: I) -> Result<Ciphertext, Error>
+pub fn encrypt<I, K, V>(key_id: &KeyId, plaintext: &Plaintext, vars: I) -> Result<Ciphertext, Error>
 where
     I: IntoIterator<Item = (K, V)>,
     K: AsRef<OsStr>,
@@ -121,7 +121,7 @@ mod tests {
             let val = GNUPGHOME.iter().collect::<PathBuf>().into_os_string();
             [(key, val)].into_iter()
         };
-        let encrypted = super::encrypt(key_id, &plaintext, vars.clone()).expect("should encrypt");
+        let encrypted = super::encrypt(&key_id, &plaintext, vars.clone()).expect("should encrypt");
         let decrypted = super::decrypt(&encrypted, vars).expect("should decrypt");
         assert_eq!(plaintext, decrypted);
     }
@@ -145,7 +145,7 @@ mod tests {
             let val = GNUPGHOME.iter().collect::<PathBuf>().into_os_string();
             [(key, val)].into_iter()
         };
-        let encrypted = super::encrypt(key_id, &plaintext, vars.clone()).expect("should encrypt");
+        let encrypted = super::encrypt(&key_id, &plaintext, vars.clone()).expect("should encrypt");
         let decrypted = super::decrypt(&encrypted, vars).expect("should decrypt");
         assert_eq!(plaintext, decrypted);
     }

@@ -3,7 +3,7 @@ use std::{ffi::OsString, fmt, fs, io, path::Path, string};
 use serde::Serialize;
 use serde_json::ser::{PrettyFormatter, Serializer};
 
-use super::intf::{Application, Target};
+use super::common::Target;
 use crate::{
     config::Config,
     data::{Description, Entry, Id, Identity, Metadata, Plaintext, Timestamp},
@@ -113,18 +113,14 @@ impl JsonApplication {
         ret.push('\n');
         fs::write(path, ret).map_err(Into::into)
     }
-}
 
-impl Application for JsonApplication {
-    type Error = Error;
-
-    fn add(
+    pub fn add(
         &mut self,
         description: Description,
         plaintext: Plaintext,
         maybe_identity: Option<Identity>,
         maybe_metadata: Option<Metadata>,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<(), Error> {
         let timestamp = Timestamp::now();
         let key_id = self.config.key_id().clone();
         let id = Id::generate(&key_id, &timestamp, &description, maybe_identity.as_ref())?;
@@ -140,11 +136,11 @@ impl Application for JsonApplication {
         Ok(())
     }
 
-    fn lookup(
+    pub fn lookup(
         &self,
         description: Description,
         maybe_identity: Option<Identity>,
-    ) -> Result<Vec<(Entry, Plaintext)>, Self::Error> {
+    ) -> Result<Vec<(Entry, Plaintext)>, Error> {
         let mut ret = Vec::new();
         for entry in self.entries.iter() {
             if entry.description.contains(description.as_str()) {
@@ -164,14 +160,14 @@ impl Application for JsonApplication {
         Ok(ret)
     }
 
-    fn modify(
+    pub fn modify(
         &mut self,
         target: Target,
         maybe_description: Option<Description>,
         maybe_plaintext: Option<Plaintext>,
         maybe_identity: Option<Identity>,
         maybe_metadata: Option<Metadata>,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<(), Error> {
         if let Some(idx) = self.entries.iter().position(|entry| target.matches(entry)) {
             let mut entry = self.entries.remove(idx);
             if let Some(description) = maybe_description {
@@ -193,7 +189,7 @@ impl Application for JsonApplication {
         Ok(())
     }
 
-    fn remove(&mut self, target: Target) -> Result<(), Self::Error> {
+    pub fn remove(&mut self, target: Target) -> Result<(), Error> {
         if let Some(idx) = self.entries.iter().position(|entry| target.matches(entry)) {
             self.entries.remove(idx);
         }
@@ -201,7 +197,7 @@ impl Application for JsonApplication {
         Ok(())
     }
 
-    fn import<P: AsRef<Path>>(&mut self, path: P) -> Result<(), Error> {
+    pub fn import(&mut self, path: impl AsRef<Path>) -> Result<(), Error> {
         let json = fs::read_to_string(path)?;
         let entries: Vec<Entry> = serde_json::from_str(&json)?;
         self.entries.extend(entries);
@@ -209,7 +205,7 @@ impl Application for JsonApplication {
         Ok(())
     }
 
-    fn export<P: AsRef<Path>>(&self, path: P) -> Result<(), Error> {
+    pub fn export(&self, path: impl AsRef<Path>) -> Result<(), Error> {
         self.write(path)?;
         Ok(())
     }

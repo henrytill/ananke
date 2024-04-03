@@ -24,7 +24,10 @@ fn command() -> Command {
 fn main() -> Result<()> {
     let matches = command().get_matches();
     match matches.subcommand() {
-        Some(("lookup", sub_matches)) => command::lookup(sub_matches),
+        Some(("lookup", sub_matches)) => {
+            let description = sub_matches.get_one::<String>("DESCRIPTION").expect("required");
+            command::lookup(description, None)
+        }
         Some((&_, _)) => panic!(),
         None => panic!(),
     }
@@ -32,19 +35,55 @@ fn main() -> Result<()> {
 
 mod command {
     use anyhow::Result;
-    use clap::ArgMatches;
 
-    use ananke::ConfigBuilder;
+    use ananke::{
+        application::{json::JsonApplication, sqlite::SqliteApplication},
+        config::{Backend, Config, ConfigBuilder},
+        data::{Description, Entry, Identity, Plaintext},
+    };
 
-    pub fn lookup(matches: &ArgMatches) -> Result<()> {
-        println!("lookup {}", matches.get_one::<String>("DESCRIPTION").expect("required"));
-
+    fn configure() -> Result<Config> {
         let mut config_builder = ConfigBuilder::new();
         config_builder = config_builder
             .with_dirs(&std::env::var)?
             .with_config(Option::<String>::None)?
             .with_env(&std::env::var)?;
-        let _config = config_builder.build()?;
+        let config = config_builder.build()?;
+        Ok(config)
+    }
+
+    fn print_result(result: &[(Entry, Plaintext)], _verbose: bool) {
+        if result.len() == 1 {
+            let (_, plaintext) = &result[0];
+            println!("{}", plaintext.to_string());
+            return;
+        }
+        for (entry, plaintext) in result.iter() {
+            println!(
+                "{} {} {}",
+                entry.description.as_str(),
+                entry.identity.as_ref().map_or("<none>", Identity::as_str),
+                plaintext.as_str()
+            )
+        }
+    }
+
+    pub fn lookup(description: &str, maybe_identity: Option<&str>) -> Result<()> {
+        let description = Description::from(description);
+        let maybe_identity = maybe_identity.map(Identity::from);
+        let config = configure()?;
+        match config.backend() {
+            Backend::Json => {
+                let app = JsonApplication::new(config)?;
+                let result = app.lookup(description, maybe_identity)?;
+                print_result(&result, false)
+            }
+            Backend::Sqlite => {
+                let app = SqliteApplication::new(config)?;
+                let result = app.lookup(description, maybe_identity)?;
+                print_result(&result, false)
+            }
+        }
         Ok(())
     }
 }
@@ -87,5 +126,13 @@ mod version {
             CommitInfo { short_commit_hash, commit_hash, commit_date }
         });
         VersionInfo { version, commit_info }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn main_test() {
+        assert!(true)
     }
 }

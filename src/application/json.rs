@@ -19,6 +19,7 @@ pub enum ErrorImpl {
     MissingStdin,
     MissingStdout,
     Join,
+    MultipleEntries,
 }
 
 #[derive(Debug)]
@@ -36,6 +37,7 @@ impl fmt::Display for Error {
             ErrorImpl::MissingStdin => write!(f, "Error: missing stdin"),
             ErrorImpl::MissingStdout => write!(f, "Error: missing stdout"),
             ErrorImpl::Join => write!(f, "Error: join"),
+            ErrorImpl::MultipleEntries => write!(f, "Multiple entries match this target"),
         }
     }
 }
@@ -78,6 +80,13 @@ impl From<gpg::Error> for Error {
             gpg::Error::Join => ErrorImpl::Join,
         };
         let inner = Box::new(inner);
+        Error { inner }
+    }
+}
+
+impl Error {
+    fn multiple_entries() -> Self {
+        let inner = Box::new(ErrorImpl::MultipleEntries);
         Error { inner }
     }
 }
@@ -168,31 +177,61 @@ impl JsonApplication {
         maybe_identity: Option<Identity>,
         maybe_metadata: Option<Metadata>,
     ) -> Result<(), Error> {
-        if let Some(idx) = self.entries.iter().position(|entry| target.matches(entry)) {
-            let mut entry = self.entries.remove(idx);
-            if let Some(description) = maybe_description {
-                entry.description = description
-            }
-            if let Some(plaintext) = maybe_plaintext {
-                entry.ciphertext = gpg::encrypt(&entry.key_id, &plaintext, Self::ENV)?
-            }
-            if maybe_identity.is_some() {
-                entry.identity = maybe_identity
-            }
-            if maybe_metadata.is_some() {
-                entry.metadata = maybe_metadata
-            }
-            entry.update()?;
-            self.entries.push(entry);
+        let is: Vec<usize> = self
+            .entries
+            .iter()
+            .enumerate()
+            .filter(|(_i, entry)| target.matches(entry))
+            .map(|(i, _entry)| i)
+            .collect();
+
+        if is.is_empty() {
+            return Ok(());
         }
+
+        if is.len() > 1 {
+            return Err(Error::multiple_entries());
+        }
+
+        let mut entry = self.entries.remove(is[0]);
+        if let Some(description) = maybe_description {
+            entry.description = description
+        }
+        if let Some(plaintext) = maybe_plaintext {
+            entry.ciphertext = gpg::encrypt(&entry.key_id, &plaintext, Self::ENV)?
+        }
+        if maybe_identity.is_some() {
+            entry.identity = maybe_identity
+        }
+        if maybe_metadata.is_some() {
+            entry.metadata = maybe_metadata
+        }
+        entry.update()?;
+        self.entries.push(entry);
+
         self.write(self.config.data_file())?;
         Ok(())
     }
 
     pub fn remove(&mut self, target: Target) -> Result<(), Error> {
-        if let Some(idx) = self.entries.iter().position(|entry| target.matches(entry)) {
-            self.entries.remove(idx);
+        let is: Vec<usize> = self
+            .entries
+            .iter()
+            .enumerate()
+            .filter(|(_i, entry)| target.matches(entry))
+            .map(|(i, _entry)| i)
+            .collect();
+
+        if is.is_empty() {
+            return Ok(());
         }
+
+        if is.len() > 1 {
+            return Err(Error::multiple_entries());
+        }
+
+        self.entries.remove(is[0]);
+
         self.write(self.config.data_file())?;
         Ok(())
     }

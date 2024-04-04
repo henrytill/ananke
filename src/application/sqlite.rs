@@ -1,4 +1,4 @@
-use std::{fmt, path::PathBuf};
+use std::{fmt, path::Path};
 
 use super::common::Target;
 use crate::{
@@ -70,13 +70,13 @@ impl SqliteApplication {
         Ok(())
     }
 
-    pub fn import(&mut self, path: PathBuf) -> Result<(), Error> {
-        println!("path: {}", path.display());
+    pub fn import(&mut self, path: impl AsRef<Path>) -> Result<(), Error> {
+        println!("path: {}", path.as_ref().display());
         Ok(())
     }
 
-    pub fn export(&self, path: PathBuf) -> Result<(), Error> {
-        println!("path: {}", path.display());
+    pub fn export(&self, path: impl AsRef<Path>) -> Result<(), Error> {
+        println!("path: {}", path.as_ref().display());
         Ok(())
     }
 }

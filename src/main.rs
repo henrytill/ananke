@@ -157,13 +157,13 @@ fn main() -> Result<()> {
         Some(("lookup", sub_matches)) => {
             let description = sub_matches.get_one::<String>("description").cloned().unwrap();
             let identity = sub_matches.get_one::<String>("identity").cloned();
-            let verbose = sub_matches.get_one::<bool>("verbose").copied().unwrap_or(false);
+            let verbose = sub_matches.get_one::<bool>("verbose").copied().unwrap_or_default();
             command::lookup(description, identity, verbose)
         }
         Some(("modify", sub_matches)) => {
             let description = sub_matches.get_one::<String>("description").cloned();
             let entry_id = sub_matches.get_one::<String>("entry-id").cloned();
-            let plaintext = sub_matches.get_one::<bool>("plaintext").copied().unwrap_or(false);
+            let plaintext = sub_matches.get_one::<bool>("plaintext").copied().unwrap_or_default();
             let identity = sub_matches.get_one::<String>("identity").cloned();
             let metadata = sub_matches.get_one::<String>("metadata").cloned();
             println!("description: {:?}", description);

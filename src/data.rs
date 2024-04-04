@@ -18,7 +18,6 @@ macro_rules! wrap_string {
         #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
         pub struct $name(String);
 
-        #[allow(dead_code)]
         impl $name {
             pub const fn new(value: String) -> Self {
                 Self(value)

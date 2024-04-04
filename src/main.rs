@@ -207,7 +207,7 @@ mod command {
         let mut config_builder = ConfigBuilder::new();
         config_builder = config_builder
             .with_dirs(&std::env::var)?
-            .with_config(Option::<String>::None)?
+            .with_config(None)?
             .with_env(&std::env::var)?;
         let config = config_builder.build()?;
         Ok(config)

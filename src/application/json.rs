@@ -1,4 +1,4 @@
-use std::{ffi::OsString, fmt, fs, io, path::Path, string};
+use std::{ffi::OsString, fmt, fs, io, path::PathBuf, string};
 
 use serde::Serialize;
 use serde_json::ser::{PrettyFormatter, Serializer};
@@ -109,7 +109,7 @@ impl JsonApplication {
         Ok(Self { config, entries, dirty })
     }
 
-    fn write(&self, path: impl AsRef<Path>) -> Result<(), Error> {
+    fn write(&self, path: PathBuf) -> Result<(), Error> {
         if !self.dirty {
             return Ok(());
         }
@@ -236,7 +236,7 @@ impl JsonApplication {
         Ok(())
     }
 
-    pub fn import(&mut self, path: impl AsRef<Path>) -> Result<(), Error> {
+    pub fn import(&mut self, path: PathBuf) -> Result<(), Error> {
         let json = fs::read_to_string(path)?;
         let entries: Vec<Entry> = serde_json::from_str(&json)?;
         self.entries.extend(entries);
@@ -244,7 +244,7 @@ impl JsonApplication {
         Ok(())
     }
 
-    pub fn export(&self, path: impl AsRef<Path>) -> Result<(), Error> {
+    pub fn export(&self, path: PathBuf) -> Result<(), Error> {
         self.write(path)?;
         Ok(())
     }

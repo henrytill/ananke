@@ -212,12 +212,9 @@ impl ConfigBuilder {
         Ok(self)
     }
 
-    pub fn with_config(
-        mut self,
-        maybe_input: Option<impl Into<String>>,
-    ) -> Result<ConfigBuilder, Error> {
+    pub fn with_config(mut self, maybe_input: Option<String>) -> Result<ConfigBuilder, Error> {
         let input = if let Some(input) = maybe_input {
-            input.into()
+            input
         } else if let Some(mut path) = self.maybe_config_dir.to_owned() {
             path.push(Self::CONFIG_FILE);
             fs::read_to_string(path)?
@@ -664,7 +661,7 @@ allow_multiple_keys={}
 
     #[test]
     fn with_config_returns_missing_config_dir() {
-        let result = ConfigBuilder::new().with_config(Option::<String>::None);
+        let result = ConfigBuilder::new().with_config(None);
         if let Err(Error::MissingConfigDir) = result {
             return;
         }

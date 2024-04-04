@@ -18,13 +18,13 @@ pub enum Error {
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
-        Error::Io(err)
+        Self::Io(err)
     }
 }
 
 impl From<string::FromUtf8Error> for Error {
     fn from(err: string::FromUtf8Error) -> Self {
-        Error::FromUtf8(err)
+        Self::FromUtf8(err)
     }
 }
 

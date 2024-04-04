@@ -21,7 +21,7 @@ pub struct SqliteApplication {}
 
 impl SqliteApplication {
     pub fn new(_config: Config) -> Result<Self, Error> {
-        let ret = SqliteApplication {};
+        let ret = Self {};
         Ok(ret)
     }
 

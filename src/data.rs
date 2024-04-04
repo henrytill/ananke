@@ -99,7 +99,7 @@ pub struct Timestamp(#[serde(with = "iso8601")] OffsetDateTime);
 
 impl Timestamp {
     pub fn now() -> Self {
-        Timestamp(OffsetDateTime::now_utc())
+        Self(OffsetDateTime::now_utc())
     }
 
     fn isoformat(&self) -> Result<String, time::error::Format> {

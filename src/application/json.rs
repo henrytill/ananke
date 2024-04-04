@@ -45,28 +45,28 @@ impl fmt::Display for Error {
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
         let inner = Box::new(ErrorImpl::Io(err));
-        Error { inner }
+        Self { inner }
     }
 }
 
 impl From<serde_json::Error> for Error {
     fn from(err: serde_json::Error) -> Self {
         let inner = Box::new(ErrorImpl::Json(err));
-        Error { inner }
+        Self { inner }
     }
 }
 
 impl From<string::FromUtf8Error> for Error {
     fn from(err: string::FromUtf8Error) -> Self {
         let inner = Box::new(ErrorImpl::FromUtf8(err));
-        Error { inner }
+        Self { inner }
     }
 }
 
 impl From<time::error::Format> for Error {
     fn from(err: time::error::Format) -> Self {
         let inner = Box::new(ErrorImpl::Time(err));
-        Error { inner }
+        Self { inner }
     }
 }
 
@@ -80,14 +80,14 @@ impl From<gpg::Error> for Error {
             gpg::Error::Join => ErrorImpl::Join,
         };
         let inner = Box::new(inner);
-        Error { inner }
+        Self { inner }
     }
 }
 
 impl Error {
     fn multiple_entries() -> Self {
         let inner = Box::new(ErrorImpl::MultipleEntries);
-        Error { inner }
+        Self { inner }
     }
 }
 
@@ -106,7 +106,7 @@ impl JsonApplication {
         let json = fs::read_to_string(config.data_file())?;
         let entries: Vec<Entry> = serde_json::from_str(&json)?;
         let dirty = false;
-        Ok(JsonApplication { config, entries, dirty })
+        Ok(Self { config, entries, dirty })
     }
 
     fn write(&self, path: impl AsRef<Path>) -> Result<(), Error> {

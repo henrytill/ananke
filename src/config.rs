@@ -16,13 +16,13 @@ pub enum Error {
 
 impl From<(env::VarError, &'static str)> for Error {
     fn from((err, var): (env::VarError, &'static str)) -> Self {
-        Error::Var(err, var)
+        Self::Var(err, var)
     }
 }
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
-        Error::Io(err)
+        Self::Io(err)
     }
 }
 
@@ -35,12 +35,12 @@ impl From<Infallible> for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::Var(err, var) => write!(f, "{}: {}", err, var),
-            Error::Io(err) => write!(f, "{}", err),
-            Error::Ini(why) => write!(f, "ini: {}", why),
-            Error::MissingConfigDir => write!(f, "missing config_dir"),
-            Error::MissingDataDir => write!(f, "missing data_dir"),
-            Error::MissingKeyId => write!(f, "missing key_id"),
+            Self::Var(err, var) => write!(f, "{}: {}", err, var),
+            Self::Io(err) => write!(f, "{}", err),
+            Self::Ini(why) => write!(f, "ini: {}", why),
+            Self::MissingConfigDir => write!(f, "missing config_dir"),
+            Self::MissingDataDir => write!(f, "missing data_dir"),
+            Self::MissingKeyId => write!(f, "missing key_id"),
         }
     }
 }

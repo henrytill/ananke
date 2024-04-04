@@ -43,35 +43,35 @@ impl fmt::Display for Error {
 }
 
 impl From<io::Error> for Error {
-    fn from(err: io::Error) -> Self {
+    fn from(err: io::Error) -> Error {
         let inner = Box::new(ErrorImpl::Io(err));
-        Self { inner }
+        Error { inner }
     }
 }
 
 impl From<serde_json::Error> for Error {
-    fn from(err: serde_json::Error) -> Self {
+    fn from(err: serde_json::Error) -> Error {
         let inner = Box::new(ErrorImpl::Json(err));
-        Self { inner }
+        Error { inner }
     }
 }
 
 impl From<string::FromUtf8Error> for Error {
-    fn from(err: string::FromUtf8Error) -> Self {
+    fn from(err: string::FromUtf8Error) -> Error {
         let inner = Box::new(ErrorImpl::FromUtf8(err));
-        Self { inner }
+        Error { inner }
     }
 }
 
 impl From<time::error::Format> for Error {
-    fn from(err: time::error::Format) -> Self {
+    fn from(err: time::error::Format) -> Error {
         let inner = Box::new(ErrorImpl::Time(err));
-        Self { inner }
+        Error { inner }
     }
 }
 
 impl From<gpg::Error> for Error {
-    fn from(err: gpg::Error) -> Self {
+    fn from(err: gpg::Error) -> Error {
         let inner = match err {
             gpg::Error::Io(err) => ErrorImpl::Io(err),
             gpg::Error::FromUtf8(err) => ErrorImpl::FromUtf8(err),
@@ -80,14 +80,14 @@ impl From<gpg::Error> for Error {
             gpg::Error::Join => ErrorImpl::Join,
         };
         let inner = Box::new(inner);
-        Self { inner }
+        Error { inner }
     }
 }
 
 impl Error {
-    fn multiple_entries() -> Self {
+    fn multiple_entries() -> Error {
         let inner = Box::new(ErrorImpl::MultipleEntries);
-        Self { inner }
+        Error { inner }
     }
 }
 
@@ -102,11 +102,11 @@ pub struct JsonApplication {
 impl JsonApplication {
     const ENV: [(OsString, OsString); 0] = [];
 
-    pub fn new(config: Config) -> Result<Self, Error> {
+    pub fn new(config: Config) -> Result<JsonApplication, Error> {
         let json = fs::read_to_string(config.data_file())?;
         let entries: Vec<Entry> = serde_json::from_str(&json)?;
         let dirty = false;
-        Ok(Self { config, entries, dirty })
+        Ok(JsonApplication { config, entries, dirty })
     }
 
     fn write(&self, path: PathBuf) -> Result<(), Error> {

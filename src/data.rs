@@ -66,7 +66,7 @@ impl Id {
         timestamp: &Timestamp,
         description: &Description,
         maybe_identity: Option<&Identity>,
-    ) -> Result<Self, time::error::Format> {
+    ) -> Result<Id, time::error::Format> {
         let mut input =
             format!("{}{}{}", key_id.to_string(), timestamp.isoformat()?, description.to_string());
         if let Some(identity) = maybe_identity {
@@ -98,8 +98,8 @@ impl Hash for Description {
 pub struct Timestamp(#[serde(with = "iso8601")] OffsetDateTime);
 
 impl Timestamp {
-    pub fn now() -> Self {
-        Self(OffsetDateTime::now_utc())
+    pub fn now() -> Timestamp {
+        Timestamp(OffsetDateTime::now_utc())
     }
 
     fn isoformat(&self) -> Result<String, time::error::Format> {
@@ -115,8 +115,8 @@ time::serde::format_description!(iso8601, OffsetDateTime, FORMAT);
 pub struct Ciphertext(#[serde(with = "base64")] Vec<u8>);
 
 impl Ciphertext {
-    pub const fn new(value: Vec<u8>) -> Self {
-        Self(value)
+    pub const fn new(value: Vec<u8>) -> Ciphertext {
+        Ciphertext(value)
     }
 }
 
@@ -168,7 +168,7 @@ pub struct Entry {
 }
 
 impl PartialEq for Entry {
-    fn eq(&self, other: &Self) -> bool {
+    fn eq(&self, other: &Entry) -> bool {
         self.id == other.id
     }
 }

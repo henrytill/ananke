@@ -20,8 +20,8 @@ impl std::error::Error for Error {}
 pub struct SqliteApplication {}
 
 impl SqliteApplication {
-    pub fn new(_config: Config) -> Result<Self, Error> {
-        let ret = Self {};
+    pub fn new(_config: Config) -> Result<SqliteApplication, Error> {
+        let ret = SqliteApplication {};
         Ok(ret)
     }
 }

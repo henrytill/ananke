@@ -15,19 +15,19 @@ pub enum Error {
 }
 
 impl From<(env::VarError, &'static str)> for Error {
-    fn from((err, var): (env::VarError, &'static str)) -> Self {
-        Self::Var(err, var)
+    fn from((err, var): (env::VarError, &'static str)) -> Error {
+        Error::Var(err, var)
     }
 }
 
 impl From<io::Error> for Error {
-    fn from(err: io::Error) -> Self {
-        Self::Io(err)
+    fn from(err: io::Error) -> Error {
+        Error::Io(err)
     }
 }
 
 impl From<Infallible> for Error {
-    fn from(_: Infallible) -> Self {
+    fn from(_: Infallible) -> Error {
         unreachable!()
     }
 }
@@ -35,12 +35,12 @@ impl From<Infallible> for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Var(err, var) => write!(f, "{}: {}", err, var),
-            Self::Io(err) => write!(f, "{}", err),
-            Self::Ini(why) => write!(f, "ini: {}", why),
-            Self::MissingConfigDir => write!(f, "missing config_dir"),
-            Self::MissingDataDir => write!(f, "missing data_dir"),
-            Self::MissingKeyId => write!(f, "missing key_id"),
+            Error::Var(err, var) => write!(f, "{}: {}", err, var),
+            Error::Io(err) => write!(f, "{}", err),
+            Error::Ini(why) => write!(f, "ini: {}", why),
+            Error::MissingConfigDir => write!(f, "missing config_dir"),
+            Error::MissingDataDir => write!(f, "missing data_dir"),
+            Error::MissingKeyId => write!(f, "missing key_id"),
         }
     }
 }
@@ -57,7 +57,7 @@ pub enum Backend {
 impl FromStr for Backend {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Backend, Self::Err> {
         match s {
             "sqlite" | "SQLITE" | "Sqlite" | "SQLite" => Ok(Backend::Sqlite),
             "json" | "JSON" | "Json" => Ok(Backend::Json),
@@ -118,13 +118,13 @@ impl Config {
 struct Flag(bool);
 
 impl From<Flag> for bool {
-    fn from(value: Flag) -> Self {
+    fn from(value: Flag) -> bool {
         value.0
     }
 }
 
 impl From<bool> for Flag {
-    fn from(value: bool) -> Self {
+    fn from(value: bool) -> Flag {
         Flag(value)
     }
 }
@@ -156,8 +156,8 @@ pub struct ConfigBuilder {
 }
 
 impl Default for ConfigBuilder {
-    fn default() -> Self {
-        Self::new()
+    fn default() -> ConfigBuilder {
+        ConfigBuilder::new()
     }
 }
 
@@ -167,8 +167,8 @@ struct IniSelector {
 }
 
 impl IniSelector {
-    const fn new(section: &'static str, key: &'static str) -> Self {
-        Self { section, key }
+    const fn new(section: &'static str, key: &'static str) -> IniSelector {
+        IniSelector { section, key }
     }
 }
 
@@ -185,8 +185,8 @@ impl ConfigBuilder {
     const INI_KEY_ID: IniSelector = IniSelector::new("gpg", "key_id");
     const INI_MULT_KEYS: IniSelector = IniSelector::new("gpg", "allow_multiple_keys");
 
-    pub fn new() -> Self {
-        Self {
+    pub fn new() -> ConfigBuilder {
+        ConfigBuilder {
             maybe_config_dir: None,
             maybe_data_dir: None,
             backend: Backend::default(),

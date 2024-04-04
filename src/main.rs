@@ -147,25 +147,25 @@ fn main() -> Result<()> {
     let matches = command().get_matches();
     match matches.subcommand() {
         Some(("add", sub_matches)) => {
-            let description = sub_matches.get_one::<String>("description").expect("required");
-            let identity = sub_matches.get_one::<String>("identity").map(String::as_str);
-            let metadata = sub_matches.get_one::<String>("metadata").map(String::as_str);
+            let description = sub_matches.get_one::<String>("description").cloned().unwrap();
+            let identity = sub_matches.get_one::<String>("identity").cloned();
+            let metadata = sub_matches.get_one::<String>("metadata").cloned();
             let plaintext = prompt("Enter plaintext: ")?;
-            command::add(description, &plaintext, identity, metadata)?;
+            command::add(description, plaintext, identity, metadata)?;
             Ok(())
         }
         Some(("lookup", sub_matches)) => {
-            let description = sub_matches.get_one::<String>("description").expect("required");
-            let identity = sub_matches.get_one::<String>("identity").map(String::as_str);
+            let description = sub_matches.get_one::<String>("description").cloned().unwrap();
+            let identity = sub_matches.get_one::<String>("identity").cloned();
             let verbose = sub_matches.get_one::<bool>("verbose").copied().unwrap_or(false);
             command::lookup(description, identity, verbose)
         }
         Some(("modify", sub_matches)) => {
-            let description = sub_matches.get_one::<String>("description").map(String::as_str);
-            let entry_id = sub_matches.get_one::<String>("entry-id").map(String::as_str);
+            let description = sub_matches.get_one::<String>("description").cloned();
+            let entry_id = sub_matches.get_one::<String>("entry-id").cloned();
             let plaintext = sub_matches.get_one::<bool>("plaintext").copied().unwrap_or(false);
-            let identity = sub_matches.get_one::<String>("identity").map(String::as_str);
-            let metadata = sub_matches.get_one::<String>("metadata").map(String::as_str);
+            let identity = sub_matches.get_one::<String>("identity").cloned();
+            let metadata = sub_matches.get_one::<String>("metadata").cloned();
             println!("description: {:?}", description);
             println!("entry_id: {:?}", entry_id);
             println!("plaintext: {:?}", plaintext);
@@ -177,21 +177,20 @@ fn main() -> Result<()> {
             } else {
                 None
             };
-            let maybe_plaintext = maybe_plaintext.as_ref().map(String::as_str);
             command::modify(description, entry_id, None, maybe_plaintext, identity, metadata)
         }
         Some(("remove", sub_matches)) => {
-            let description = sub_matches.get_one::<String>("description").map(String::as_str);
-            let entry_id = sub_matches.get_one::<String>("entry-id").map(String::as_str);
+            let description = sub_matches.get_one::<String>("description").cloned();
+            let entry_id = sub_matches.get_one::<String>("entry-id").cloned();
             command::remove(description, entry_id)
         }
         Some(("import", sub_matches)) => {
-            let file = sub_matches.get_one::<String>("file").expect("required");
-            command::import(&file)
+            let file = sub_matches.get_one::<String>("file").cloned().unwrap();
+            command::import(file)
         }
         Some(("export", sub_matches)) => {
-            let file = sub_matches.get_one::<String>("file").expect("required");
-            command::export(&file)
+            let file = sub_matches.get_one::<String>("file").cloned().unwrap();
+            command::export(file)
         }
         Some((&_, _)) => panic!(),
         None => panic!(),
@@ -239,10 +238,10 @@ mod command {
     }
 
     pub fn add(
-        description: &str,
-        plaintext: &str,
-        maybe_identity: Option<&str>,
-        maybe_metadata: Option<&str>,
+        description: String,
+        plaintext: String,
+        maybe_identity: Option<String>,
+        maybe_metadata: Option<String>,
     ) -> Result<()> {
         let description = Description::from(description);
         let plaintext = Plaintext::from(plaintext);
@@ -262,7 +261,11 @@ mod command {
         Ok(())
     }
 
-    pub fn lookup(description: &str, maybe_identity: Option<&str>, verbose: bool) -> Result<()> {
+    pub fn lookup(
+        description: String,
+        maybe_identity: Option<String>,
+        verbose: bool,
+    ) -> Result<()> {
         let description = Description::from(description);
         let maybe_identity = maybe_identity.map(Identity::from);
         let config = configure()?;
@@ -282,12 +285,12 @@ mod command {
     }
 
     pub fn modify(
-        target_description: Option<&str>,
-        target_id: Option<&str>,
-        maybe_description: Option<&str>,
-        maybe_plaintext: Option<&str>,
-        maybe_identity: Option<&str>,
-        maybe_metadata: Option<&str>,
+        target_description: Option<String>,
+        target_id: Option<String>,
+        maybe_description: Option<String>,
+        maybe_plaintext: Option<String>,
+        maybe_identity: Option<String>,
+        maybe_metadata: Option<String>,
     ) -> Result<()> {
         let target = match (target_description, target_id) {
             (Some(d), None) => Target::Description(Description::from(d)),
@@ -325,7 +328,7 @@ mod command {
         Ok(())
     }
 
-    pub fn remove(target_description: Option<&str>, target_id: Option<&str>) -> Result<()> {
+    pub fn remove(target_description: Option<String>, target_id: Option<String>) -> Result<()> {
         let target = match (target_description, target_id) {
             (Some(d), None) => Target::Description(Description::from(d)),
             (None, Some(i)) => Target::Id(Id::from(i)),
@@ -346,7 +349,7 @@ mod command {
         Ok(())
     }
 
-    pub fn import(path: &str) -> Result<()> {
+    pub fn import(path: String) -> Result<()> {
         let path = PathBuf::from(path);
         let config = configure()?;
         match config.backend() {
@@ -362,7 +365,7 @@ mod command {
         Ok(())
     }
 
-    pub fn export(path: &str) -> Result<()> {
+    pub fn export(path: String) -> Result<()> {
         let path = PathBuf::from(path);
         let config = configure()?;
         match config.backend() {

@@ -38,16 +38,16 @@ macro_rules! wrap_string {
             }
         }
 
+        impl ToString for $name {
+            fn to_string(&self) -> String {
+                self.0.to_string()
+            }
+        }
+
         #[cfg(test)]
         impl From<&str> for $name {
             fn from(name: &str) -> Self {
                 Self(name.to_string())
-            }
-        }
-
-        impl ToString for $name {
-            fn to_string(&self) -> String {
-                self.0.to_string()
             }
         }
     };

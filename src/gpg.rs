@@ -109,15 +109,17 @@ mod tests {
 
     const RANDOM_LEN: usize = 100 * 1024 * 1024;
 
+    fn vars() -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
+        let key = OsString::from("GNUPGHOME");
+        let val = GNUPGHOME.iter().collect::<PathBuf>().into_os_string();
+        [(key, val)].into_iter()
+    }
+
     #[test]
     fn roundtrip() {
         let key_id = KeyId::from("371C136C");
         let plaintext = Plaintext::from("Hello, world!");
-        let vars = {
-            let key = OsString::from("GNUPGHOME");
-            let val = GNUPGHOME.iter().collect::<PathBuf>().into_os_string();
-            [(key, val)].into_iter()
-        };
+        let vars = vars();
         let encrypted = super::encrypt(&key_id, &plaintext, vars.clone()).expect("should encrypt");
         let decrypted = super::decrypt(&encrypted, vars).expect("should decrypt");
         assert_eq!(plaintext, decrypted);
@@ -134,14 +136,9 @@ mod tests {
             }
             String::from_utf8_lossy(&data).to_string()
         };
-
         let key_id = KeyId::from("371C136C");
         let plaintext = Plaintext::from(random);
-        let vars = {
-            let key = OsString::from("GNUPGHOME");
-            let val = GNUPGHOME.iter().collect::<PathBuf>().into_os_string();
-            [(key, val)].into_iter()
-        };
+        let vars = vars();
         let encrypted = super::encrypt(&key_id, &plaintext, vars.clone()).expect("should encrypt");
         let decrypted = super::decrypt(&encrypted, vars).expect("should decrypt");
         assert_eq!(plaintext, decrypted);

@@ -166,11 +166,6 @@ fn main() -> Result<()> {
             let plaintext = sub_matches.get_one::<bool>("plaintext").copied().unwrap_or_default();
             let identity = sub_matches.get_one::<String>("identity").cloned();
             let metadata = sub_matches.get_one::<String>("metadata").cloned();
-            println!("description: {:?}", description);
-            println!("entry_id: {:?}", entry_id);
-            println!("plaintext: {:?}", plaintext);
-            println!("identity: {:?}", identity);
-            println!("metadata: {:?}", metadata);
             let maybe_plaintext = if plaintext {
                 let plaintext = prompt("Enter plaintext: ")?;
                 Some(plaintext)

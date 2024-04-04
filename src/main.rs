@@ -198,7 +198,11 @@ mod command {
     use anyhow::Result;
 
     use ananke::{
-        application::{common::Target, json::JsonApplication, sqlite::SqliteApplication},
+        application::{
+            common::{Application, Target},
+            json::JsonApplication,
+            sqlite::SqliteApplication,
+        },
         config::{Backend, Config, ConfigBuilder},
         data::{Description, Entry, Id, Identity, Metadata, Plaintext},
     };

@@ -3,7 +3,7 @@ use std::{ffi::OsString, fmt, fs, io, path::PathBuf, string};
 use serde::Serialize;
 use serde_json::ser::{PrettyFormatter, Serializer};
 
-use super::common::Target;
+use super::common::{Application, Target};
 use crate::{
     config::Config,
     data::{Description, Entry, Id, Identity, Metadata, Plaintext, Timestamp},
@@ -122,14 +122,18 @@ impl JsonApplication {
         ret.push('\n');
         fs::write(path, ret).map_err(Into::into)
     }
+}
 
-    pub fn add(
+impl Application for JsonApplication {
+    type Error = Error;
+
+    fn add(
         &mut self,
         description: Description,
         plaintext: Plaintext,
         maybe_identity: Option<Identity>,
         maybe_metadata: Option<Metadata>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Self::Error> {
         let timestamp = Timestamp::now();
         let key_id = self.config.key_id().clone();
         let id = Id::generate(&key_id, &timestamp, &description, maybe_identity.as_ref())?;
@@ -145,11 +149,11 @@ impl JsonApplication {
         Ok(())
     }
 
-    pub fn lookup(
+    fn lookup(
         &self,
         description: Description,
         maybe_identity: Option<Identity>,
-    ) -> Result<Vec<(Entry, Plaintext)>, Error> {
+    ) -> Result<Vec<(Entry, Plaintext)>, Self::Error> {
         let mut ret = Vec::new();
         for entry in self.entries.iter() {
             if entry.description.contains(description.as_str()) {
@@ -169,14 +173,14 @@ impl JsonApplication {
         Ok(ret)
     }
 
-    pub fn modify(
+    fn modify(
         &mut self,
         target: Target,
         maybe_description: Option<Description>,
         maybe_plaintext: Option<Plaintext>,
         maybe_identity: Option<Identity>,
         maybe_metadata: Option<Metadata>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Self::Error> {
         let is: Vec<usize> = self
             .entries
             .iter()
@@ -190,7 +194,7 @@ impl JsonApplication {
         }
 
         if is.len() > 1 {
-            return Err(Error::multiple_entries());
+            return Err(Self::Error::multiple_entries());
         }
 
         let mut entry = self.entries.remove(is[0]);
@@ -213,7 +217,7 @@ impl JsonApplication {
         Ok(())
     }
 
-    pub fn remove(&mut self, target: Target) -> Result<(), Error> {
+    fn remove(&mut self, target: Target) -> Result<(), Self::Error> {
         let is: Vec<usize> = self
             .entries
             .iter()
@@ -227,7 +231,7 @@ impl JsonApplication {
         }
 
         if is.len() > 1 {
-            return Err(Error::multiple_entries());
+            return Err(Self::Error::multiple_entries());
         }
 
         self.entries.remove(is[0]);
@@ -236,7 +240,7 @@ impl JsonApplication {
         Ok(())
     }
 
-    pub fn import(&mut self, path: PathBuf) -> Result<(), Error> {
+    fn import(&mut self, path: PathBuf) -> Result<(), Self::Error> {
         let json = fs::read_to_string(path)?;
         let entries: Vec<Entry> = serde_json::from_str(&json)?;
         self.entries.extend(entries);
@@ -244,7 +248,7 @@ impl JsonApplication {
         Ok(())
     }
 
-    pub fn export(&self, path: PathBuf) -> Result<(), Error> {
+    fn export(&self, path: PathBuf) -> Result<(), Self::Error> {
         self.write(path)?;
         Ok(())
     }

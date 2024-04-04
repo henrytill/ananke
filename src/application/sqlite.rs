@@ -1,6 +1,6 @@
 use std::{fmt, path::PathBuf};
 
-use super::common::Target;
+use super::common::{Application, Target};
 use crate::{
     config::Config,
     data::{Description, Entry, Identity, Metadata, Plaintext},
@@ -24,8 +24,12 @@ impl SqliteApplication {
         let ret = Self {};
         Ok(ret)
     }
+}
 
-    pub fn add(
+impl Application for SqliteApplication {
+    type Error = Error;
+
+    fn add(
         &mut self,
         description: Description,
         plaintext: Plaintext,
@@ -39,7 +43,7 @@ impl SqliteApplication {
         Ok(())
     }
 
-    pub fn lookup(
+    fn lookup(
         &self,
         description: Description,
         maybe_identity: Option<Identity>,
@@ -49,7 +53,7 @@ impl SqliteApplication {
         Ok(Vec::new())
     }
 
-    pub fn modify(
+    fn modify(
         &mut self,
         target: Target,
         maybe_description: Option<Description>,
@@ -65,17 +69,17 @@ impl SqliteApplication {
         Ok(())
     }
 
-    pub fn remove(&mut self, target: Target) -> Result<(), Error> {
+    fn remove(&mut self, target: Target) -> Result<(), Error> {
         println!("target: {:?}", target);
         Ok(())
     }
 
-    pub fn import(&mut self, path: PathBuf) -> Result<(), Error> {
+    fn import(&mut self, path: PathBuf) -> Result<(), Error> {
         println!("path: {}", path.display());
         Ok(())
     }
 
-    pub fn export(&self, path: PathBuf) -> Result<(), Error> {
+    fn export(&self, path: PathBuf) -> Result<(), Error> {
         println!("path: {}", path.display());
         Ok(())
     }

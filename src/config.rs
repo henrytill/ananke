@@ -199,7 +199,7 @@ impl ConfigBuilder {
         mut self,
         getenv: &impl Fn(&'static str) -> Result<String, env::VarError>,
     ) -> Result<ConfigBuilder, Error> {
-        if let Some(config_dir) = getenv(Self::ENV_CONFIG_DIR).ok() {
+        if let Ok(config_dir) = getenv(Self::ENV_CONFIG_DIR) {
             self.maybe_config_dir = Some(PathBuf::from(config_dir))
         } else {
             let config_dir = internal::config_dir(getenv, Self::NAME)?;
@@ -233,7 +233,7 @@ impl ConfigBuilder {
         }
 
         if let Some(backend) = config.get(Self::INI_BACKEND.section, Self::INI_BACKEND.key) {
-            if let Some(backend) = backend.parse::<Backend>().ok() {
+            if let Ok(backend) = backend.parse::<Backend>() {
                 self.backend = backend
             }
         }
@@ -253,21 +253,21 @@ impl ConfigBuilder {
         mut self,
         getenv: &impl Fn(&'static str) -> Result<String, env::VarError>,
     ) -> Result<ConfigBuilder, Error> {
-        if let Some(data_dir) = getenv(Self::ENV_DATA_DIR).ok() {
+        if let Ok(data_dir) = getenv(Self::ENV_DATA_DIR) {
             self.maybe_data_dir = Some(PathBuf::from(data_dir))
         }
 
-        if let Some(backend) = getenv(Self::ENV_BACKEND).ok() {
-            if let Some(backend) = backend.parse::<Backend>().ok() {
+        if let Ok(backend) = getenv(Self::ENV_BACKEND) {
+            if let Ok(backend) = backend.parse::<Backend>() {
                 self.backend = backend
             }
         }
 
-        if let Some(key_id) = getenv(Self::ENV_KEY_ID).ok() {
+        if let Ok(key_id) = getenv(Self::ENV_KEY_ID) {
             self.maybe_key_id = Some(KeyId::from(key_id))
         }
 
-        if let Some(mult_keys) = getenv(Self::ENV_MULT_KEYS).ok() {
+        if let Ok(mult_keys) = getenv(Self::ENV_MULT_KEYS) {
             self.mult_keys = mult_keys.parse::<Flag>()?
         }
 

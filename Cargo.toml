@@ -18,3 +18,4 @@ time = { version = "0.3.30", features = ["macros", "formatting", "parsing", "ser
 
 [dev-dependencies]
 rand = "0.8.5"
+snapbox = "0.5.9"

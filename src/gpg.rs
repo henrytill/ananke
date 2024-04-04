@@ -110,9 +110,7 @@ mod tests {
     const RANDOM_LEN: usize = 100 * 1024 * 1024;
 
     fn vars() -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
-        let key = OsString::from("GNUPGHOME");
-        let val = GNUPGHOME.iter().collect::<PathBuf>().into_os_string();
-        [(key, val)].into_iter()
+        [(OsString::from("GNUPGHOME"), GNUPGHOME.iter().collect::<PathBuf>().into_os_string())]
     }
 
     #[test]

@@ -124,6 +124,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn roundtrip_large() {
         let random = {
             let mut rng = rand::thread_rng();

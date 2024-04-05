@@ -20,7 +20,7 @@ impl Target {
 
 /// This trait provides a definition of the interface that the various
 /// application types must implement.  Its role is more to ensure
-/// conformity among implementers and less for generic programming.
+/// conformity among implementations and less for generic programming.
 pub trait Application {
     type Error;
 

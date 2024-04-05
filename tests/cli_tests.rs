@@ -47,3 +47,13 @@ fn lookup_www() {
         .stdout_eq(file!("cli_tests/lookup_www.stdout"))
         .success();
 }
+
+#[test]
+fn lookup_www_verbose() {
+    Command::new(cargo_bin(BIN))
+        .args(["lookup", "www", "-v"])
+        .envs(vars())
+        .assert()
+        .stdout_eq(file!("cli_tests/lookup_www_verbose.stdout"))
+        .success();
+}

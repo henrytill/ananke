@@ -102,7 +102,7 @@ impl Timestamp {
         Timestamp(OffsetDateTime::now_utc())
     }
 
-    fn isoformat(&self) -> Result<String, time::error::Format> {
+    pub fn isoformat(&self) -> Result<String, time::error::Format> {
         self.0.format(&Iso8601::DEFAULT)
     }
 }

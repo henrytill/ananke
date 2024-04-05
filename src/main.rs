@@ -217,23 +217,57 @@ mod command {
         Ok(config)
     }
 
-    fn print_result(result: &[(Entry, Plaintext)], verbose: bool) {
-        if verbose {
-            println!("should be verbose")
+    fn format_verbose(entry: &Entry, plaintext: &Plaintext) -> Result<String> {
+        let mut elements = vec![
+            entry.timestamp.isoformat()?,
+            entry.id.to_string(),
+            entry.key_id.to_string(),
+            entry.description.to_string(),
+        ];
+
+        if let Some(ref identity) = entry.identity {
+            elements.push(identity.to_string())
         }
-        if result.len() == 1 {
-            let (_, plaintext) = &result[0];
-            println!("{}", plaintext.to_string());
-            return;
+
+        elements.push(plaintext.to_string());
+
+        if let Some(ref metadata) = entry.metadata {
+            elements.push(format!("\"{}\"", metadata.to_string()))
         }
-        for (entry, plaintext) in result.iter() {
-            println!(
-                "{} {} {}",
-                entry.description.as_str(),
-                entry.identity.as_ref().map_or("<none>", Identity::as_str),
-                plaintext.as_str()
-            )
+
+        Ok(elements.join(" "))
+    }
+
+    fn format_results(results: &[(Entry, Plaintext)], verbose: bool) -> Result<String> {
+        if results.len() == 1 {
+            let (entry, plaintext) = &results[0];
+            if verbose {
+                return format_verbose(&entry, &plaintext);
+            } else {
+                return Ok(plaintext.to_string());
+            }
         }
+
+        let mut formatted_results = Vec::new();
+        for (entry, plaintext) in results {
+            let formatted = if verbose {
+                format_verbose(entry, plaintext)?
+            } else {
+                format!(
+                    "{} {} {}",
+                    entry.description.to_string(),
+                    entry
+                        .identity
+                        .as_ref()
+                        .map(ToString::to_string)
+                        .unwrap_or(String::from("<none>")),
+                    plaintext.to_string()
+                )
+            };
+            formatted_results.push(formatted);
+        }
+
+        Ok(formatted_results.join("\n"))
     }
 
     pub fn add(
@@ -271,13 +305,15 @@ mod command {
         match config.backend() {
             Backend::Json => {
                 let app = JsonApplication::new(config)?;
-                let result = app.lookup(description, maybe_identity)?;
-                print_result(&result, verbose)
+                let results = app.lookup(description, maybe_identity)?;
+                let output = format_results(&results, verbose)?;
+                println!("{}", output);
             }
             Backend::Sqlite => {
                 let app = SqliteApplication::new(config)?;
-                let result = app.lookup(description, maybe_identity)?;
-                print_result(&result, verbose)
+                let results = app.lookup(description, maybe_identity)?;
+                let output = format_results(&results, verbose)?;
+                println!("{}", output);
             }
         }
         Ok(())

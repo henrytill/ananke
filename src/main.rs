@@ -228,6 +228,17 @@ mod command {
         Ok(config)
     }
 
+    fn format_brief(entry: &Entry, plaintext: &Plaintext) -> String {
+        let description = entry.description.to_string();
+        let identity = entry
+            .identity
+            .as_ref()
+            .map(ToString::to_string)
+            .unwrap_or_else(|| String::from("<none>"));
+        let plaintext = plaintext.to_string();
+        format!("{} {} {}", description, identity, plaintext)
+    }
+
     fn format_verbose(entry: &Entry, plaintext: &Plaintext) -> Result<String> {
         let mut elements = vec![
             entry.timestamp.isoformat()?,
@@ -260,20 +271,12 @@ mod command {
         }
 
         let mut formatted_results = Vec::new();
+
         for (entry, plaintext) in results {
             let formatted = if verbose {
                 format_verbose(entry, plaintext)?
             } else {
-                format!(
-                    "{} {} {}",
-                    entry.description.to_string(),
-                    entry
-                        .identity
-                        .as_ref()
-                        .map(ToString::to_string)
-                        .unwrap_or(String::from("<none>")),
-                    plaintext.to_string()
-                )
+                format_brief(entry, plaintext)
             };
             formatted_results.push(formatted);
         }

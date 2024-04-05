@@ -253,7 +253,7 @@ mod command {
         if results.len() == 1 {
             let (entry, plaintext) = &results[0];
             if verbose {
-                return format_verbose(&entry, &plaintext);
+                return format_verbose(entry, plaintext);
             } else {
                 return Ok(plaintext.to_string());
             }

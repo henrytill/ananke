@@ -109,7 +109,10 @@ impl Config {
     pub fn data_file(&self) -> PathBuf {
         let mut ret = self.data_dir.to_owned();
         ret.push("db");
-        ret.push("data.json");
+        match self.backend {
+            Backend::Json => ret.push("data.json"),
+            Backend::Sqlite => ret.push("db.sqlite"),
+        }
         ret
     }
 }

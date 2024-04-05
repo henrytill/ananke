@@ -183,14 +183,12 @@ impl Hash for Entry {
 
 impl Entry {
     pub fn update(&mut self) -> Result<(), time::error::Format> {
-        let timestamp = Timestamp::now();
-        let id = Id::generate(&self.key_id, &timestamp, &self.description, self.identity.as_ref())?;
-        self.id = id;
+        self.timestamp = Timestamp::now();
+        self.id = self.fresh_id()?;
         Ok(())
     }
 
-    #[cfg(test)]
-    pub fn fresh_id(&self) -> Result<Id, time::error::Format> {
+    fn fresh_id(&self) -> Result<Id, time::error::Format> {
         Id::generate(&self.key_id, &self.timestamp, &self.description, self.identity.as_ref())
     }
 }

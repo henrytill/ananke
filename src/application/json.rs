@@ -98,7 +98,21 @@ impl Error {
     }
 }
 
-impl std::error::Error for Error {}
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self.inner.as_ref() {
+            ErrorImpl::Io(err) => Some(err),
+            ErrorImpl::Json(err) => Some(err),
+            ErrorImpl::FromUtf8(err) => Some(err),
+            ErrorImpl::Time(err) => Some(err),
+            ErrorImpl::MissingStdin => None,
+            ErrorImpl::MissingStdout => None,
+            ErrorImpl::Join => None,
+            ErrorImpl::MultipleEntries => None,
+            ErrorImpl::NoEntries => None,
+        }
+    }
+}
 
 pub struct JsonApplication {
     config: Config,

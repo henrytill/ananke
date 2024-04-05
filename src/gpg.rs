@@ -1,4 +1,5 @@
 use std::{
+    backtrace::Backtrace,
     ffi::OsStr,
     fmt,
     io::{self, Read, Write},
@@ -9,12 +10,18 @@ use std::{
 use crate::data::{Ciphertext, KeyId, Plaintext};
 
 #[derive(Debug)]
-pub enum ErrorImpl {
+pub enum ErrorKind {
     Io(io::Error),
     FromUtf8(string::FromUtf8Error),
     MissingStdin,
     MissingStdout,
     Join,
+}
+
+#[derive(Debug)]
+pub struct ErrorImpl {
+    kind: ErrorKind,
+    backtrace: Option<Backtrace>,
 }
 
 #[derive(Debug)]
@@ -24,60 +31,74 @@ pub struct Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.inner.as_ref() {
-            ErrorImpl::Io(err) => fmt::Display::fmt(err, f),
-            ErrorImpl::FromUtf8(err) => fmt::Display::fmt(err, f),
-            ErrorImpl::MissingStdin => write!(f, "missing stdin"),
-            ErrorImpl::MissingStdout => write!(f, "missing stdout"),
-            ErrorImpl::Join => write!(f, "join thread failed"),
+        match self.kind() {
+            ErrorKind::Io(err) => fmt::Display::fmt(err, f),
+            ErrorKind::FromUtf8(err) => fmt::Display::fmt(err, f),
+            ErrorKind::MissingStdin => write!(f, "missing stdin"),
+            ErrorKind::MissingStdout => write!(f, "missing stdout"),
+            ErrorKind::Join => write!(f, "join thread failed"),
         }
     }
 }
 
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self.inner.as_ref() {
-            ErrorImpl::Io(err) => Some(err),
-            ErrorImpl::FromUtf8(err) => Some(err),
-            ErrorImpl::MissingStdin => None,
-            ErrorImpl::MissingStdout => None,
-            ErrorImpl::Join => None,
+        match self.kind() {
+            ErrorKind::Io(err) => Some(err),
+            ErrorKind::FromUtf8(err) => Some(err),
+            ErrorKind::MissingStdin => None,
+            ErrorKind::MissingStdout => None,
+            ErrorKind::Join => None,
         }
     }
 }
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
-        let inner = Box::new(ErrorImpl::Io(err));
-        Error { inner }
+        let kind = ErrorKind::Io(err);
+        Error::new(kind)
     }
 }
 
 impl From<string::FromUtf8Error> for Error {
     fn from(err: string::FromUtf8Error) -> Error {
-        let inner = Box::new(ErrorImpl::FromUtf8(err));
-        Error { inner }
+        let kind = ErrorKind::FromUtf8(err);
+        Error::new(kind)
     }
 }
 
 impl Error {
+    fn new(kind: ErrorKind) -> Error {
+        let backtrace = Some(Backtrace::capture());
+        let inner = Box::new(ErrorImpl { kind, backtrace });
+        Error { inner }
+    }
+
     pub fn into_inner(self) -> ErrorImpl {
         *self.inner
     }
 
+    pub fn kind(&self) -> &ErrorKind {
+        &self.inner.kind
+    }
+
+    pub fn backtrace(&mut self) -> Option<Backtrace> {
+        self.inner.backtrace.take()
+    }
+
     fn missing_stdin() -> Error {
-        let inner = Box::new(ErrorImpl::MissingStdin);
-        Error { inner }
+        let kind = ErrorKind::MissingStdin;
+        Error::new(kind)
     }
 
     fn missing_stdout() -> Error {
-        let inner = Box::new(ErrorImpl::MissingStdout);
-        Error { inner }
+        let kind = ErrorKind::MissingStdout;
+        Error::new(kind)
     }
 
     fn join() -> Error {
-        let inner = Box::new(ErrorImpl::Join);
-        Error { inner }
+        let kind = ErrorKind::Join;
+        Error::new(kind)
     }
 }
 

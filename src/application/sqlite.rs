@@ -1,4 +1,4 @@
-use std::{fmt, path::PathBuf};
+use std::{backtrace::Backtrace, fmt, path::PathBuf};
 
 use super::common::{Application, Target};
 use crate::{
@@ -16,6 +16,12 @@ impl fmt::Display for Error {
 }
 
 impl std::error::Error for Error {}
+
+impl Error {
+    pub fn backtrace(&mut self) -> Option<Backtrace> {
+        todo!()
+    }
+}
 
 pub struct SqliteApplication {}
 

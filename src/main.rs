@@ -145,7 +145,7 @@ fn prompt(display: &str) -> Result<String, io::Error> {
     Ok(ret)
 }
 
-fn run() -> Result<ExitCode, Box<dyn std::error::Error>> {
+fn run() -> Result<ExitCode, common::Error> {
     let matches = command().get_matches();
     match matches.subcommand() {
         Some(("add", sub_matches)) => {
@@ -196,11 +196,128 @@ fn run() -> Result<ExitCode, Box<dyn std::error::Error>> {
 fn main() -> ExitCode {
     match run() {
         Ok(code) => code,
-        Err(err) => {
+        Err(mut err) => {
             eprintln!("Error: {}", err);
+            if std::env::var("RUST_BACKTRACE").ok() == Some(String::from("1")) {
+                if let Some(backtrace) = err.backtrace() {
+                    eprintln!("\n{}", backtrace)
+                }
+            }
             ExitCode::FAILURE
         }
     }
+}
+
+mod common {
+    use std::{backtrace::Backtrace, fmt, io};
+
+    use ananke::{
+        application::{json, sqlite},
+        config,
+    };
+
+    #[derive(Debug)]
+    enum ErrorKind {
+        Config(config::Error),
+        JsonApplication(json::Error),
+        SqliteApplication(sqlite::Error),
+        Io(io::Error),
+        Time(time::error::Format),
+    }
+
+    #[derive(Debug)]
+    struct ErrorImpl {
+        kind: ErrorKind,
+        backtrace: Option<Backtrace>,
+    }
+
+    #[derive(Debug)]
+    pub struct Error {
+        inner: Box<ErrorImpl>,
+    }
+
+    impl fmt::Display for Error {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self.kind() {
+                ErrorKind::Config(err) => fmt::Display::fmt(err, f),
+                ErrorKind::JsonApplication(err) => fmt::Display::fmt(err, f),
+                ErrorKind::SqliteApplication(err) => fmt::Display::fmt(err, f),
+                ErrorKind::Io(err) => fmt::Display::fmt(err, f),
+                ErrorKind::Time(err) => fmt::Display::fmt(err, f),
+            }
+        }
+    }
+
+    impl std::error::Error for Error {
+        fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+            match self.kind() {
+                ErrorKind::Config(err) => Some(err),
+                ErrorKind::JsonApplication(err) => Some(err),
+                ErrorKind::SqliteApplication(err) => Some(err),
+                ErrorKind::Io(err) => Some(err),
+                ErrorKind::Time(err) => Some(err),
+            }
+        }
+    }
+
+    impl From<config::Error> for Error {
+        fn from(mut err: config::Error) -> Error {
+            let backtrace = err.backtrace();
+            let kind = ErrorKind::Config(err);
+            let inner = Box::new(ErrorImpl { kind, backtrace });
+            Error { inner }
+        }
+    }
+
+    impl From<json::Error> for Error {
+        fn from(mut err: json::Error) -> Error {
+            let backtrace = err.backtrace();
+            let kind = ErrorKind::JsonApplication(err);
+            let inner = Box::new(ErrorImpl { kind, backtrace });
+            Error { inner }
+        }
+    }
+
+    impl From<sqlite::Error> for Error {
+        fn from(mut err: sqlite::Error) -> Error {
+            let backtrace = err.backtrace();
+            let kind = ErrorKind::SqliteApplication(err);
+            let inner = Box::new(ErrorImpl { kind, backtrace });
+            Error { inner }
+        }
+    }
+
+    impl From<io::Error> for Error {
+        fn from(err: io::Error) -> Error {
+            let kind = ErrorKind::Io(err);
+            Error::new(kind)
+        }
+    }
+
+    impl From<time::error::Format> for Error {
+        fn from(err: time::error::Format) -> Error {
+            let kind = ErrorKind::Time(err);
+            Error::new(kind)
+        }
+    }
+
+    impl Error {
+        fn new(kind: ErrorKind) -> Error {
+            let backtrace = Some(Backtrace::capture());
+            let inner = Box::new(ErrorImpl { kind, backtrace });
+            Error { inner }
+        }
+
+        fn kind(&self) -> &ErrorKind {
+            &self.inner.kind
+        }
+
+        pub fn backtrace(&mut self) -> Option<Backtrace> {
+            self.inner.backtrace.take()
+        }
+    }
+
+    pub type Result<T> = std::result::Result<T, Error>;
 }
 
 mod command {
@@ -216,7 +333,7 @@ mod command {
         data::{Description, Entry, Id, Identity, Metadata, Plaintext},
     };
 
-    type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+    use super::common::Result;
 
     fn configure() -> Result<Config> {
         let mut config_builder = ConfigBuilder::new();

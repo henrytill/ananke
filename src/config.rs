@@ -1,11 +1,13 @@
-use std::{convert::Infallible, env, fmt, fs, io, path::PathBuf, str::FromStr};
+use std::{
+    backtrace::Backtrace, convert::Infallible, env, fmt, fs, io, path::PathBuf, str::FromStr,
+};
 
 use configparser::ini::Ini;
 
 use crate::data::KeyId;
 
 #[derive(Debug)]
-pub enum Error {
+pub enum ErrorKind {
     Var(env::VarError, &'static str),
     Io(io::Error),
     Ini(String),
@@ -14,15 +16,54 @@ pub enum Error {
     MissingKeyId,
 }
 
+#[derive(Debug)]
+pub struct ErrorImpl {
+    kind: ErrorKind,
+    backtrace: Option<Backtrace>,
+}
+
+#[derive(Debug)]
+pub struct Error {
+    inner: Box<ErrorImpl>,
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.kind() {
+            ErrorKind::Var(err, var) => write!(f, "{}: {}", err, var),
+            ErrorKind::Io(err) => fmt::Display::fmt(err, f),
+            ErrorKind::Ini(err) => fmt::Display::fmt(err, f),
+            ErrorKind::MissingConfigDir => write!(f, "missing config_dir"),
+            ErrorKind::MissingDataDir => write!(f, "missing data_dir"),
+            ErrorKind::MissingKeyId => write!(f, "missing key_id"),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self.kind() {
+            ErrorKind::Var(err, _) => Some(err),
+            ErrorKind::Io(err) => Some(err),
+            ErrorKind::Ini(_) => None,
+            ErrorKind::MissingConfigDir => None,
+            ErrorKind::MissingDataDir => None,
+            ErrorKind::MissingKeyId => None,
+        }
+    }
+}
+
 impl From<(env::VarError, &'static str)> for Error {
     fn from((err, var): (env::VarError, &'static str)) -> Error {
-        Error::Var(err, var)
+        let kind = ErrorKind::Var(err, var);
+        Error::new(kind)
     }
 }
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
-        Error::Io(err)
+        let kind = ErrorKind::Io(err);
+        Error::new(kind)
     }
 }
 
@@ -32,20 +73,41 @@ impl From<Infallible> for Error {
     }
 }
 
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::Var(err, var) => write!(f, "{}: {}", err, var),
-            Error::Io(err) => write!(f, "{}", err),
-            Error::Ini(why) => write!(f, "ini: {}", why),
-            Error::MissingConfigDir => write!(f, "missing config_dir"),
-            Error::MissingDataDir => write!(f, "missing data_dir"),
-            Error::MissingKeyId => write!(f, "missing key_id"),
-        }
+impl Error {
+    fn new(kind: ErrorKind) -> Error {
+        let backtrace = Some(Backtrace::capture());
+        let inner = Box::new(ErrorImpl { kind, backtrace });
+        Error { inner }
+    }
+
+    pub fn kind(&self) -> &ErrorKind {
+        &self.inner.kind
+    }
+
+    pub fn backtrace(&mut self) -> Option<Backtrace> {
+        self.inner.backtrace.take()
+    }
+
+    fn ini(value: String) -> Error {
+        let kind = ErrorKind::Ini(value);
+        Error::new(kind)
+    }
+
+    fn missing_config_dir() -> Error {
+        let kind = ErrorKind::MissingConfigDir;
+        Error::new(kind)
+    }
+
+    fn missing_data_dir() -> Error {
+        let kind = ErrorKind::MissingDataDir;
+        Error::new(kind)
+    }
+
+    fn missing_key_id() -> Error {
+        let kind = ErrorKind::MissingKeyId;
+        Error::new(kind)
     }
 }
-
-impl std::error::Error for Error {}
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub enum Backend {
@@ -227,11 +289,11 @@ impl ConfigBuilder {
             path.push(Self::CONFIG_FILE);
             fs::read_to_string(path)?
         } else {
-            return Err(Error::MissingConfigDir);
+            return Err(Error::missing_config_dir());
         };
 
         let mut config = Ini::new();
-        config.read(input).map_err(Error::Ini)?;
+        config.read(input).map_err(Error::ini)?;
 
         if let Some(data_dir) = config.get(Self::INI_DATA_DIR.section, Self::INI_DATA_DIR.key) {
             self.maybe_data_dir = Some(PathBuf::from(data_dir))
@@ -280,10 +342,10 @@ impl ConfigBuilder {
     }
 
     pub fn build(mut self) -> Result<Config, Error> {
-        let config_dir = self.maybe_config_dir.take().ok_or(Error::MissingConfigDir)?;
-        let data_dir = self.maybe_data_dir.take().ok_or(Error::MissingDataDir)?;
+        let config_dir = self.maybe_config_dir.take().ok_or(Error::missing_config_dir())?;
+        let data_dir = self.maybe_data_dir.take().ok_or(Error::missing_data_dir())?;
         let backend = self.backend;
-        let key_id = self.maybe_key_id.take().ok_or(Error::MissingKeyId)?;
+        let key_id = self.maybe_key_id.take().ok_or(Error::missing_key_id())?;
         let mult_keys = self.mult_keys.into();
         Ok(Config { config_dir, data_dir, backend, key_id, mult_keys })
     }
@@ -624,7 +686,7 @@ mod internal {
 mod tests {
     use std::{env::VarError, path::PathBuf};
 
-    use super::{Backend, ConfigBuilder, Error, Flag};
+    use super::{Backend, ConfigBuilder, ErrorKind, Flag};
     use crate::data::KeyId;
 
     #[test]
@@ -670,10 +732,13 @@ allow_multiple_keys={}
     #[test]
     fn with_config_returns_missing_config_dir() {
         let result = ConfigBuilder::new().with_config(None);
-        if let Err(Error::MissingConfigDir) = result {
-            return;
+        if let Err(err) = result {
+            if let ErrorKind::MissingConfigDir = err.kind() {
+                return;
+            }
+            panic!()
         }
-        panic!("Expected: {:?}", Error::MissingConfigDir)
+        panic!()
     }
 
     #[test]

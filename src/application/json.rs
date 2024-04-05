@@ -1,4 +1,4 @@
-use std::{ffi::OsString, fmt, fs, io, path::PathBuf, string};
+use std::{backtrace::Backtrace, ffi::OsString, fmt, fs, io, path::PathBuf, string};
 
 use serde::Serialize;
 use serde_json::ser::{PrettyFormatter, Serializer};
@@ -11,16 +11,20 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub enum ErrorImpl {
+pub enum ErrorKind {
+    Gpg(gpg::Error),
     Io(io::Error),
     Json(serde_json::Error),
     FromUtf8(string::FromUtf8Error),
     Time(time::error::Format),
-    MissingStdin,
-    MissingStdout,
-    Join,
     MultipleEntries,
     NoEntries,
+}
+
+#[derive(Debug)]
+pub struct ErrorImpl {
+    kind: ErrorKind,
+    backtrace: Option<Backtrace>,
 }
 
 #[derive(Debug)]
@@ -30,87 +34,92 @@ pub struct Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.inner.as_ref() {
-            ErrorImpl::Io(err) => fmt::Display::fmt(err, f),
-            ErrorImpl::Json(err) => fmt::Display::fmt(err, f),
-            ErrorImpl::FromUtf8(err) => fmt::Display::fmt(err, f),
-            ErrorImpl::Time(err) => fmt::Display::fmt(err, f),
-            ErrorImpl::MissingStdin => write!(f, "missing stdin"),
-            ErrorImpl::MissingStdout => write!(f, "missing stdout"),
-            ErrorImpl::Join => write!(f, "join thread failed"),
-            ErrorImpl::MultipleEntries => write!(f, "multiple entries match this target"),
-            ErrorImpl::NoEntries => write!(f, "no entries match this target"),
+        match self.kind() {
+            ErrorKind::Gpg(err) => fmt::Display::fmt(err, f),
+            ErrorKind::Io(err) => fmt::Display::fmt(err, f),
+            ErrorKind::Json(err) => fmt::Display::fmt(err, f),
+            ErrorKind::FromUtf8(err) => fmt::Display::fmt(err, f),
+            ErrorKind::Time(err) => fmt::Display::fmt(err, f),
+            ErrorKind::MultipleEntries => write!(f, "multiple entries match this target"),
+            ErrorKind::NoEntries => write!(f, "no entries match this target"),
         }
     }
 }
 
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self.inner.as_ref() {
-            ErrorImpl::Io(err) => Some(err),
-            ErrorImpl::Json(err) => Some(err),
-            ErrorImpl::FromUtf8(err) => Some(err),
-            ErrorImpl::Time(err) => Some(err),
-            ErrorImpl::MissingStdin => None,
-            ErrorImpl::MissingStdout => None,
-            ErrorImpl::Join => None,
-            ErrorImpl::MultipleEntries => None,
-            ErrorImpl::NoEntries => None,
+        match self.kind() {
+            ErrorKind::Gpg(err) => Some(err),
+            ErrorKind::Io(err) => Some(err),
+            ErrorKind::Json(err) => Some(err),
+            ErrorKind::FromUtf8(err) => Some(err),
+            ErrorKind::Time(err) => Some(err),
+            ErrorKind::MultipleEntries => None,
+            ErrorKind::NoEntries => None,
         }
     }
 }
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
-        let inner = Box::new(ErrorImpl::Io(err));
-        Error { inner }
+        let kind = ErrorKind::Io(err);
+        Error::new(kind)
     }
 }
 
 impl From<serde_json::Error> for Error {
     fn from(err: serde_json::Error) -> Error {
-        let inner = Box::new(ErrorImpl::Json(err));
-        Error { inner }
+        let kind = ErrorKind::Json(err);
+        Error::new(kind)
     }
 }
 
 impl From<string::FromUtf8Error> for Error {
     fn from(err: string::FromUtf8Error) -> Error {
-        let inner = Box::new(ErrorImpl::FromUtf8(err));
-        Error { inner }
+        let kind = ErrorKind::FromUtf8(err);
+        Error::new(kind)
     }
 }
 
 impl From<time::error::Format> for Error {
     fn from(err: time::error::Format) -> Error {
-        let inner = Box::new(ErrorImpl::Time(err));
-        Error { inner }
+        let kind = ErrorKind::Time(err);
+        Error::new(kind)
     }
 }
 
 impl From<gpg::Error> for Error {
-    fn from(err: gpg::Error) -> Error {
-        let inner = match err.into_inner() {
-            gpg::ErrorImpl::Io(err) => ErrorImpl::Io(err),
-            gpg::ErrorImpl::FromUtf8(err) => ErrorImpl::FromUtf8(err),
-            gpg::ErrorImpl::MissingStdin => ErrorImpl::MissingStdin,
-            gpg::ErrorImpl::MissingStdout => ErrorImpl::MissingStdout,
-            gpg::ErrorImpl::Join => ErrorImpl::Join,
-        };
-        let inner = Box::new(inner);
+    fn from(mut err: gpg::Error) -> Error {
+        let backtrace = err.backtrace();
+        let kind = ErrorKind::Gpg(err);
+        let inner = Box::new(ErrorImpl { kind, backtrace });
         Error { inner }
     }
 }
 
 impl Error {
-    fn multiple_entries() -> Error {
-        let inner = Box::new(ErrorImpl::MultipleEntries);
+    fn new(kind: ErrorKind) -> Error {
+        let backtrace = Some(Backtrace::capture());
+        let inner = Box::new(ErrorImpl { kind, backtrace });
         Error { inner }
     }
 
+    pub fn kind(&self) -> &ErrorKind {
+        &self.inner.kind
+    }
+
+    pub fn backtrace(&mut self) -> Option<Backtrace> {
+        self.inner.backtrace.take()
+    }
+
+    fn multiple_entries() -> Error {
+        let kind = ErrorKind::MultipleEntries;
+        Error::new(kind)
+    }
+
     fn no_entries() -> Error {
-        let inner = Box::new(ErrorImpl::NoEntries);
-        Error { inner }
+        let kind = ErrorKind::NoEntries;
+        Error::new(kind)
     }
 }
 

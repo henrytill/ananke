@@ -1,5 +1,6 @@
 use std::{
     ffi::OsStr,
+    fmt,
     io::{self, Read, Write},
     process::{Command, Stdio},
     string,
@@ -16,6 +17,18 @@ pub enum Error {
     Join,
 }
 
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::Io(err) => fmt::Display::fmt(err, f),
+            Error::FromUtf8(err) => fmt::Display::fmt(err, f),
+            Error::MissingStdin => write!(f, "missing stdin"),
+            Error::MissingStdout => write!(f, "missing stdout"),
+            Error::Join => write!(f, "join thread failed"),
+        }
+    }
+}
+
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
         Error::Io(err)
@@ -25,6 +38,18 @@ impl From<io::Error> for Error {
 impl From<string::FromUtf8Error> for Error {
     fn from(err: string::FromUtf8Error) -> Error {
         Error::FromUtf8(err)
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Error::Io(err) => Some(err),
+            Error::FromUtf8(err) => Some(err),
+            Error::MissingStdin => None,
+            Error::MissingStdout => None,
+            Error::Join => None,
+        }
     }
 }
 

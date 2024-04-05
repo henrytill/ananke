@@ -3,12 +3,12 @@ A password manager
 Usage: ananke[EXE] <COMMAND>
 
 Commands:
-  add     add an entry
-  lookup  lookup an entry
-  modify  modify an entry
-  remove  remove an entry
-  import  import entries from JSON file
-  export  export entries to JSON file
+  add     Add an entry
+  lookup  Lookup an entry
+  modify  Modify an entry
+  remove  Remove an entry
+  import  Import entries from JSON file
+  export  Export entries to JSON file
   help    Print this message or the help of the given subcommand(s)
 
 Options:

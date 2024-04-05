@@ -22,7 +22,7 @@ fn command() -> Command {
             .value_name("METADATA")
             .help("additional metadata");
         Command::new("add")
-            .about("add an entry")
+            .about("Add an entry")
             .arg(arg_description)
             .arg(arg_identity)
             .arg(arg_meta)
@@ -43,7 +43,7 @@ fn command() -> Command {
             .num_args(0)
             .help("enable verbose output");
         Command::new("lookup")
-            .about("lookup an entry")
+            .about("Lookup an entry")
             .arg(arg_description)
             .arg(arg_identity)
             .arg(arg_verbose)
@@ -77,7 +77,7 @@ fn command() -> Command {
             .value_name("METADATA")
             .help("additional metadata");
         Command::new("modify")
-            .about("modify an entry")
+            .about("Modify an entry")
             .arg(arg_description)
             .arg(arg_entry_id)
             .arg(arg_plaintext)
@@ -99,7 +99,7 @@ fn command() -> Command {
             .value_name("ENTRY_ID")
             .help("entry_id");
         Command::new("remove")
-            .about("remove an entry")
+            .about("Remove an entry")
             .arg(arg_description)
             .arg(arg_entry_id)
             .group(ArgGroup::new("remove").args(["description", "entry-id"]))
@@ -109,7 +109,7 @@ fn command() -> Command {
     let import = {
         let arg_file = Arg::new("file").value_name("FILE").help("file to import from");
         Command::new("import")
-            .about("import entries from JSON file")
+            .about("Import entries from JSON file")
             .arg(arg_file)
             .arg_required_else_help(true)
     };
@@ -117,7 +117,7 @@ fn command() -> Command {
     let export = {
         let arg_file = Arg::new("file").value_name("FILE").help("file to export to");
         Command::new("export")
-            .about("export entries to JSON file")
+            .about("Export entries to JSON file")
             .arg(arg_file)
             .arg_required_else_help(true)
     };

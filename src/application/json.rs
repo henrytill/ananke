@@ -117,7 +117,6 @@ impl Error {
 pub struct JsonApplication {
     config: Config,
     entries: Vec<Entry>,
-    dirty: bool,
 }
 
 impl JsonApplication {
@@ -126,14 +125,10 @@ impl JsonApplication {
     pub fn new(config: Config) -> Result<JsonApplication, Error> {
         let json = fs::read_to_string(config.data_file())?;
         let entries: Vec<Entry> = serde_json::from_str(&json)?;
-        let dirty = false;
-        Ok(JsonApplication { config, entries, dirty })
+        Ok(JsonApplication { config, entries })
     }
 
     fn write(&self, path: PathBuf) -> Result<(), Error> {
-        if !self.dirty {
-            return Ok(());
-        }
         let entries: &[Entry] = self.entries.as_slice();
         let mut buf = Vec::new();
         let formatter = PrettyFormatter::with_indent(b"    ");

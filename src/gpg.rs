@@ -9,7 +9,7 @@ use std::{
 use crate::data::{Ciphertext, KeyId, Plaintext};
 
 #[derive(Debug)]
-pub enum Error {
+pub enum ErrorImpl {
     Io(io::Error),
     FromUtf8(string::FromUtf8Error),
     MissingStdin,
@@ -17,39 +17,67 @@ pub enum Error {
     Join,
 }
 
+#[derive(Debug)]
+pub struct Error {
+    inner: Box<ErrorImpl>,
+}
+
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::Io(err) => fmt::Display::fmt(err, f),
-            Error::FromUtf8(err) => fmt::Display::fmt(err, f),
-            Error::MissingStdin => write!(f, "missing stdin"),
-            Error::MissingStdout => write!(f, "missing stdout"),
-            Error::Join => write!(f, "join thread failed"),
+        match self.inner.as_ref() {
+            ErrorImpl::Io(err) => fmt::Display::fmt(err, f),
+            ErrorImpl::FromUtf8(err) => fmt::Display::fmt(err, f),
+            ErrorImpl::MissingStdin => write!(f, "missing stdin"),
+            ErrorImpl::MissingStdout => write!(f, "missing stdout"),
+            ErrorImpl::Join => write!(f, "join thread failed"),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self.inner.as_ref() {
+            ErrorImpl::Io(err) => Some(err),
+            ErrorImpl::FromUtf8(err) => Some(err),
+            ErrorImpl::MissingStdin => None,
+            ErrorImpl::MissingStdout => None,
+            ErrorImpl::Join => None,
         }
     }
 }
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
-        Error::Io(err)
+        let inner = Box::new(ErrorImpl::Io(err));
+        Error { inner }
     }
 }
 
 impl From<string::FromUtf8Error> for Error {
     fn from(err: string::FromUtf8Error) -> Error {
-        Error::FromUtf8(err)
+        let inner = Box::new(ErrorImpl::FromUtf8(err));
+        Error { inner }
     }
 }
 
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Error::Io(err) => Some(err),
-            Error::FromUtf8(err) => Some(err),
-            Error::MissingStdin => None,
-            Error::MissingStdout => None,
-            Error::Join => None,
-        }
+impl Error {
+    pub fn into_inner(self) -> ErrorImpl {
+        *self.inner
+    }
+
+    fn missing_stdin() -> Error {
+        let inner = Box::new(ErrorImpl::MissingStdin);
+        Error { inner }
+    }
+
+    fn missing_stdout() -> Error {
+        let inner = Box::new(ErrorImpl::MissingStdout);
+        Error { inner }
+    }
+
+    fn join() -> Error {
+        let inner = Box::new(ErrorImpl::Join);
+        Error { inner }
     }
 }
 
@@ -68,16 +96,16 @@ where
 
     let join_handle = {
         let plaintext = plaintext.clone();
-        let mut stdin = child.stdin.take().ok_or(Error::MissingStdin)?;
+        let mut stdin = child.stdin.take().ok_or(Error::missing_stdin())?;
         std::thread::spawn(move || stdin.write_all(plaintext.as_str().as_bytes()))
     };
 
     let mut buf = Vec::new();
-    let mut stdout = child.stdout.take().ok_or(Error::MissingStdout)?;
+    let mut stdout = child.stdout.take().ok_or(Error::missing_stdout())?;
     let _len = stdout.read_to_end(&mut buf)?;
 
     let status = child.wait()?;
-    let thread_result = join_handle.join().map_err(|_| Error::Join)?;
+    let thread_result = join_handle.join().map_err(|_| Error::join())?;
     thread_result?;
 
     if !status.success() {
@@ -102,16 +130,16 @@ where
 
     let join_handle = {
         let ciphertext = ciphertext.clone();
-        let mut stdin = child.stdin.take().ok_or(Error::MissingStdin)?;
+        let mut stdin = child.stdin.take().ok_or(Error::missing_stdin())?;
         std::thread::spawn(move || stdin.write_all(ciphertext.as_ref()))
     };
 
     let mut buf = Vec::new();
-    let mut stdout = child.stdout.take().ok_or(Error::MissingStdout)?;
+    let mut stdout = child.stdout.take().ok_or(Error::missing_stdout())?;
     let _len = stdout.read_to_end(&mut buf)?;
 
     let status = child.wait()?;
-    let thread_result = join_handle.join().map_err(|_| Error::Join)?;
+    let thread_result = join_handle.join().map_err(|_| Error::join())?;
     thread_result?;
 
     if !status.success() {

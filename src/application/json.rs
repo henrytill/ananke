@@ -31,15 +31,31 @@ pub struct Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.inner.as_ref() {
-            ErrorImpl::Io(e) => fmt::Display::fmt(e, f),
-            ErrorImpl::Json(e) => fmt::Display::fmt(e, f),
-            ErrorImpl::FromUtf8(e) => fmt::Display::fmt(e, f),
-            ErrorImpl::Time(e) => fmt::Display::fmt(e, f),
+            ErrorImpl::Io(err) => fmt::Display::fmt(err, f),
+            ErrorImpl::Json(err) => fmt::Display::fmt(err, f),
+            ErrorImpl::FromUtf8(err) => fmt::Display::fmt(err, f),
+            ErrorImpl::Time(err) => fmt::Display::fmt(err, f),
             ErrorImpl::MissingStdin => write!(f, "missing stdin"),
             ErrorImpl::MissingStdout => write!(f, "missing stdout"),
             ErrorImpl::Join => write!(f, "join thread failed"),
             ErrorImpl::MultipleEntries => write!(f, "multiple entries match this target"),
             ErrorImpl::NoEntries => write!(f, "no entries match this target"),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self.inner.as_ref() {
+            ErrorImpl::Io(err) => Some(err),
+            ErrorImpl::Json(err) => Some(err),
+            ErrorImpl::FromUtf8(err) => Some(err),
+            ErrorImpl::Time(err) => Some(err),
+            ErrorImpl::MissingStdin => None,
+            ErrorImpl::MissingStdout => None,
+            ErrorImpl::Join => None,
+            ErrorImpl::MultipleEntries => None,
+            ErrorImpl::NoEntries => None,
         }
     }
 }
@@ -74,12 +90,12 @@ impl From<time::error::Format> for Error {
 
 impl From<gpg::Error> for Error {
     fn from(err: gpg::Error) -> Error {
-        let inner = match err {
-            gpg::Error::Io(err) => ErrorImpl::Io(err),
-            gpg::Error::FromUtf8(err) => ErrorImpl::FromUtf8(err),
-            gpg::Error::MissingStdin => ErrorImpl::MissingStdin,
-            gpg::Error::MissingStdout => ErrorImpl::MissingStdout,
-            gpg::Error::Join => ErrorImpl::Join,
+        let inner = match err.into_inner() {
+            gpg::ErrorImpl::Io(err) => ErrorImpl::Io(err),
+            gpg::ErrorImpl::FromUtf8(err) => ErrorImpl::FromUtf8(err),
+            gpg::ErrorImpl::MissingStdin => ErrorImpl::MissingStdin,
+            gpg::ErrorImpl::MissingStdout => ErrorImpl::MissingStdout,
+            gpg::ErrorImpl::Join => ErrorImpl::Join,
         };
         let inner = Box::new(inner);
         Error { inner }
@@ -95,22 +111,6 @@ impl Error {
     fn no_entries() -> Error {
         let inner = Box::new(ErrorImpl::NoEntries);
         Error { inner }
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self.inner.as_ref() {
-            ErrorImpl::Io(err) => Some(err),
-            ErrorImpl::Json(err) => Some(err),
-            ErrorImpl::FromUtf8(err) => Some(err),
-            ErrorImpl::Time(err) => Some(err),
-            ErrorImpl::MissingStdin => None,
-            ErrorImpl::MissingStdout => None,
-            ErrorImpl::Join => None,
-            ErrorImpl::MultipleEntries => None,
-            ErrorImpl::NoEntries => None,
-        }
     }
 }
 

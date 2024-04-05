@@ -118,7 +118,7 @@ where
     let join_handle = {
         let plaintext = plaintext.clone();
         let mut stdin = child.stdin.take().ok_or(Error::missing_stdin())?;
-        std::thread::spawn(move || stdin.write_all(plaintext.as_str().as_bytes()))
+        std::thread::spawn(move || stdin.write_all(plaintext.as_bytes()))
     };
 
     let mut buf = Vec::new();

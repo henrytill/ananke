@@ -10,6 +10,7 @@ use time::{
     },
     OffsetDateTime,
 };
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// Wraps a [`String`] in a newtype
 macro_rules! wrap_string {
@@ -58,7 +59,38 @@ wrap_string!(KeyId);
 wrap_string!(Description);
 wrap_string!(Identity);
 wrap_string!(Metadata);
-wrap_string!(Plaintext);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
+pub struct Plaintext(String);
+
+impl Plaintext {
+    pub const fn new(value: String) -> Plaintext {
+        Plaintext(value)
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        self.0.as_bytes()
+    }
+}
+
+impl From<String> for Plaintext {
+    fn from(value: String) -> Plaintext {
+        Plaintext(value)
+    }
+}
+
+impl ToString for Plaintext {
+    fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+}
+
+#[cfg(test)]
+impl From<&str> for Plaintext {
+    fn from(name: &str) -> Plaintext {
+        Plaintext(name.to_string())
+    }
+}
 
 impl Id {
     pub fn generate(

@@ -332,6 +332,7 @@ mod command {
         config::{Backend, Config, ConfigBuilder},
         data::{Description, Entry, Id, Identity, Metadata, Plaintext},
     };
+    use zeroize::Zeroize;
 
     use super::common::Result;
 
@@ -374,7 +375,9 @@ mod command {
             elements.push(format!("\"{}\"", metadata.to_string()))
         }
 
-        Ok(elements.join(" "))
+        let ret = elements.join(" ");
+        elements.zeroize();
+        Ok(ret)
     }
 
     fn format_results(results: &[(Entry, Plaintext)], verbose: bool) -> Result<String> {
@@ -398,7 +401,9 @@ mod command {
             formatted_results.push(formatted);
         }
 
-        Ok(formatted_results.join("\n"))
+        let ret = formatted_results.join("\n");
+        formatted_results.zeroize();
+        Ok(ret)
     }
 
     pub fn add(
@@ -446,8 +451,9 @@ mod command {
         if results.is_empty() {
             return Ok(ExitCode::FAILURE);
         }
-        let output = format_results(&results, verbose)?;
+        let mut output = format_results(&results, verbose)?;
         println!("{}", output);
+        output.zeroize();
         Ok(ExitCode::SUCCESS)
     }
 

@@ -31,15 +31,15 @@ pub struct Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.inner.as_ref() {
-            ErrorImpl::Io(e) => write!(f, "Io error: {}", e),
-            ErrorImpl::Json(e) => write!(f, "Json error: {}", e),
-            ErrorImpl::FromUtf8(e) => write!(f, "UTF8 conversion error: {}", e),
-            ErrorImpl::Time(e) => write!(f, "Time error: {}", e),
-            ErrorImpl::MissingStdin => write!(f, "Error: missing stdin"),
-            ErrorImpl::MissingStdout => write!(f, "Error: missing stdout"),
-            ErrorImpl::Join => write!(f, "Error: join"),
-            ErrorImpl::MultipleEntries => write!(f, "Multiple entries match this target"),
-            ErrorImpl::NoEntries => write!(f, "No entries match this target"),
+            ErrorImpl::Io(e) => fmt::Display::fmt(e, f),
+            ErrorImpl::Json(e) => fmt::Display::fmt(e, f),
+            ErrorImpl::FromUtf8(e) => fmt::Display::fmt(e, f),
+            ErrorImpl::Time(e) => fmt::Display::fmt(e, f),
+            ErrorImpl::MissingStdin => write!(f, "missing stdin"),
+            ErrorImpl::MissingStdout => write!(f, "missing stdout"),
+            ErrorImpl::Join => write!(f, "join thread failed"),
+            ErrorImpl::MultipleEntries => write!(f, "multiple entries match this target"),
+            ErrorImpl::NoEntries => write!(f, "no entries match this target"),
         }
     }
 }

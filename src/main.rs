@@ -3,7 +3,6 @@ use std::{
     process::ExitCode,
 };
 
-use anyhow::Result;
 use clap::{Arg, ArgGroup, Command};
 
 fn command() -> Command {
@@ -146,7 +145,7 @@ fn prompt(display: &str) -> Result<String, io::Error> {
     Ok(ret)
 }
 
-fn main() -> Result<ExitCode> {
+fn run() -> Result<ExitCode, Box<dyn std::error::Error>> {
     let matches = command().get_matches();
     match matches.subcommand() {
         Some(("add", sub_matches)) => {
@@ -194,10 +193,18 @@ fn main() -> Result<ExitCode> {
     }
 }
 
+fn main() -> ExitCode {
+    match run() {
+        Ok(code) => code,
+        Err(err) => {
+            eprintln!("Error: {}", err);
+            ExitCode::FAILURE
+        }
+    }
+}
+
 mod command {
     use std::{path::PathBuf, process::ExitCode};
-
-    use anyhow::Result;
 
     use ananke::{
         application::{
@@ -208,6 +215,8 @@ mod command {
         config::{Backend, Config, ConfigBuilder},
         data::{Description, Entry, Id, Identity, Metadata, Plaintext},
     };
+
+    type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
     fn configure() -> Result<Config> {
         let mut config_builder = ConfigBuilder::new();

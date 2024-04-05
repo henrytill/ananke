@@ -1,8 +1,8 @@
 use std::hash::{Hash, Hasher};
 
-use data_encoding::BASE64;
+use data_encoding::HEXLOWER;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use sha1::{Digest, Sha1};
 use time::{
     format_description::well_known::{
         iso8601::{Config, EncodedConfig},
@@ -73,10 +73,10 @@ impl Id {
             input.push_str(identity.as_str())
         }
         let digest = {
-            let mut hasher = Sha256::new();
+            let mut hasher = Sha1::new();
             hasher.update(input.as_bytes());
             let bytes = hasher.finalize();
-            BASE64.encode(&bytes)
+            HEXLOWER.encode(&bytes)
         };
         Ok(Id(digest))
     }
@@ -188,6 +188,11 @@ impl Entry {
         self.id = id;
         Ok(())
     }
+
+    #[cfg(test)]
+    pub fn fresh_id(&self) -> Result<Id, time::error::Format> {
+        Id::generate(&self.key_id, &self.timestamp, &self.description, self.identity.as_ref())
+    }
 }
 
 #[cfg(test)]
@@ -218,5 +223,16 @@ mod tests {
         #[cfg(target_os = "windows")]
         let actual = actual.replace("\n", "\r\n");
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn check_ids() {
+        let path: PathBuf = EXAMPLE_PATH.iter().collect();
+        let expected = fs::read_to_string(path).expect("should read file");
+        let entries: Vec<Entry> = serde_json::from_str(&expected).expect("should deserialize");
+        for entry in entries {
+            let fresh_id = entry.fresh_id().expect("should regenerate id");
+            assert_eq!(entry.id, fresh_id);
+        }
     }
 }

@@ -20,6 +20,7 @@ pub enum ErrorImpl {
     MissingStdout,
     Join,
     MultipleEntries,
+    NoEntries,
 }
 
 #[derive(Debug)]
@@ -38,6 +39,7 @@ impl fmt::Display for Error {
             ErrorImpl::MissingStdout => write!(f, "Error: missing stdout"),
             ErrorImpl::Join => write!(f, "Error: join"),
             ErrorImpl::MultipleEntries => write!(f, "Multiple entries match this target"),
+            ErrorImpl::NoEntries => write!(f, "No entries match this target"),
         }
     }
 }
@@ -87,6 +89,11 @@ impl From<gpg::Error> for Error {
 impl Error {
     fn multiple_entries() -> Error {
         let inner = Box::new(ErrorImpl::MultipleEntries);
+        Error { inner }
+    }
+
+    fn no_entries() -> Error {
+        let inner = Box::new(ErrorImpl::NoEntries);
         Error { inner }
     }
 }
@@ -190,7 +197,7 @@ impl Application for JsonApplication {
             .collect();
 
         if is.is_empty() {
-            return Ok(());
+            return Err(Error::no_entries());
         }
 
         if is.len() > 1 {
@@ -227,7 +234,7 @@ impl Application for JsonApplication {
             .collect();
 
         if is.is_empty() {
-            return Ok(());
+            return Err(Error::no_entries());
         }
 
         if is.len() > 1 {

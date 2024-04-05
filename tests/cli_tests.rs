@@ -57,3 +57,36 @@ fn lookup_www_verbose() {
         .stdout_eq(file!("cli_tests/lookup_www_verbose.stdout"))
         .success();
 }
+
+#[test]
+fn lookup_non_existent() {
+    Command::new(cargo_bin(BIN))
+        .args(["lookup", "paul"])
+        .envs(vars())
+        .assert()
+        .stderr_eq(String::new())
+        .failure()
+        .code(1);
+}
+
+#[test]
+fn modify_non_existent() {
+    Command::new(cargo_bin(BIN))
+        .args(["modify", "-d", "paul"])
+        .envs(vars())
+        .assert()
+        .stderr_eq(file!("cli_tests/modify_non_existent.stderr"))
+        .failure()
+        .code(1);
+}
+
+#[test]
+fn remove_non_existent() {
+    Command::new(cargo_bin(BIN))
+        .args(["remove", "-d", "paul"])
+        .envs(vars())
+        .assert()
+        .stderr_eq(file!("cli_tests/remove_non_existent.stderr"))
+        .failure()
+        .code(1);
+}

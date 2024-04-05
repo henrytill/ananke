@@ -1,4 +1,7 @@
-use std::io::{self, BufRead, Write};
+use std::{
+    io::{self, BufRead, Write},
+    process::ExitCode,
+};
 
 use anyhow::Result;
 use clap::{Arg, ArgGroup, Command};
@@ -143,7 +146,7 @@ fn prompt(display: &str) -> Result<String, io::Error> {
     Ok(ret)
 }
 
-fn main() -> Result<()> {
+fn main() -> Result<ExitCode> {
     let matches = command().get_matches();
     match matches.subcommand() {
         Some(("add", sub_matches)) => {
@@ -151,8 +154,7 @@ fn main() -> Result<()> {
             let identity = sub_matches.get_one::<String>("identity").cloned();
             let metadata = sub_matches.get_one::<String>("metadata").cloned();
             let plaintext = prompt("Enter plaintext: ")?;
-            command::add(description, plaintext, identity, metadata)?;
-            Ok(())
+            command::add(description, plaintext, identity, metadata)
         }
         Some(("lookup", sub_matches)) => {
             let description = sub_matches.get_one::<String>("description").cloned().unwrap();
@@ -193,7 +195,7 @@ fn main() -> Result<()> {
 }
 
 mod command {
-    use std::path::PathBuf;
+    use std::{path::PathBuf, process::ExitCode};
 
     use anyhow::Result;
 
@@ -275,7 +277,7 @@ mod command {
         plaintext: String,
         maybe_identity: Option<String>,
         maybe_metadata: Option<String>,
-    ) -> Result<()> {
+    ) -> Result<ExitCode> {
         let description = Description::from(description);
         let plaintext = Plaintext::from(plaintext);
         let maybe_identity = maybe_identity.map(Identity::from);
@@ -291,32 +293,33 @@ mod command {
                 app.add(description, plaintext, maybe_identity, maybe_metadata)?;
             }
         }
-        Ok(())
+        Ok(ExitCode::SUCCESS)
     }
 
     pub fn lookup(
         description: String,
         maybe_identity: Option<String>,
         verbose: bool,
-    ) -> Result<()> {
+    ) -> Result<ExitCode> {
         let description = Description::from(description);
         let maybe_identity = maybe_identity.map(Identity::from);
         let config = configure()?;
-        match config.backend() {
+        let results = match config.backend() {
             Backend::Json => {
                 let app = JsonApplication::new(config)?;
-                let results = app.lookup(description, maybe_identity)?;
-                let output = format_results(&results, verbose)?;
-                println!("{}", output);
+                app.lookup(description, maybe_identity)?
             }
             Backend::Sqlite => {
                 let app = SqliteApplication::new(config)?;
-                let results = app.lookup(description, maybe_identity)?;
-                let output = format_results(&results, verbose)?;
-                println!("{}", output);
+                app.lookup(description, maybe_identity)?
             }
+        };
+        if results.is_empty() {
+            return Ok(ExitCode::FAILURE);
         }
-        Ok(())
+        let output = format_results(&results, verbose)?;
+        println!("{}", output);
+        Ok(ExitCode::SUCCESS)
     }
 
     pub fn modify(
@@ -326,7 +329,7 @@ mod command {
         maybe_plaintext: Option<String>,
         maybe_identity: Option<String>,
         maybe_metadata: Option<String>,
-    ) -> Result<()> {
+    ) -> Result<ExitCode> {
         let target = match (target_description, target_id) {
             (Some(d), None) => Target::Description(Description::from(d)),
             (None, Some(i)) => Target::Id(Id::from(i)),
@@ -360,10 +363,13 @@ mod command {
                 )?;
             }
         }
-        Ok(())
+        Ok(ExitCode::SUCCESS)
     }
 
-    pub fn remove(target_description: Option<String>, target_id: Option<String>) -> Result<()> {
+    pub fn remove(
+        target_description: Option<String>,
+        target_id: Option<String>,
+    ) -> Result<ExitCode> {
         let target = match (target_description, target_id) {
             (Some(d), None) => Target::Description(Description::from(d)),
             (None, Some(i)) => Target::Id(Id::from(i)),
@@ -381,10 +387,10 @@ mod command {
                 app.remove(target)?;
             }
         }
-        Ok(())
+        Ok(ExitCode::SUCCESS)
     }
 
-    pub fn import(path: String) -> Result<()> {
+    pub fn import(path: String) -> Result<ExitCode> {
         let path = PathBuf::from(path);
         let config = configure()?;
         match config.backend() {
@@ -397,10 +403,10 @@ mod command {
                 app.import(path)?;
             }
         }
-        Ok(())
+        Ok(ExitCode::SUCCESS)
     }
 
-    pub fn export(path: String) -> Result<()> {
+    pub fn export(path: String) -> Result<ExitCode> {
         let path = PathBuf::from(path);
         let config = configure()?;
         match config.backend() {
@@ -413,7 +419,7 @@ mod command {
                 app.export(path)?;
             }
         }
-        Ok(())
+        Ok(ExitCode::SUCCESS)
     }
 }
 

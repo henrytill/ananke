@@ -347,13 +347,9 @@ mod command {
     }
 
     fn format_brief(entry: &Entry, plaintext: &Plaintext) -> String {
-        let description = entry.description.to_string();
-        let identity = entry
-            .identity
-            .as_ref()
-            .map(ToString::to_string)
-            .unwrap_or_else(|| String::from("<none>"));
-        let plaintext = plaintext.to_string();
+        let description = entry.description.as_str();
+        let identity = entry.identity.as_ref().map(Identity::as_str).unwrap_or_else(|| "<none>");
+        let plaintext = plaintext.as_str();
         format!("{} {} {}", description, identity, plaintext)
     }
 

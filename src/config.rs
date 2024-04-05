@@ -106,9 +106,14 @@ impl Config {
         self.mult_keys
     }
 
-    pub fn data_file(&self) -> PathBuf {
+    fn db_dir(&self) -> PathBuf {
         let mut ret = self.data_dir.to_owned();
         ret.push("db");
+        ret
+    }
+
+    pub fn data_file(&self) -> PathBuf {
+        let mut ret = self.db_dir().to_owned();
         match self.backend {
             Backend::Json => ret.push("data.json"),
             Backend::Sqlite => ret.push("db.sqlite"),

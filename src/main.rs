@@ -146,7 +146,7 @@ fn prompt(display: &str) -> Result<String, io::Error> {
     Ok(ret)
 }
 
-fn run() -> Result<ExitCode, common::Error> {
+fn run() -> Result<ExitCode, error::Error> {
     let matches = command().get_matches();
     match matches.subcommand() {
         Some(("add", sub_matches)) => {
@@ -209,7 +209,7 @@ fn main() -> ExitCode {
     }
 }
 
-mod common {
+mod error {
     use std::{backtrace::Backtrace, fmt, io};
 
     use ananke::{
@@ -335,7 +335,7 @@ mod command {
     };
     use zeroize::Zeroize;
 
-    use super::common::Result;
+    use super::error::Result;
 
     fn configure() -> Result<Config> {
         let mut config_builder = ConfigBuilder::new();

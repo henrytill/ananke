@@ -110,12 +110,12 @@ where
 
     let join_handle = {
         let plaintext = plaintext.clone();
-        let mut stdin = child.stdin.take().ok_or(Error::missing_stdin())?;
+        let mut stdin = child.stdin.take().ok_or_else(Error::missing_stdin)?;
         std::thread::spawn(move || stdin.write_all(plaintext.as_bytes()))
     };
 
     let mut buf = Vec::new();
-    let mut stdout = child.stdout.take().ok_or(Error::missing_stdout())?;
+    let mut stdout = child.stdout.take().ok_or_else(Error::missing_stdout)?;
     let _len = stdout.read_to_end(&mut buf)?;
 
     let status = child.wait()?;
@@ -144,12 +144,12 @@ where
 
     let join_handle = {
         let ciphertext = ciphertext.clone();
-        let mut stdin = child.stdin.take().ok_or(Error::missing_stdin())?;
+        let mut stdin = child.stdin.take().ok_or_else(Error::missing_stdin)?;
         std::thread::spawn(move || stdin.write_all(ciphertext.as_ref()))
     };
 
     let mut buf = Vec::new();
-    let mut stdout = child.stdout.take().ok_or(Error::missing_stdout())?;
+    let mut stdout = child.stdout.take().ok_or_else(Error::missing_stdout)?;
     let _len = stdout.read_to_end(&mut buf)?;
 
     let status = child.wait()?;

@@ -338,10 +338,10 @@ impl ConfigBuilder {
     }
 
     pub fn build(mut self) -> Result<Config, Error> {
-        let config_dir = self.maybe_config_dir.take().ok_or(Error::missing_config_dir())?;
-        let data_dir = self.maybe_data_dir.take().ok_or(Error::missing_data_dir())?;
+        let config_dir = self.maybe_config_dir.take().ok_or_else(Error::missing_config_dir)?;
+        let data_dir = self.maybe_data_dir.take().ok_or_else(Error::missing_data_dir)?;
         let backend = self.backend;
-        let key_id = self.maybe_key_id.take().ok_or(Error::missing_key_id())?;
+        let key_id = self.maybe_key_id.take().ok_or_else(Error::missing_key_id)?;
         let mult_keys = self.mult_keys.into();
         Ok(Config { config_dir, data_dir, backend, key_id, mult_keys })
     }

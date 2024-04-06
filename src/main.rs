@@ -1,4 +1,5 @@
 use std::{
+    backtrace::BacktraceStatus,
     io::{self, BufRead, Write},
     process::ExitCode,
 };
@@ -198,8 +199,8 @@ fn main() -> ExitCode {
         Ok(code) => code,
         Err(mut err) => {
             eprintln!("Error: {}", err);
-            if std::env::var("RUST_BACKTRACE").ok() == Some(String::from("1")) {
-                if let Some(backtrace) = err.backtrace() {
+            if let Some(backtrace) = err.backtrace() {
+                if let BacktraceStatus::Captured = backtrace.status() {
                     eprintln!("\n{}", backtrace)
                 }
             }

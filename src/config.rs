@@ -31,8 +31,8 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.kind() {
             ErrorKind::Var(err, var) => write!(f, "{}: {}", err, var),
-            ErrorKind::Io(err) => fmt::Display::fmt(err, f),
-            ErrorKind::Ini(err) => fmt::Display::fmt(err, f),
+            ErrorKind::Io(err) => err.fmt(f),
+            ErrorKind::Ini(err) => err.fmt(f),
             ErrorKind::MissingConfigDir => write!(f, "missing config_dir"),
             ErrorKind::MissingDataDir => write!(f, "missing data_dir"),
             ErrorKind::MissingKeyId => write!(f, "missing key_id"),

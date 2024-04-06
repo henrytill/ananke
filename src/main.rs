@@ -239,11 +239,11 @@ mod common {
     impl fmt::Display for Error {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             match self.kind() {
-                ErrorKind::Config(err) => fmt::Display::fmt(err, f),
-                ErrorKind::JsonApplication(err) => fmt::Display::fmt(err, f),
-                ErrorKind::SqliteApplication(err) => fmt::Display::fmt(err, f),
-                ErrorKind::Io(err) => fmt::Display::fmt(err, f),
-                ErrorKind::Time(err) => fmt::Display::fmt(err, f),
+                ErrorKind::Config(err) => err.fmt(f),
+                ErrorKind::JsonApplication(err) => err.fmt(f),
+                ErrorKind::SqliteApplication(err) => err.fmt(f),
+                ErrorKind::Io(err) => err.fmt(f),
+                ErrorKind::Time(err) => err.fmt(f),
             }
         }
     }

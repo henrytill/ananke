@@ -35,11 +35,11 @@ pub struct Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.kind() {
-            ErrorKind::Gpg(err) => fmt::Display::fmt(err, f),
-            ErrorKind::Io(err) => fmt::Display::fmt(err, f),
-            ErrorKind::Json(err) => fmt::Display::fmt(err, f),
-            ErrorKind::FromUtf8(err) => fmt::Display::fmt(err, f),
-            ErrorKind::Time(err) => fmt::Display::fmt(err, f),
+            ErrorKind::Gpg(err) => err.fmt(f),
+            ErrorKind::Io(err) => err.fmt(f),
+            ErrorKind::Json(err) => err.fmt(f),
+            ErrorKind::FromUtf8(err) => err.fmt(f),
+            ErrorKind::Time(err) => err.fmt(f),
             ErrorKind::MultipleEntries => write!(f, "multiple entries match this target"),
             ErrorKind::NoEntries => write!(f, "no entries match this target"),
         }

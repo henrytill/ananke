@@ -32,8 +32,8 @@ pub struct Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.kind() {
-            ErrorKind::Io(err) => fmt::Display::fmt(err, f),
-            ErrorKind::FromUtf8(err) => fmt::Display::fmt(err, f),
+            ErrorKind::Io(err) => err.fmt(f),
+            ErrorKind::FromUtf8(err) => err.fmt(f),
             ErrorKind::MissingStdin => write!(f, "missing stdin"),
             ErrorKind::MissingStdout => write!(f, "missing stdout"),
             ErrorKind::Join => write!(f, "join thread failed"),

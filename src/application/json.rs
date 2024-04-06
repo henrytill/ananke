@@ -68,29 +68,25 @@ impl std::error::Error for Error {
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
-        let inner = ErrorInner::Io(err);
-        Error::capture(inner)
+        Error::capture(ErrorInner::Io(err))
     }
 }
 
 impl From<serde_json::Error> for Error {
     fn from(err: serde_json::Error) -> Error {
-        let inner = ErrorInner::Json(err);
-        Error::capture(inner)
+        Error::capture(ErrorInner::Json(err))
     }
 }
 
 impl From<string::FromUtf8Error> for Error {
     fn from(err: string::FromUtf8Error) -> Error {
-        let inner = ErrorInner::FromUtf8(err);
-        Error::capture(inner)
+        Error::capture(ErrorInner::FromUtf8(err))
     }
 }
 
 impl From<time::error::Format> for Error {
     fn from(err: time::error::Format) -> Error {
-        let inner = ErrorInner::Time(err);
-        Error::capture(inner)
+        Error::capture(ErrorInner::Time(err))
     }
 }
 
@@ -160,12 +156,13 @@ impl Application for JsonApplication {
         maybe_metadata: Option<Metadata>,
     ) -> Result<(), Self::Error> {
         let timestamp = Timestamp::now();
-        let key_id = self.config.key_id().clone();
-        let id = Id::generate(&key_id, &timestamp, &description, maybe_identity.as_ref())?;
-        let ciphertext = gpg::encrypt(&key_id, &plaintext, Self::ENV)?;
+        let key_id = self.config.key_id();
+        let id = Id::generate(key_id, &timestamp, &description, maybe_identity.as_ref())?;
+        let ciphertext = gpg::encrypt(key_id, &plaintext, Self::ENV)?;
         let identity = maybe_identity;
         let metadata = maybe_metadata;
         let entry = {
+            let key_id = key_id.clone();
             let description = description.clone();
             Entry { timestamp, id, key_id, description, identity, ciphertext, metadata }
         };

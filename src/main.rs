@@ -295,15 +295,13 @@ mod common {
 
     impl From<io::Error> for Error {
         fn from(err: io::Error) -> Error {
-            let inner = ErrorInner::Io(err);
-            Error::capture(inner)
+            Error::capture(ErrorInner::Io(err))
         }
     }
 
     impl From<time::error::Format> for Error {
         fn from(err: time::error::Format) -> Error {
-            let inner = ErrorInner::Time(err);
-            Error::capture(inner)
+            Error::capture(ErrorInner::Time(err))
         }
     }
 

@@ -61,15 +61,13 @@ impl std::error::Error for Error {
 
 impl From<(env::VarError, &'static str)> for Error {
     fn from((err, var): (env::VarError, &'static str)) -> Error {
-        let inner = ErrorInner::Var(err, var);
-        Error::capture(inner)
+        Error::capture(ErrorInner::Var(err, var))
     }
 }
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
-        let inner = ErrorInner::Io(err);
-        Error::capture(inner)
+        Error::capture(ErrorInner::Io(err))
     }
 }
 

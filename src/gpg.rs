@@ -61,15 +61,13 @@ impl std::error::Error for Error {
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
-        let inner = ErrorInner::Io(err);
-        Error::capture(inner)
+        Error::capture(ErrorInner::Io(err))
     }
 }
 
 impl From<string::FromUtf8Error> for Error {
     fn from(err: string::FromUtf8Error) -> Error {
-        let inner = ErrorInner::FromUtf8(err);
-        Error::capture(inner)
+        Error::capture(ErrorInner::FromUtf8(err))
     }
 }
 

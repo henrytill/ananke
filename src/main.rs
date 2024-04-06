@@ -217,7 +217,7 @@ mod common {
     };
 
     #[derive(Debug)]
-    enum ErrorKind {
+    enum ErrorInner {
         Config(config::Error),
         JsonApplication(json::Error),
         SqliteApplication(sqlite::Error),
@@ -225,9 +225,21 @@ mod common {
         Time(time::error::Format),
     }
 
+    impl fmt::Display for ErrorInner {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                ErrorInner::Config(err) => err.fmt(f),
+                ErrorInner::JsonApplication(err) => err.fmt(f),
+                ErrorInner::SqliteApplication(err) => err.fmt(f),
+                ErrorInner::Io(err) => err.fmt(f),
+                ErrorInner::Time(err) => err.fmt(f),
+            }
+        }
+    }
+
     #[derive(Debug)]
     struct ErrorImpl {
-        kind: ErrorKind,
+        inner: ErrorInner,
         backtrace: Option<Backtrace>,
     }
 
@@ -238,24 +250,18 @@ mod common {
 
     impl fmt::Display for Error {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            match self.kind() {
-                ErrorKind::Config(err) => err.fmt(f),
-                ErrorKind::JsonApplication(err) => err.fmt(f),
-                ErrorKind::SqliteApplication(err) => err.fmt(f),
-                ErrorKind::Io(err) => err.fmt(f),
-                ErrorKind::Time(err) => err.fmt(f),
-            }
+            self.inner.inner.fmt(f)
         }
     }
 
     impl std::error::Error for Error {
         fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-            match self.kind() {
-                ErrorKind::Config(err) => Some(err),
-                ErrorKind::JsonApplication(err) => Some(err),
-                ErrorKind::SqliteApplication(err) => Some(err),
-                ErrorKind::Io(err) => Some(err),
-                ErrorKind::Time(err) => Some(err),
+            match self.inner.inner {
+                ErrorInner::Config(ref err) => Some(err),
+                ErrorInner::JsonApplication(ref err) => Some(err),
+                ErrorInner::SqliteApplication(ref err) => Some(err),
+                ErrorInner::Io(ref err) => Some(err),
+                ErrorInner::Time(ref err) => Some(err),
             }
         }
     }
@@ -263,8 +269,8 @@ mod common {
     impl From<config::Error> for Error {
         fn from(mut err: config::Error) -> Error {
             let backtrace = err.backtrace();
-            let kind = ErrorKind::Config(err);
-            let inner = Box::new(ErrorImpl { kind, backtrace });
+            let inner = ErrorInner::Config(err);
+            let inner = Box::new(ErrorImpl { inner, backtrace });
             Error { inner }
         }
     }
@@ -272,8 +278,8 @@ mod common {
     impl From<json::Error> for Error {
         fn from(mut err: json::Error) -> Error {
             let backtrace = err.backtrace();
-            let kind = ErrorKind::JsonApplication(err);
-            let inner = Box::new(ErrorImpl { kind, backtrace });
+            let inner = ErrorInner::JsonApplication(err);
+            let inner = Box::new(ErrorImpl { inner, backtrace });
             Error { inner }
         }
     }
@@ -281,35 +287,31 @@ mod common {
     impl From<sqlite::Error> for Error {
         fn from(mut err: sqlite::Error) -> Error {
             let backtrace = err.backtrace();
-            let kind = ErrorKind::SqliteApplication(err);
-            let inner = Box::new(ErrorImpl { kind, backtrace });
+            let inner = ErrorInner::SqliteApplication(err);
+            let inner = Box::new(ErrorImpl { inner, backtrace });
             Error { inner }
         }
     }
 
     impl From<io::Error> for Error {
         fn from(err: io::Error) -> Error {
-            let kind = ErrorKind::Io(err);
-            Error::new(kind)
+            let inner = ErrorInner::Io(err);
+            Error::capture(inner)
         }
     }
 
     impl From<time::error::Format> for Error {
         fn from(err: time::error::Format) -> Error {
-            let kind = ErrorKind::Time(err);
-            Error::new(kind)
+            let inner = ErrorInner::Time(err);
+            Error::capture(inner)
         }
     }
 
     impl Error {
-        fn new(kind: ErrorKind) -> Error {
+        fn capture(inner: ErrorInner) -> Error {
             let backtrace = Some(Backtrace::capture());
-            let inner = Box::new(ErrorImpl { kind, backtrace });
+            let inner = Box::new(ErrorImpl { inner, backtrace });
             Error { inner }
-        }
-
-        fn kind(&self) -> &ErrorKind {
-            &self.inner.kind
         }
 
         pub fn backtrace(&mut self) -> Option<Backtrace> {

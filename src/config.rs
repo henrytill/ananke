@@ -7,7 +7,7 @@ use configparser::ini::Ini;
 use crate::data::KeyId;
 
 #[derive(Debug)]
-pub enum ErrorKind {
+pub enum ErrorInner {
     Var(env::VarError, &'static str),
     Io(io::Error),
     Ini(String),
@@ -16,9 +16,22 @@ pub enum ErrorKind {
     MissingKeyId,
 }
 
+impl fmt::Display for ErrorInner {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ErrorInner::Var(err, var) => write!(f, "{}: {}", err, var),
+            ErrorInner::Io(err) => err.fmt(f),
+            ErrorInner::Ini(err) => err.fmt(f),
+            ErrorInner::MissingConfigDir => write!(f, "missing config_dir"),
+            ErrorInner::MissingDataDir => write!(f, "missing data_dir"),
+            ErrorInner::MissingKeyId => write!(f, "missing key_id"),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ErrorImpl {
-    kind: ErrorKind,
+    inner: ErrorInner,
     backtrace: Option<Backtrace>,
 }
 
@@ -29,41 +42,34 @@ pub struct Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.kind() {
-            ErrorKind::Var(err, var) => write!(f, "{}: {}", err, var),
-            ErrorKind::Io(err) => err.fmt(f),
-            ErrorKind::Ini(err) => err.fmt(f),
-            ErrorKind::MissingConfigDir => write!(f, "missing config_dir"),
-            ErrorKind::MissingDataDir => write!(f, "missing data_dir"),
-            ErrorKind::MissingKeyId => write!(f, "missing key_id"),
-        }
+        self.inner.inner.fmt(f)
     }
 }
 
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self.kind() {
-            ErrorKind::Var(err, _) => Some(err),
-            ErrorKind::Io(err) => Some(err),
-            ErrorKind::Ini(_) => None,
-            ErrorKind::MissingConfigDir => None,
-            ErrorKind::MissingDataDir => None,
-            ErrorKind::MissingKeyId => None,
+        match self.inner.inner {
+            ErrorInner::Var(ref err, _) => Some(err),
+            ErrorInner::Io(ref err) => Some(err),
+            ErrorInner::Ini(_) => None,
+            ErrorInner::MissingConfigDir => None,
+            ErrorInner::MissingDataDir => None,
+            ErrorInner::MissingKeyId => None,
         }
     }
 }
 
 impl From<(env::VarError, &'static str)> for Error {
     fn from((err, var): (env::VarError, &'static str)) -> Error {
-        let kind = ErrorKind::Var(err, var);
-        Error::new(kind)
+        let inner = ErrorInner::Var(err, var);
+        Error::capture(inner)
     }
 }
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
-        let kind = ErrorKind::Io(err);
-        Error::new(kind)
+        let inner = ErrorInner::Io(err);
+        Error::capture(inner)
     }
 }
 
@@ -74,14 +80,10 @@ impl From<Infallible> for Error {
 }
 
 impl Error {
-    fn new(kind: ErrorKind) -> Error {
+    fn capture(inner: ErrorInner) -> Error {
         let backtrace = Some(Backtrace::capture());
-        let inner = Box::new(ErrorImpl { kind, backtrace });
+        let inner = Box::new(ErrorImpl { inner, backtrace });
         Error { inner }
-    }
-
-    pub fn kind(&self) -> &ErrorKind {
-        &self.inner.kind
     }
 
     pub fn backtrace(&mut self) -> Option<Backtrace> {
@@ -89,23 +91,19 @@ impl Error {
     }
 
     fn ini(value: String) -> Error {
-        let kind = ErrorKind::Ini(value);
-        Error::new(kind)
+        Error::capture(ErrorInner::Ini(value))
     }
 
     fn missing_config_dir() -> Error {
-        let kind = ErrorKind::MissingConfigDir;
-        Error::new(kind)
+        Error::capture(ErrorInner::MissingConfigDir)
     }
 
     fn missing_data_dir() -> Error {
-        let kind = ErrorKind::MissingDataDir;
-        Error::new(kind)
+        Error::capture(ErrorInner::MissingDataDir)
     }
 
     fn missing_key_id() -> Error {
-        let kind = ErrorKind::MissingKeyId;
-        Error::new(kind)
+        Error::capture(ErrorInner::MissingKeyId)
     }
 }
 
@@ -686,7 +684,7 @@ mod internal {
 mod tests {
     use std::{env::VarError, path::PathBuf};
 
-    use super::{Backend, ConfigBuilder, ErrorKind, Flag};
+    use super::{Backend, ConfigBuilder, ErrorInner, Flag};
     use crate::data::KeyId;
 
     #[test]
@@ -733,7 +731,7 @@ allow_multiple_keys={}
     fn with_config_returns_missing_config_dir() {
         let result = ConfigBuilder::new().with_config(None);
         if let Err(err) = result {
-            if let ErrorKind::MissingConfigDir = err.kind() {
+            if let ErrorInner::MissingConfigDir = err.inner.inner {
                 return;
             }
             panic!()

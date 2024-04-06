@@ -11,7 +11,7 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub enum ErrorKind {
+pub enum ErrorInner {
     Gpg(gpg::Error),
     Io(io::Error),
     Json(serde_json::Error),
@@ -21,9 +21,23 @@ pub enum ErrorKind {
     NoEntries,
 }
 
+impl fmt::Display for ErrorInner {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ErrorInner::Gpg(err) => err.fmt(f),
+            ErrorInner::Io(err) => err.fmt(f),
+            ErrorInner::Json(err) => err.fmt(f),
+            ErrorInner::FromUtf8(err) => err.fmt(f),
+            ErrorInner::Time(err) => err.fmt(f),
+            ErrorInner::MultipleEntries => write!(f, "multiple entries match this target"),
+            ErrorInner::NoEntries => write!(f, "no entries match this target"),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ErrorImpl {
-    kind: ErrorKind,
+    inner: ErrorInner,
     backtrace: Option<Backtrace>,
 }
 
@@ -34,78 +48,66 @@ pub struct Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.kind() {
-            ErrorKind::Gpg(err) => err.fmt(f),
-            ErrorKind::Io(err) => err.fmt(f),
-            ErrorKind::Json(err) => err.fmt(f),
-            ErrorKind::FromUtf8(err) => err.fmt(f),
-            ErrorKind::Time(err) => err.fmt(f),
-            ErrorKind::MultipleEntries => write!(f, "multiple entries match this target"),
-            ErrorKind::NoEntries => write!(f, "no entries match this target"),
-        }
+        self.inner.inner.fmt(f)
     }
 }
 
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self.kind() {
-            ErrorKind::Gpg(err) => Some(err),
-            ErrorKind::Io(err) => Some(err),
-            ErrorKind::Json(err) => Some(err),
-            ErrorKind::FromUtf8(err) => Some(err),
-            ErrorKind::Time(err) => Some(err),
-            ErrorKind::MultipleEntries => None,
-            ErrorKind::NoEntries => None,
+        match self.inner.inner {
+            ErrorInner::Gpg(ref err) => Some(err),
+            ErrorInner::Io(ref err) => Some(err),
+            ErrorInner::Json(ref err) => Some(err),
+            ErrorInner::FromUtf8(ref err) => Some(err),
+            ErrorInner::Time(ref err) => Some(err),
+            ErrorInner::MultipleEntries => None,
+            ErrorInner::NoEntries => None,
         }
     }
 }
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
-        let kind = ErrorKind::Io(err);
-        Error::new(kind)
+        let inner = ErrorInner::Io(err);
+        Error::capture(inner)
     }
 }
 
 impl From<serde_json::Error> for Error {
     fn from(err: serde_json::Error) -> Error {
-        let kind = ErrorKind::Json(err);
-        Error::new(kind)
+        let inner = ErrorInner::Json(err);
+        Error::capture(inner)
     }
 }
 
 impl From<string::FromUtf8Error> for Error {
     fn from(err: string::FromUtf8Error) -> Error {
-        let kind = ErrorKind::FromUtf8(err);
-        Error::new(kind)
+        let inner = ErrorInner::FromUtf8(err);
+        Error::capture(inner)
     }
 }
 
 impl From<time::error::Format> for Error {
     fn from(err: time::error::Format) -> Error {
-        let kind = ErrorKind::Time(err);
-        Error::new(kind)
+        let inner = ErrorInner::Time(err);
+        Error::capture(inner)
     }
 }
 
 impl From<gpg::Error> for Error {
     fn from(mut err: gpg::Error) -> Error {
         let backtrace = err.backtrace();
-        let kind = ErrorKind::Gpg(err);
-        let inner = Box::new(ErrorImpl { kind, backtrace });
+        let inner = ErrorInner::Gpg(err);
+        let inner = Box::new(ErrorImpl { inner, backtrace });
         Error { inner }
     }
 }
 
 impl Error {
-    fn new(kind: ErrorKind) -> Error {
+    fn capture(inner: ErrorInner) -> Error {
         let backtrace = Some(Backtrace::capture());
-        let inner = Box::new(ErrorImpl { kind, backtrace });
+        let inner = Box::new(ErrorImpl { inner, backtrace });
         Error { inner }
-    }
-
-    pub fn kind(&self) -> &ErrorKind {
-        &self.inner.kind
     }
 
     pub fn backtrace(&mut self) -> Option<Backtrace> {
@@ -113,13 +115,11 @@ impl Error {
     }
 
     fn multiple_entries() -> Error {
-        let kind = ErrorKind::MultipleEntries;
-        Error::new(kind)
+        Error::capture(ErrorInner::MultipleEntries)
     }
 
     fn no_entries() -> Error {
-        let kind = ErrorKind::NoEntries;
-        Error::new(kind)
+        Error::capture(ErrorInner::NoEntries)
     }
 }
 

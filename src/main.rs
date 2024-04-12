@@ -136,13 +136,22 @@ fn command() -> Command {
         .arg_required_else_help(true)
 }
 
+fn trim_newline(s: &mut String) {
+    if s.ends_with('\n') {
+        s.pop();
+        if s.ends_with('\r') {
+            s.pop();
+        }
+    }
+}
+
 fn prompt(display: &str) -> Result<String, io::Error> {
     print!("{}", display);
     io::stdout().flush()?;
     let mut ret = String::new();
     let stdin = io::stdin();
     stdin.lock().read_line(&mut ret)?;
-    ret.truncate(ret.len() - 1);
+    trim_newline(&mut ret);
     Ok(ret)
 }
 

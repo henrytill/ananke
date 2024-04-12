@@ -126,3 +126,29 @@ fn import() {
         .assert()
         .success();
 }
+
+#[test]
+fn add() {
+    let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
+    let path = path_fixture.path().expect("should get path");
+    copy_config(path).expect("should copy");
+    let data_file: OsString = JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+    let data_file_str: &str = data_file.to_str().expect("should have path");
+    Command::new(cargo_bin(BIN))
+        .args(["import", data_file_str])
+        .envs(vars_from(path))
+        .assert()
+        .success();
+    Command::new(cargo_bin(BIN))
+        .args(["add", "-i", "quux", "https://www.quuxlib.com/"])
+        .envs(vars_from(path))
+        .stdin("pass137pass")
+        .assert()
+        .success();
+    Command::new(cargo_bin(BIN))
+        .args(["lookup", "https://www.quuxlib.com/"])
+        .envs(vars_from(path))
+        .assert()
+        .stdout_eq(file!("cli_tests/add.stdout"))
+        .success();
+}

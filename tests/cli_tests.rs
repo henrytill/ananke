@@ -1,9 +1,11 @@
 use std::ffi::OsString;
-use std::path::PathBuf;
+use std::io;
+use std::path::{Path, PathBuf};
 
 use snapbox::cmd::cargo_bin;
 use snapbox::cmd::Command;
 use snapbox::file;
+use snapbox::path::PathFixture;
 
 const BIN: &'static str = env!("CARGO_PKG_NAME");
 
@@ -11,12 +13,32 @@ const EXAMPLE_DIR: &'static str = r"example";
 
 const GNUPGHOME: [&'static str; 2] = [EXAMPLE_DIR, "gnupg"];
 
-fn vars() -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
+const INI_PATH: [&'static str; 2] = [EXAMPLE_DIR, "ananke.ini"];
+
+const JSON_PATH: [&'static str; 3] = [EXAMPLE_DIR, "db", "data.json"];
+
+fn vars_from(path: impl AsRef<Path>) -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
+    let val: OsString = path.as_ref().into();
     [
         (OsString::from("GNUPGHOME"), GNUPGHOME.iter().collect::<PathBuf>().into_os_string()),
-        (OsString::from("ANANKE_CONFIG_DIR"), OsString::from(EXAMPLE_DIR)),
-        (OsString::from("ANANKE_DATA_DIR"), OsString::from(EXAMPLE_DIR)),
+        (OsString::from("ANANKE_CONFIG_DIR"), val.clone()),
+        (OsString::from("ANANKE_DATA_DIR"), val),
     ]
+}
+
+fn vars() -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
+    vars_from(PathBuf::from(EXAMPLE_DIR))
+}
+
+fn copy_config(path: impl AsRef<Path>) -> Result<(), io::Error> {
+    let source: PathBuf = INI_PATH.into_iter().collect::<PathBuf>();
+    let dest: PathBuf = {
+        let mut ret: PathBuf = path.as_ref().into();
+        ret.push("ananke.ini");
+        ret
+    };
+    std::fs::copy(source, dest)?;
+    Ok(())
 }
 
 #[test]
@@ -89,4 +111,18 @@ fn remove_non_existent() {
         .stderr_eq(file!("cli_tests/remove_non_existent.stderr"))
         .failure()
         .code(1);
+}
+
+#[test]
+fn import() {
+    let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
+    let path = path_fixture.path().expect("should get path");
+    copy_config(path).expect("should copy");
+    let data_file: OsString = JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+    let data_file_str: &str = data_file.to_str().expect("should have path");
+    Command::new(cargo_bin(BIN))
+        .args(["import", data_file_str])
+        .envs(vars_from(path))
+        .assert()
+        .success();
 }

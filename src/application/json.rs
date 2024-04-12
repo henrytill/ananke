@@ -128,8 +128,12 @@ impl JsonApplication {
     const ENV: [(OsString, OsString); 0] = [];
 
     pub fn new(config: Config) -> Result<JsonApplication, Error> {
-        let json = fs::read_to_string(config.data_file())?;
-        let entries: Vec<Entry> = serde_json::from_str(&json)?;
+        let entries = if config.data_file().exists() {
+            let json = fs::read_to_string(config.data_file())?;
+            serde_json::from_str(&json)?
+        } else {
+            Vec::new()
+        };
         Ok(JsonApplication { config, entries })
     }
 
@@ -141,6 +145,11 @@ impl JsonApplication {
         entries.serialize(&mut ser)?;
         let mut ret = String::from_utf8(buf)?;
         ret.push('\n');
+        if let Some(parent) = path.parent() {
+            if !parent.exists() {
+                fs::create_dir_all(parent)?;
+            }
+        }
         fs::write(path, ret).map_err(Into::into)
     }
 }

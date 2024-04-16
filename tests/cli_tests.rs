@@ -17,21 +17,29 @@ const INI_PATH: [&'static str; 2] = [EXAMPLE_DIR, "ananke.ini"];
 
 const JSON_PATH: [&'static str; 3] = [EXAMPLE_DIR, "db", "data.json"];
 
-fn vars_from(path: impl AsRef<Path>) -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
-    let val: OsString = path.as_ref().into();
+fn vars(
+    config_dir: impl Into<OsString>,
+    data_dir: impl Into<OsString>,
+) -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
     [
         (OsString::from("GNUPGHOME"), GNUPGHOME.iter().collect::<PathBuf>().into_os_string()),
-        (OsString::from("ANANKE_CONFIG_DIR"), val.clone()),
-        (OsString::from("ANANKE_DATA_DIR"), val),
+        (OsString::from("ANANKE_CONFIG_DIR"), config_dir.into()),
+        (OsString::from("ANANKE_DATA_DIR"), data_dir.into()),
     ]
 }
 
-fn vars() -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
-    vars_from(PathBuf::from(EXAMPLE_DIR))
+fn example_vars() -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
+    let mut dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    dir.push(EXAMPLE_DIR);
+    vars(dir.clone(), dir)
 }
 
 fn copy_config(path: impl AsRef<Path>) -> Result<(), io::Error> {
-    let source: PathBuf = INI_PATH.into_iter().collect::<PathBuf>();
+    let source = {
+        let mut ret = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        ret.push(INI_PATH.into_iter().collect::<PathBuf>());
+        ret
+    };
     let dest: PathBuf = {
         let mut ret: PathBuf = path.as_ref().into();
         ret.push("ananke.ini");
@@ -44,7 +52,7 @@ fn copy_config(path: impl AsRef<Path>) -> Result<(), io::Error> {
 #[test]
 fn usage() {
     Command::new(cargo_bin(BIN))
-        .envs(vars())
+        .envs(example_vars())
         .assert()
         .stderr_matches(file!("cli_tests/usage.stderr"))
         .failure();
@@ -54,7 +62,7 @@ fn usage() {
 fn lookup_foo() {
     Command::new(cargo_bin(BIN))
         .args(["lookup", "foo"])
-        .envs(vars())
+        .envs(example_vars())
         .assert()
         .stdout_eq(file!("cli_tests/lookup_foo.stdout"))
         .success();
@@ -64,7 +72,7 @@ fn lookup_foo() {
 fn lookup_www() {
     Command::new(cargo_bin(BIN))
         .args(["lookup", "www"])
-        .envs(vars())
+        .envs(example_vars())
         .assert()
         .stdout_eq(file!("cli_tests/lookup_www.stdout"))
         .success();
@@ -74,7 +82,7 @@ fn lookup_www() {
 fn lookup_www_verbose() {
     Command::new(cargo_bin(BIN))
         .args(["lookup", "www", "-v"])
-        .envs(vars())
+        .envs(example_vars())
         .assert()
         .stdout_eq(file!("cli_tests/lookup_www_verbose.stdout"))
         .success();
@@ -84,7 +92,7 @@ fn lookup_www_verbose() {
 fn lookup_non_existent() {
     Command::new(cargo_bin(BIN))
         .args(["lookup", "paul"])
-        .envs(vars())
+        .envs(example_vars())
         .assert()
         .stderr_eq(String::new())
         .failure()
@@ -95,7 +103,7 @@ fn lookup_non_existent() {
 fn modify_non_existent() {
     Command::new(cargo_bin(BIN))
         .args(["modify", "-d", "paul"])
-        .envs(vars())
+        .envs(example_vars())
         .assert()
         .stderr_eq(file!("cli_tests/modify_non_existent.stderr"))
         .failure()
@@ -106,7 +114,7 @@ fn modify_non_existent() {
 fn remove_non_existent() {
     Command::new(cargo_bin(BIN))
         .args(["remove", "-d", "paul"])
-        .envs(vars())
+        .envs(example_vars())
         .assert()
         .stderr_eq(file!("cli_tests/remove_non_existent.stderr"))
         .failure()
@@ -116,13 +124,13 @@ fn remove_non_existent() {
 #[test]
 fn import() {
     let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-    let path = path_fixture.path().expect("should get path");
-    copy_config(path).expect("should copy");
+    let dir = path_fixture.path().expect("should get path");
+    copy_config(dir).expect("should copy");
     let data_file: OsString = JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
     let data_file_str: &str = data_file.to_str().expect("should have path");
     Command::new(cargo_bin(BIN))
         .args(["import", data_file_str])
-        .envs(vars_from(path))
+        .envs(vars(dir, dir))
         .assert()
         .success();
 }
@@ -130,24 +138,24 @@ fn import() {
 #[test]
 fn add() {
     let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-    let path = path_fixture.path().expect("should get path");
-    copy_config(path).expect("should copy");
+    let dir = path_fixture.path().expect("should get path");
+    copy_config(dir).expect("should copy");
     let data_file: OsString = JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
     let data_file_str: &str = data_file.to_str().expect("should have path");
     Command::new(cargo_bin(BIN))
         .args(["import", data_file_str])
-        .envs(vars_from(path))
+        .envs(vars(dir, dir))
         .assert()
         .success();
     Command::new(cargo_bin(BIN))
         .args(["add", "-i", "quux", "https://www.quuxlib.com/"])
-        .envs(vars_from(path))
+        .envs(vars(dir, dir))
         .stdin("pass137pass")
         .assert()
         .success();
     Command::new(cargo_bin(BIN))
         .args(["lookup", "https://www.quuxlib.com/"])
-        .envs(vars_from(path))
+        .envs(vars(dir, dir))
         .assert()
         .stdout_eq(file!("cli_tests/add.stdout"))
         .success();

@@ -21,8 +21,13 @@ fn vars(
     config_dir: impl Into<OsString>,
     data_dir: impl Into<OsString>,
 ) -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
+    let gnupg_home = {
+        let mut ret = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        ret.push(GNUPGHOME.iter().collect::<PathBuf>());
+        ret
+    };
     [
-        (OsString::from("GNUPGHOME"), GNUPGHOME.iter().collect::<PathBuf>().into_os_string()),
+        (OsString::from("GNUPGHOME"), gnupg_home.into_os_string()),
         (OsString::from("ANANKE_CONFIG_DIR"), config_dir.into()),
         (OsString::from("ANANKE_DATA_DIR"), data_dir.into()),
     ]

@@ -1,17 +1,17 @@
 use std::path::PathBuf;
 
-use crate::data::{Description, Entry, Id, Identity, Metadata, Plaintext};
+use crate::data::{Description, Entry, EntryId, Identity, Metadata, Plaintext};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Target {
-    Id(Id),
+    EntryId(EntryId),
     Description(Description),
 }
 
 impl Target {
     pub fn matches(&self, entry: &Entry) -> bool {
         match self {
-            Target::Id(id) if *id == entry.id => true,
+            Target::EntryId(entry_id) if *entry_id == entry.entry_id => true,
             Target::Description(d) if *d == entry.description => true,
             _ => false,
         }

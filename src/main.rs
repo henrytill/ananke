@@ -340,7 +340,7 @@ mod command {
             sqlite::SqliteApplication,
         },
         config::{Backend, Config, ConfigBuilder},
-        data::{Description, Entry, Id, Identity, Metadata, Plaintext},
+        data::{Description, Entry, EntryId, Identity, Metadata, Plaintext},
     };
     use zeroize::Zeroize;
 
@@ -366,7 +366,7 @@ mod command {
     fn format_verbose(entry: &Entry, plaintext: &Plaintext) -> Result<String> {
         let mut elements = vec![
             entry.timestamp.isoformat()?,
-            entry.id.to_string(),
+            entry.entry_id.to_string(),
             entry.key_id.to_string(),
             entry.description.to_string(),
         ];
@@ -473,7 +473,7 @@ mod command {
     ) -> Result<ExitCode> {
         let target = match (target_description, target_id) {
             (Some(d), None) => Target::Description(Description::from(d)),
-            (None, Some(i)) => Target::Id(Id::from(i)),
+            (None, Some(i)) => Target::EntryId(EntryId::from(i)),
             (Some(_), Some(_)) => panic!(),
             (None, None) => panic!(),
         };
@@ -513,7 +513,7 @@ mod command {
     ) -> Result<ExitCode> {
         let target = match (target_description, target_id) {
             (Some(d), None) => Target::Description(Description::from(d)),
-            (None, Some(i)) => Target::Id(Id::from(i)),
+            (None, Some(i)) => Target::EntryId(EntryId::from(i)),
             (Some(_), Some(_)) => panic!(),
             (None, None) => panic!(),
         };

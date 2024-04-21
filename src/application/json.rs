@@ -6,7 +6,7 @@ use serde_json::ser::{PrettyFormatter, Serializer};
 use super::common::{Application, Target};
 use crate::{
     config::Config,
-    data::{Description, Entry, Id, Identity, Metadata, Plaintext, Timestamp},
+    data::{Description, Entry, EntryId, Identity, Metadata, Plaintext, Timestamp},
     gpg,
 };
 
@@ -166,14 +166,14 @@ impl Application for JsonApplication {
     ) -> Result<(), Self::Error> {
         let timestamp = Timestamp::now();
         let key_id = self.config.key_id();
-        let id = Id::generate(key_id, &timestamp, &description, maybe_identity.as_ref())?;
+        let entry_id = EntryId::make(key_id, &timestamp, &description, maybe_identity.as_ref())?;
         let ciphertext = gpg::encrypt(key_id, &plaintext, Self::ENV)?;
         let identity = maybe_identity;
         let metadata = maybe_metadata;
         let entry = {
             let key_id = key_id.clone();
             let description = description.clone();
-            Entry { timestamp, id, key_id, description, identity, ciphertext, metadata }
+            Entry { timestamp, entry_id, key_id, description, identity, ciphertext, metadata }
         };
         self.entries.push(entry);
         self.write(self.config.data_file())?;

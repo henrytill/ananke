@@ -50,7 +50,7 @@ macro_rules! wrap_string {
     };
 }
 
-wrap_string!(Id);
+wrap_string!(EntryId);
 wrap_string!(KeyId);
 wrap_string!(Description);
 wrap_string!(Identity);
@@ -92,13 +92,13 @@ impl From<&str> for Plaintext {
     }
 }
 
-impl Id {
-    pub fn generate(
+impl EntryId {
+    pub fn make(
         key_id: &KeyId,
         timestamp: &Timestamp,
         description: &Description,
         maybe_identity: Option<&Identity>,
-    ) -> Result<Id, time::error::Format> {
+    ) -> Result<EntryId, time::error::Format> {
         let mut input =
             format!("{}{}{}", key_id.to_string(), timestamp.isoformat()?, description.to_string());
         if let Some(identity) = maybe_identity {
@@ -110,7 +110,7 @@ impl Id {
             let bytes = hasher.finalize();
             HEXLOWER.encode(&bytes)
         };
-        Ok(Id(digest))
+        Ok(EntryId(digest))
     }
 }
 
@@ -189,7 +189,8 @@ mod base64 {
 #[serde(rename_all = "camelCase")]
 pub struct Entry {
     pub timestamp: Timestamp,
-    pub id: Id,
+    #[serde(rename = "id")]
+    pub entry_id: EntryId,
     pub key_id: KeyId,
     pub description: Description,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -201,7 +202,7 @@ pub struct Entry {
 
 impl PartialEq for Entry {
     fn eq(&self, other: &Entry) -> bool {
-        self.id == other.id
+        self.entry_id == other.entry_id
     }
 }
 
@@ -209,19 +210,19 @@ impl Eq for Entry {}
 
 impl Hash for Entry {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.id.0.hash(state)
+        self.entry_id.0.hash(state)
     }
 }
 
 impl Entry {
     pub fn update(&mut self) -> Result<(), time::error::Format> {
         self.timestamp = Timestamp::now();
-        self.id = self.fresh_id()?;
+        self.entry_id = self.fresh_entry_id()?;
         Ok(())
     }
 
-    fn fresh_id(&self) -> Result<Id, time::error::Format> {
-        Id::generate(&self.key_id, &self.timestamp, &self.description, self.identity.as_ref())
+    fn fresh_entry_id(&self) -> Result<EntryId, time::error::Format> {
+        EntryId::make(&self.key_id, &self.timestamp, &self.description, self.identity.as_ref())
     }
 }
 
@@ -261,8 +262,8 @@ mod tests {
         let expected = fs::read_to_string(path).expect("should read file");
         let entries: Vec<Entry> = serde_json::from_str(&expected).expect("should deserialize");
         for entry in entries {
-            let fresh_id = entry.fresh_id().expect("should regenerate id");
-            assert_eq!(entry.id, fresh_id);
+            let fresh_id = entry.fresh_entry_id().expect("should regenerate id");
+            assert_eq!(entry.entry_id, fresh_id);
         }
     }
 }

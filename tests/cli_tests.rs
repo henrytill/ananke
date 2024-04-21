@@ -21,11 +21,7 @@ fn vars(
     config_dir: impl Into<OsString>,
     data_dir: impl Into<OsString>,
 ) -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
-    let gnupg_home = {
-        let mut ret = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        ret.push(GNUPGHOME.iter().collect::<PathBuf>());
-        ret
-    };
+    let gnupg_home = GNUPGHOME.iter().collect::<PathBuf>();
     [
         (OsString::from("GNUPGHOME"), gnupg_home.into_os_string()),
         (OsString::from("ANANKE_CONFIG_DIR"), config_dir.into()),
@@ -34,17 +30,12 @@ fn vars(
 }
 
 fn example_vars() -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
-    let mut dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    dir.push(EXAMPLE_DIR);
+    let dir = PathBuf::from(EXAMPLE_DIR);
     vars(dir.clone(), dir)
 }
 
 fn copy_config(path: impl AsRef<Path>) -> Result<(), io::Error> {
-    let source = {
-        let mut ret = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        ret.push(INI_PATH.into_iter().collect::<PathBuf>());
-        ret
-    };
+    let source = INI_PATH.into_iter().collect::<PathBuf>();
     let dest: PathBuf = {
         let mut ret: PathBuf = path.as_ref().into();
         ret.push("ananke.ini");

@@ -141,7 +141,47 @@ fn import() {
 }
 
 #[test]
-fn add() {
+fn import_lookup() {
+    let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
+    let dir = path_fixture.path().expect("should get path");
+    copy_config(dir).expect("should copy");
+    let data_file: OsString = JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+    let data_file_str: &str = data_file.to_str().expect("should have path");
+    Command::new(cargo_bin(BIN))
+        .args(["import", data_file_str])
+        .envs(vars(dir, dir))
+        .assert()
+        .success();
+    Command::new(cargo_bin(BIN))
+        .args(["lookup", "foomail"])
+        .envs(vars(dir, dir))
+        .assert()
+        .stdout_eq(file!("cli_tests/import_lookup.stdout"))
+        .success();
+}
+
+#[test]
+fn import_lookup_many() {
+    let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
+    let dir = path_fixture.path().expect("should get path");
+    copy_config(dir).expect("should copy");
+    let data_file: OsString = JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+    let data_file_str: &str = data_file.to_str().expect("should have path");
+    Command::new(cargo_bin(BIN))
+        .args(["import", data_file_str])
+        .envs(vars(dir, dir))
+        .assert()
+        .success();
+    Command::new(cargo_bin(BIN))
+        .args(["lookup", "www"])
+        .envs(vars(dir, dir))
+        .assert()
+        .stdout_eq(file!("cli_tests/import_lookup_many.stdout"))
+        .success();
+}
+
+#[test]
+fn import_add() {
     let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
     let dir = path_fixture.path().expect("should get path");
     copy_config(dir).expect("should copy");
@@ -162,6 +202,32 @@ fn add() {
         .args(["lookup", "https://www.quuxlib.com/"])
         .envs(vars(dir, dir))
         .assert()
-        .stdout_eq(file!("cli_tests/add.stdout"))
+        .stdout_eq(file!("cli_tests/import_add.stdout"))
+        .success();
+}
+
+#[test]
+fn import_modify() {
+    let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
+    let dir = path_fixture.path().expect("should get path");
+    copy_config(dir).expect("should copy");
+    let data_file: OsString = JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+    let data_file_str: &str = data_file.to_str().expect("should have path");
+    Command::new(cargo_bin(BIN))
+        .args(["import", data_file_str])
+        .envs(vars(dir, dir))
+        .assert()
+        .success();
+    Command::new(cargo_bin(BIN))
+        .args(["modify", "-p", "-d", "https://www.barphone.com"])
+        .envs(vars(dir, dir))
+        .stdin("MyNewPassword")
+        .assert()
+        .success();
+    Command::new(cargo_bin(BIN))
+        .args(["lookup", "barphone"])
+        .envs(vars(dir, dir))
+        .assert()
+        .stdout_eq(file!("cli_tests/import_modify.stdout"))
         .success();
 }

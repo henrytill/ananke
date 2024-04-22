@@ -106,26 +106,30 @@ where
         .envs(vars)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
+        .stderr(Stdio::null())
         .spawn()?;
 
-    let join_handle = {
-        let plaintext = plaintext.clone();
-        let mut stdin = child.stdin.take().ok_or_else(Error::missing_stdin)?;
-        std::thread::spawn(move || stdin.write_all(plaintext.as_bytes()))
+    let stdout_handle = {
+        let mut stdout = child.stdout.take().ok_or_else(Error::missing_stdout)?;
+        std::thread::spawn(move || {
+            let mut buf = Vec::new();
+            let _len = stdout.read_to_end(&mut buf)?;
+            Ok(buf)
+        })
     };
 
-    let mut buf = Vec::new();
-    let mut stdout = child.stdout.take().ok_or_else(Error::missing_stdout)?;
-    let _len = stdout.read_to_end(&mut buf)?;
+    {
+        let mut stdin = child.stdin.take().ok_or_else(Error::missing_stdin)?;
+        stdin.write_all(plaintext.as_bytes())?;
+    }
 
     let status = child.wait()?;
-    let thread_result = join_handle.join().map_err(|_| Error::join())?;
-    thread_result?;
-
     if !status.success() {
         return Err(Error::from(io::Error::other(format!("gpg exited with status {}", status))));
     }
 
+    let stdout: Result<Vec<u8>, io::Error> = stdout_handle.join().map_err(|_| Error::join())?;
+    let buf: Vec<u8> = stdout?;
     Ok(Ciphertext::new(buf))
 }
 
@@ -140,26 +144,30 @@ where
         .envs(vars)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
+        .stderr(Stdio::null())
         .spawn()?;
 
-    let join_handle = {
-        let ciphertext = ciphertext.clone();
-        let mut stdin = child.stdin.take().ok_or_else(Error::missing_stdin)?;
-        std::thread::spawn(move || stdin.write_all(ciphertext.as_ref()))
+    let stdout_handle = {
+        let mut stdout = child.stdout.take().ok_or_else(Error::missing_stdout)?;
+        std::thread::spawn(move || {
+            let mut buf = Vec::new();
+            let _len = stdout.read_to_end(&mut buf)?;
+            Ok(buf)
+        })
     };
 
-    let mut buf = Vec::new();
-    let mut stdout = child.stdout.take().ok_or_else(Error::missing_stdout)?;
-    let _len = stdout.read_to_end(&mut buf)?;
+    {
+        let mut stdin = child.stdin.take().ok_or_else(Error::missing_stdin)?;
+        stdin.write_all(ciphertext.as_ref())?;
+    }
 
     let status = child.wait()?;
-    let thread_result = join_handle.join().map_err(|_| Error::join())?;
-    thread_result?;
-
     if !status.success() {
         return Err(Error::from(io::Error::other(format!("gpg exited with status {}", status))));
     }
 
+    let stdout: Result<Vec<u8>, io::Error> = stdout_handle.join().map_err(|_| Error::join())?;
+    let buf: Vec<u8> = stdout?;
     let txt = String::from_utf8(buf)?;
     Ok(Plaintext::new(txt))
 }

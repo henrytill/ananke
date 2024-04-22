@@ -186,19 +186,17 @@ impl Application for JsonApplication {
         maybe_identity: Option<Identity>,
     ) -> Result<Vec<(Entry, Plaintext)>, Self::Error> {
         let mut ret = Vec::new();
-        for entry in self.entries.iter() {
-            if entry.description.contains(description.as_str()) {
-                match (maybe_identity.as_ref(), entry.identity.as_ref()) {
-                    (Some(identity), Some(entry_identity)) if identity == entry_identity => {
-                        let plaintext = gpg::decrypt(&entry.ciphertext, Self::ENV)?;
-                        ret.push((entry.clone(), plaintext))
-                    }
-                    (None, _) => {
-                        let plaintext = gpg::decrypt(&entry.ciphertext, Self::ENV)?;
-                        ret.push((entry.clone(), plaintext))
-                    }
-                    (_, _) => (),
+        for entry in self.entries.iter().filter(|e| e.description.contains(description.as_str())) {
+            match (maybe_identity.as_ref(), entry.identity.as_ref()) {
+                (Some(identity), Some(entry_identity)) if identity == entry_identity => {
+                    let plaintext = gpg::decrypt(&entry.ciphertext, Self::ENV)?;
+                    ret.push((entry.clone(), plaintext))
                 }
+                (None, _) => {
+                    let plaintext = gpg::decrypt(&entry.ciphertext, Self::ENV)?;
+                    ret.push((entry.clone(), plaintext))
+                }
+                (_, _) => (),
             }
         }
         Ok(ret)

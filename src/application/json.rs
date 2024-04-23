@@ -1,5 +1,6 @@
-use std::{backtrace::Backtrace, ffi::OsString, fmt, fs, io, path::PathBuf, string};
+use std::{ffi::OsString, fs, path::PathBuf};
 
+use anyhow::Error;
 use serde::Serialize;
 use serde_json::ser::{PrettyFormatter, Serializer};
 
@@ -10,115 +11,6 @@ use crate::{
     gpg,
 };
 
-#[derive(Debug)]
-pub enum ErrorInner {
-    Gpg(gpg::Error),
-    Io(io::Error),
-    Json(serde_json::Error),
-    FromUtf8(string::FromUtf8Error),
-    Time(time::error::Format),
-    MultipleEntries,
-    NoEntries,
-}
-
-impl fmt::Display for ErrorInner {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ErrorInner::Gpg(err) => err.fmt(f),
-            ErrorInner::Io(err) => err.fmt(f),
-            ErrorInner::Json(err) => err.fmt(f),
-            ErrorInner::FromUtf8(err) => err.fmt(f),
-            ErrorInner::Time(err) => err.fmt(f),
-            ErrorInner::MultipleEntries => write!(f, "multiple entries match this target"),
-            ErrorInner::NoEntries => write!(f, "no entries match this target"),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct ErrorImpl {
-    inner: ErrorInner,
-    backtrace: Option<Backtrace>,
-}
-
-#[derive(Debug)]
-pub struct Error {
-    inner: Box<ErrorImpl>,
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.inner.inner.fmt(f)
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self.inner.inner {
-            ErrorInner::Gpg(ref err) => Some(err),
-            ErrorInner::Io(ref err) => Some(err),
-            ErrorInner::Json(ref err) => Some(err),
-            ErrorInner::FromUtf8(ref err) => Some(err),
-            ErrorInner::Time(ref err) => Some(err),
-            ErrorInner::MultipleEntries => None,
-            ErrorInner::NoEntries => None,
-        }
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(err: io::Error) -> Error {
-        Error::capture(ErrorInner::Io(err))
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(err: serde_json::Error) -> Error {
-        Error::capture(ErrorInner::Json(err))
-    }
-}
-
-impl From<string::FromUtf8Error> for Error {
-    fn from(err: string::FromUtf8Error) -> Error {
-        Error::capture(ErrorInner::FromUtf8(err))
-    }
-}
-
-impl From<time::error::Format> for Error {
-    fn from(err: time::error::Format) -> Error {
-        Error::capture(ErrorInner::Time(err))
-    }
-}
-
-impl From<gpg::Error> for Error {
-    fn from(mut err: gpg::Error) -> Error {
-        let backtrace = err.backtrace();
-        let inner = ErrorInner::Gpg(err);
-        let inner = Box::new(ErrorImpl { inner, backtrace });
-        Error { inner }
-    }
-}
-
-impl Error {
-    fn capture(inner: ErrorInner) -> Error {
-        let backtrace = Some(Backtrace::capture());
-        let inner = Box::new(ErrorImpl { inner, backtrace });
-        Error { inner }
-    }
-
-    pub fn backtrace(&mut self) -> Option<Backtrace> {
-        self.inner.backtrace.take()
-    }
-
-    fn multiple_entries() -> Error {
-        Error::capture(ErrorInner::MultipleEntries)
-    }
-
-    fn no_entries() -> Error {
-        Error::capture(ErrorInner::NoEntries)
-    }
-}
-
 pub struct JsonApplication {
     config: Config,
     entries: Vec<Entry>,
@@ -126,6 +18,8 @@ pub struct JsonApplication {
 
 impl JsonApplication {
     const ENV: [(OsString, OsString); 0] = [];
+    const NO_ENTRIES_MSG: &'static str = "no entries match this target";
+    const MULTIPLE_ENTRIES_MSG: &'static str = "multiple entries match this target";
 
     pub fn new(config: Config) -> Result<JsonApplication, Error> {
         let entries = if config.data_file().exists() {
@@ -219,11 +113,11 @@ impl Application for JsonApplication {
             .collect();
 
         if is.is_empty() {
-            return Err(Error::no_entries());
+            return Err(Error::msg(Self::NO_ENTRIES_MSG));
         }
 
         if is.len() > 1 {
-            return Err(Self::Error::multiple_entries());
+            return Err(Error::msg(Self::MULTIPLE_ENTRIES_MSG));
         }
 
         let mut entry = self.entries.remove(is[0]);
@@ -256,11 +150,11 @@ impl Application for JsonApplication {
             .collect();
 
         if is.is_empty() {
-            return Err(Error::no_entries());
+            return Err(Error::msg(Self::NO_ENTRIES_MSG));
         }
 
         if is.len() > 1 {
-            return Err(Self::Error::multiple_entries());
+            return Err(Error::msg(Self::MULTIPLE_ENTRIES_MSG));
         }
 
         self.entries.remove(is[0]);

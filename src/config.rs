@@ -1,117 +1,15 @@
-use std::{
-    backtrace::Backtrace, convert::Infallible, env, fmt, fs, io, path::PathBuf, str::FromStr,
-};
+use std::{convert::Infallible, env, fs, path::PathBuf, str::FromStr};
 
+use anyhow::Error;
 use configparser::ini::Ini;
 use directories::ProjectDirs;
 
 use crate::data::KeyId;
 
-#[derive(Debug)]
-pub enum ErrorInner {
-    Var(env::VarError, &'static str),
-    Io(io::Error),
-    Ini(String),
-    ProjectDirs,
-    MissingConfigDir,
-    MissingDataDir,
-    MissingKeyId,
-}
-
-impl fmt::Display for ErrorInner {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ErrorInner::Var(err, var) => write!(f, "{}: {}", err, var),
-            ErrorInner::Io(err) => err.fmt(f),
-            ErrorInner::Ini(err) => err.fmt(f),
-            ErrorInner::ProjectDirs => write!(f, "could not create ProjectDirs"),
-            ErrorInner::MissingConfigDir => write!(f, "missing config_dir"),
-            ErrorInner::MissingDataDir => write!(f, "missing data_dir"),
-            ErrorInner::MissingKeyId => write!(f, "missing key_id"),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct ErrorImpl {
-    inner: ErrorInner,
-    backtrace: Option<Backtrace>,
-}
-
-#[derive(Debug)]
-pub struct Error {
-    inner: Box<ErrorImpl>,
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.inner.inner.fmt(f)
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self.inner.inner {
-            ErrorInner::Var(ref err, _) => Some(err),
-            ErrorInner::Io(ref err) => Some(err),
-            ErrorInner::Ini(_) => None,
-            ErrorInner::ProjectDirs => None,
-            ErrorInner::MissingConfigDir => None,
-            ErrorInner::MissingDataDir => None,
-            ErrorInner::MissingKeyId => None,
-        }
-    }
-}
-
-impl From<(env::VarError, &'static str)> for Error {
-    fn from((err, var): (env::VarError, &'static str)) -> Error {
-        Error::capture(ErrorInner::Var(err, var))
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(err: io::Error) -> Error {
-        Error::capture(ErrorInner::Io(err))
-    }
-}
-
-impl From<Infallible> for Error {
-    fn from(_: Infallible) -> Error {
-        unreachable!()
-    }
-}
-
-impl Error {
-    fn capture(inner: ErrorInner) -> Error {
-        let backtrace = Some(Backtrace::capture());
-        let inner = Box::new(ErrorImpl { inner, backtrace });
-        Error { inner }
-    }
-
-    pub fn backtrace(&mut self) -> Option<Backtrace> {
-        self.inner.backtrace.take()
-    }
-
-    fn ini(value: String) -> Error {
-        Error::capture(ErrorInner::Ini(value))
-    }
-
-    fn project_dirs() -> Error {
-        Error::capture(ErrorInner::ProjectDirs)
-    }
-
-    fn missing_config_dir() -> Error {
-        Error::capture(ErrorInner::MissingConfigDir)
-    }
-
-    fn missing_data_dir() -> Error {
-        Error::capture(ErrorInner::MissingDataDir)
-    }
-
-    fn missing_key_id() -> Error {
-        Error::capture(ErrorInner::MissingKeyId)
-    }
-}
+const PROJECT_DIRS_MSG: &str = "could not create ProjectDirs";
+const MISSING_CONFIG_DIR_MSG: &str = "missing config_dir";
+const MISSING_DATA_DIR_MSG: &str = "missing data_dir";
+const MISSING_KEY_ID_MSG: &str = "missing key_id";
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub enum Backend {
@@ -276,7 +174,7 @@ impl ConfigBuilder {
         getenv: &impl Fn(&'static str) -> Result<String, env::VarError>,
     ) -> Result<ConfigBuilder, Error> {
         let project_dirs = ProjectDirs::from(Self::QUALIFIER, Self::ORGANIZATION, Self::NAME)
-            .ok_or_else(Error::project_dirs)?;
+            .ok_or_else(|| Error::msg(PROJECT_DIRS_MSG))?;
 
         if let Ok(config_dir) = getenv(Self::ENV_CONFIG_DIR) {
             self.maybe_config_dir = Some(PathBuf::from(config_dir))
@@ -298,11 +196,11 @@ impl ConfigBuilder {
             path.push(Self::CONFIG_FILE);
             fs::read_to_string(path)?
         } else {
-            return Err(Error::missing_config_dir());
+            return Err(Error::msg(MISSING_CONFIG_DIR_MSG));
         };
 
         let mut config = Ini::new();
-        config.read(input).map_err(Error::ini)?;
+        config.read(input).map_err(Error::msg)?;
 
         if let Some(data_dir) = config.get(Self::INI_DATA_DIR.section, Self::INI_DATA_DIR.key) {
             self.maybe_data_dir = Some(PathBuf::from(data_dir))
@@ -351,10 +249,12 @@ impl ConfigBuilder {
     }
 
     pub fn build(mut self) -> Result<Config, Error> {
-        let config_dir = self.maybe_config_dir.take().ok_or_else(Error::missing_config_dir)?;
-        let data_dir = self.maybe_data_dir.take().ok_or_else(Error::missing_data_dir)?;
+        let config_dir =
+            self.maybe_config_dir.take().ok_or_else(|| Error::msg(MISSING_CONFIG_DIR_MSG))?;
+        let data_dir =
+            self.maybe_data_dir.take().ok_or_else(|| Error::msg(MISSING_DATA_DIR_MSG))?;
         let backend = self.backend;
-        let key_id = self.maybe_key_id.take().ok_or_else(Error::missing_key_id)?;
+        let key_id = self.maybe_key_id.take().ok_or_else(|| Error::msg(MISSING_KEY_ID_MSG))?;
         let mult_keys = self.mult_keys.into();
         Ok(Config { config_dir, data_dir, backend, key_id, mult_keys })
     }
@@ -364,8 +264,8 @@ impl ConfigBuilder {
 mod tests {
     use std::{env::VarError, path::PathBuf};
 
-    use super::{Backend, ConfigBuilder, ErrorInner, Flag};
-    use crate::data::KeyId;
+    use super::{Backend, ConfigBuilder, Flag};
+    use crate::{config::MISSING_CONFIG_DIR_MSG, data::KeyId};
 
     #[test]
     fn with_config_parses_ini() {
@@ -411,7 +311,7 @@ allow_multiple_keys={}
     fn with_config_returns_missing_config_dir() {
         let result = ConfigBuilder::new().with_config(None);
         if let Err(err) = result {
-            if let ErrorInner::MissingConfigDir = err.inner.inner {
+            if MISSING_CONFIG_DIR_MSG == format!("{}", err) {
                 return;
             }
             panic!()

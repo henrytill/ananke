@@ -3,9 +3,10 @@ use std::{
     process::ExitCode,
 };
 
-use ananke::command;
 use anyhow::Result;
 use clap::{Arg, ArgGroup, Command};
+
+use ananke::command;
 
 fn command() -> Command {
     let version = version::version_info().to_string();

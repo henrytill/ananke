@@ -6,10 +6,10 @@ use directories::ProjectDirs;
 
 use crate::data::KeyId;
 
-const PROJECT_DIRS_MSG: &str = "could not create ProjectDirs";
-const MISSING_CONFIG_DIR_MSG: &str = "missing config_dir";
-const MISSING_DATA_DIR_MSG: &str = "missing data_dir";
-const MISSING_KEY_ID_MSG: &str = "missing key_id";
+const MSG_PROJECT_DIRS: &str = "could not create ProjectDirs";
+const MSG_MISSING_CONFIG_DIR: &str = "missing config_dir";
+const MSG_MISSING_DATA_DIR: &str = "missing data_dir";
+const MSG_MISSING_KEY_ID: &str = "missing key_id";
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub enum Backend {
@@ -174,7 +174,7 @@ impl ConfigBuilder {
         getenv: &impl Fn(&'static str) -> Result<String, env::VarError>,
     ) -> Result<ConfigBuilder, Error> {
         let project_dirs = ProjectDirs::from(Self::QUALIFIER, Self::ORGANIZATION, Self::NAME)
-            .ok_or_else(|| Error::msg(PROJECT_DIRS_MSG))?;
+            .ok_or_else(|| Error::msg(MSG_PROJECT_DIRS))?;
 
         if let Ok(config_dir) = getenv(Self::ENV_CONFIG_DIR) {
             self.maybe_config_dir = Some(PathBuf::from(config_dir))
@@ -196,7 +196,7 @@ impl ConfigBuilder {
             path.push(Self::CONFIG_FILE);
             fs::read_to_string(path)?
         } else {
-            return Err(Error::msg(MISSING_CONFIG_DIR_MSG));
+            return Err(Error::msg(MSG_MISSING_CONFIG_DIR));
         };
 
         let mut config = Ini::new();
@@ -250,11 +250,11 @@ impl ConfigBuilder {
 
     pub fn build(mut self) -> Result<Config, Error> {
         let config_dir =
-            self.maybe_config_dir.take().ok_or_else(|| Error::msg(MISSING_CONFIG_DIR_MSG))?;
+            self.maybe_config_dir.take().ok_or_else(|| Error::msg(MSG_MISSING_CONFIG_DIR))?;
         let data_dir =
-            self.maybe_data_dir.take().ok_or_else(|| Error::msg(MISSING_DATA_DIR_MSG))?;
+            self.maybe_data_dir.take().ok_or_else(|| Error::msg(MSG_MISSING_DATA_DIR))?;
         let backend = self.backend;
-        let key_id = self.maybe_key_id.take().ok_or_else(|| Error::msg(MISSING_KEY_ID_MSG))?;
+        let key_id = self.maybe_key_id.take().ok_or_else(|| Error::msg(MSG_MISSING_KEY_ID))?;
         let mult_keys = self.mult_keys.into();
         Ok(Config { config_dir, data_dir, backend, key_id, mult_keys })
     }
@@ -265,7 +265,7 @@ mod tests {
     use std::{env::VarError, path::PathBuf};
 
     use super::{Backend, ConfigBuilder, Flag};
-    use crate::{config::MISSING_CONFIG_DIR_MSG, data::KeyId};
+    use crate::{config::MSG_MISSING_CONFIG_DIR, data::KeyId};
 
     #[test]
     fn with_config_parses_ini() {
@@ -311,7 +311,7 @@ allow_multiple_keys={}
     fn with_config_returns_missing_config_dir() {
         let result = ConfigBuilder::new().with_config(None);
         if let Err(err) = result {
-            if MISSING_CONFIG_DIR_MSG == format!("{}", err) {
+            if MSG_MISSING_CONFIG_DIR == format!("{}", err) {
                 return;
             }
             panic!()

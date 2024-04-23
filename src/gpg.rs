@@ -8,9 +8,9 @@ use anyhow::Error;
 
 use crate::data::{Ciphertext, KeyId, Plaintext};
 
-const TAKE_STDOUT_MSG: &str = "missing stdout";
-const TAKE_STDIN_MSG: &str = "missing stdin";
-const JOIN_MSG: &str = "join thread failed";
+const MSG_TAKE_STDOUT: &str = "missing stdout";
+const MSG_TAKE_STDIN: &str = "missing stdin";
+const MSG_JOIN: &str = "join thread failed";
 
 pub fn encrypt<I, K, V>(key_id: &KeyId, plaintext: &Plaintext, vars: I) -> Result<Ciphertext, Error>
 where
@@ -27,7 +27,7 @@ where
         .spawn()?;
 
     let stdout_handle = {
-        let mut stdout = child.stdout.take().ok_or_else(|| Error::msg(TAKE_STDOUT_MSG))?;
+        let mut stdout = child.stdout.take().ok_or_else(|| Error::msg(MSG_TAKE_STDOUT))?;
         std::thread::spawn(move || {
             let mut buf = Vec::new();
             let _len = stdout.read_to_end(&mut buf)?;
@@ -36,7 +36,7 @@ where
     };
 
     {
-        let mut stdin = child.stdin.take().ok_or_else(|| Error::msg(TAKE_STDIN_MSG))?;
+        let mut stdin = child.stdin.take().ok_or_else(|| Error::msg(MSG_TAKE_STDIN))?;
         stdin.write_all(plaintext.as_bytes())?;
     }
 
@@ -46,7 +46,7 @@ where
     }
 
     let stdout: Result<Vec<u8>, io::Error> =
-        stdout_handle.join().map_err(|_| Error::msg(JOIN_MSG))?;
+        stdout_handle.join().map_err(|_| Error::msg(MSG_JOIN))?;
     let buf: Vec<u8> = stdout?;
     Ok(Ciphertext::new(buf))
 }
@@ -66,7 +66,7 @@ where
         .spawn()?;
 
     let stdout_handle = {
-        let mut stdout = child.stdout.take().ok_or_else(|| Error::msg(TAKE_STDOUT_MSG))?;
+        let mut stdout = child.stdout.take().ok_or_else(|| Error::msg(MSG_TAKE_STDOUT))?;
         std::thread::spawn(move || {
             let mut buf = Vec::new();
             let _len = stdout.read_to_end(&mut buf)?;
@@ -75,7 +75,7 @@ where
     };
 
     {
-        let mut stdin = child.stdin.take().ok_or_else(|| Error::msg(TAKE_STDIN_MSG))?;
+        let mut stdin = child.stdin.take().ok_or_else(|| Error::msg(MSG_TAKE_STDIN))?;
         stdin.write_all(ciphertext.as_ref())?;
     }
 
@@ -85,7 +85,7 @@ where
     }
 
     let stdout: Result<Vec<u8>, io::Error> =
-        stdout_handle.join().map_err(|_| Error::msg(JOIN_MSG))?;
+        stdout_handle.join().map_err(|_| Error::msg(MSG_JOIN))?;
     let buf: Vec<u8> = stdout?;
     let txt = String::from_utf8(buf)?;
     Ok(Plaintext::new(txt))

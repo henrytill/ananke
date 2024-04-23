@@ -18,8 +18,8 @@ pub struct JsonApplication {
 
 impl JsonApplication {
     const ENV: [(OsString, OsString); 0] = [];
-    const NO_ENTRIES_MSG: &'static str = "no entries match this target";
-    const MULTIPLE_ENTRIES_MSG: &'static str = "multiple entries match this target";
+    const MSG_NO_ENTRIES: &'static str = "no entries match this target";
+    const MSG_MULTIPLE_ENTRIES: &'static str = "multiple entries match this target";
 
     pub fn new(config: Config) -> Result<JsonApplication, Error> {
         let entries = if config.data_file().exists() {
@@ -113,11 +113,11 @@ impl Application for JsonApplication {
             .collect();
 
         if is.is_empty() {
-            return Err(Error::msg(Self::NO_ENTRIES_MSG));
+            return Err(Error::msg(Self::MSG_NO_ENTRIES));
         }
 
         if is.len() > 1 {
-            return Err(Error::msg(Self::MULTIPLE_ENTRIES_MSG));
+            return Err(Error::msg(Self::MSG_MULTIPLE_ENTRIES));
         }
 
         let mut entry = self.entries.remove(is[0]);
@@ -150,11 +150,11 @@ impl Application for JsonApplication {
             .collect();
 
         if is.is_empty() {
-            return Err(Error::msg(Self::NO_ENTRIES_MSG));
+            return Err(Error::msg(Self::MSG_NO_ENTRIES));
         }
 
         if is.len() > 1 {
-            return Err(Error::msg(Self::MULTIPLE_ENTRIES_MSG));
+            return Err(Error::msg(Self::MSG_MULTIPLE_ENTRIES));
         }
 
         self.entries.remove(is[0]);

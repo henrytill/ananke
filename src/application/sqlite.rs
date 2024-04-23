@@ -1,27 +1,12 @@
-use std::{backtrace::Backtrace, fmt, path::PathBuf};
+use std::path::PathBuf;
+
+use anyhow::Error;
 
 use super::common::{Application, Target};
 use crate::{
     config::Config,
     data::{Description, Entry, Identity, Metadata, Plaintext},
 };
-
-#[derive(Debug)]
-pub struct Error {}
-
-impl fmt::Display for Error {
-    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!()
-    }
-}
-
-impl std::error::Error for Error {}
-
-impl Error {
-    pub fn backtrace(&mut self) -> Option<Backtrace> {
-        todo!()
-    }
-}
 
 pub struct SqliteApplication {}
 

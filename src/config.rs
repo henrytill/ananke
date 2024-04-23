@@ -42,32 +42,22 @@ impl ToString for Backend {
 
 #[derive(Debug)]
 pub struct Config {
+    #[allow(dead_code)]
     config_dir: PathBuf,
     data_dir: PathBuf,
     backend: Backend,
     key_id: KeyId,
+    #[allow(dead_code)]
     mult_keys: bool,
 }
 
 impl Config {
-    pub fn config_dir(&self) -> &PathBuf {
-        &self.config_dir
-    }
-
-    pub fn data_dir(&self) -> &PathBuf {
-        &self.data_dir
-    }
-
     pub fn backend(&self) -> Backend {
         self.backend
     }
 
     pub fn key_id(&self) -> &KeyId {
         &self.key_id
-    }
-
-    pub fn mult_keys(&self) -> bool {
-        self.mult_keys
     }
 
     fn db_dir(&self) -> PathBuf {

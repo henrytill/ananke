@@ -311,7 +311,7 @@ allow_multiple_keys={}
     fn with_config_returns_missing_config_dir() {
         let result = ConfigBuilder::new().with_config(None);
         if let Err(err) = result {
-            if MSG_MISSING_CONFIG_DIR == format!("{}", err) {
+            if MSG_MISSING_CONFIG_DIR == err.to_string() {
                 return;
             }
             panic!()

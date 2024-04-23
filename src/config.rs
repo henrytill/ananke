@@ -3,6 +3,7 @@ use std::{
 };
 
 use configparser::ini::Ini;
+use directories::ProjectDirs;
 
 use crate::data::KeyId;
 
@@ -11,6 +12,7 @@ pub enum ErrorInner {
     Var(env::VarError, &'static str),
     Io(io::Error),
     Ini(String),
+    ProjectDirs,
     MissingConfigDir,
     MissingDataDir,
     MissingKeyId,
@@ -22,6 +24,7 @@ impl fmt::Display for ErrorInner {
             ErrorInner::Var(err, var) => write!(f, "{}: {}", err, var),
             ErrorInner::Io(err) => err.fmt(f),
             ErrorInner::Ini(err) => err.fmt(f),
+            ErrorInner::ProjectDirs => write!(f, "could not create ProjectDirs"),
             ErrorInner::MissingConfigDir => write!(f, "missing config_dir"),
             ErrorInner::MissingDataDir => write!(f, "missing data_dir"),
             ErrorInner::MissingKeyId => write!(f, "missing key_id"),
@@ -52,6 +55,7 @@ impl std::error::Error for Error {
             ErrorInner::Var(ref err, _) => Some(err),
             ErrorInner::Io(ref err) => Some(err),
             ErrorInner::Ini(_) => None,
+            ErrorInner::ProjectDirs => None,
             ErrorInner::MissingConfigDir => None,
             ErrorInner::MissingDataDir => None,
             ErrorInner::MissingKeyId => None,
@@ -90,6 +94,10 @@ impl Error {
 
     fn ini(value: String) -> Error {
         Error::capture(ErrorInner::Ini(value))
+    }
+
+    fn project_dirs() -> Error {
+        Error::capture(ErrorInner::ProjectDirs)
     }
 
     fn missing_config_dir() -> Error {
@@ -239,6 +247,8 @@ impl IniSelector {
 }
 
 impl ConfigBuilder {
+    const QUALIFIER: &'static str = "com.github";
+    const ORGANIZATION: &'static str = "henrytill";
     const NAME: &'static str = "ananke";
     const CONFIG_FILE: &'static str = "ananke.ini";
     const ENV_CONFIG_DIR: &'static str = "ANANKE_CONFIG_DIR";
@@ -265,14 +275,17 @@ impl ConfigBuilder {
         mut self,
         getenv: &impl Fn(&'static str) -> Result<String, env::VarError>,
     ) -> Result<ConfigBuilder, Error> {
+        let project_dirs = ProjectDirs::from(Self::QUALIFIER, Self::ORGANIZATION, Self::NAME)
+            .ok_or_else(Error::project_dirs)?;
+
         if let Ok(config_dir) = getenv(Self::ENV_CONFIG_DIR) {
             self.maybe_config_dir = Some(PathBuf::from(config_dir))
         } else {
-            let config_dir = internal::config_dir(getenv, Self::NAME)?;
-            self.maybe_config_dir = Some(config_dir)
+            let config_dir = project_dirs.config_dir().into();
+            self.maybe_config_dir = Some(config_dir);
         }
 
-        let data_dir = internal::data_dir(getenv, Self::NAME)?;
+        let data_dir = project_dirs.data_dir().into();
         self.maybe_data_dir = Some(data_dir);
 
         Ok(self)
@@ -344,337 +357,6 @@ impl ConfigBuilder {
         let key_id = self.maybe_key_id.take().ok_or_else(Error::missing_key_id)?;
         let mult_keys = self.mult_keys.into();
         Ok(Config { config_dir, data_dir, backend, key_id, mult_keys })
-    }
-}
-
-mod internal {
-    use std::{
-        env::VarError,
-        path::{Path, PathBuf},
-    };
-
-    use cfg_if::cfg_if;
-
-    #[inline]
-    pub fn config_dir(
-        getenv: &impl Fn(&'static str) -> Result<String, VarError>,
-        name: impl AsRef<Path>,
-    ) -> Result<PathBuf, (VarError, &'static str)> {
-        cfg_if! {
-            if #[cfg(target_os = "windows")] {
-                windows::local_app_data(getenv, name)
-            } else if #[cfg(target_os = "macos")] {
-                macos::support_dir(getenv, name)
-            } else {
-                xdg::config_dir(getenv, name)
-            }
-        }
-    }
-
-    #[inline]
-    pub fn data_dir(
-        getenv: &impl Fn(&'static str) -> Result<String, VarError>,
-        name: impl AsRef<Path>,
-    ) -> Result<PathBuf, (VarError, &'static str)> {
-        cfg_if! {
-            if #[cfg(target_os = "windows")] {
-                windows::app_data(getenv, name)
-            } else if #[cfg(target_os = "macos")] {
-                macos::support_dir(getenv, name)
-            } else {
-                xdg::data_dir(getenv, name)
-            }
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    mod windows {
-        use std::{
-            env::VarError,
-            path::{Path, PathBuf},
-        };
-
-        #[inline]
-        pub fn local_app_data(
-            getenv: &impl Fn(&'static str) -> Result<String, VarError>,
-            name: impl AsRef<Path>,
-        ) -> Result<PathBuf, (VarError, &'static str)> {
-            let var = "LOCALAPPDATA";
-            match getenv(var) {
-                Ok(dir) => {
-                    let mut ret = PathBuf::from(dir);
-                    ret.push(name);
-                    Ok(ret)
-                }
-                Err(err) => Err((err, var)),
-            }
-        }
-
-        #[inline]
-        pub fn app_data(
-            getenv: &impl Fn(&'static str) -> Result<String, VarError>,
-            name: impl AsRef<Path>,
-        ) -> Result<PathBuf, (VarError, &'static str)> {
-            let var = "APPDATA";
-            match getenv(var) {
-                Ok(dir) => {
-                    let mut ret = PathBuf::from(dir);
-                    ret.push(name);
-                    Ok(ret)
-                }
-                Err(err) => Err((err, var)),
-            }
-        }
-
-        #[cfg(test)]
-        mod tests {
-            use std::{env::VarError, path::PathBuf};
-
-            #[test]
-            fn local_app_data_returns_ok() {
-                let local_app_data = "C:\\Users\\test\\AppData\\Local";
-                let getenv = |s| {
-                    if s == "LOCALAPPDATA" {
-                        Ok(local_app_data.into())
-                    } else {
-                        Err(VarError::NotPresent)
-                    }
-                };
-                let expected: PathBuf = [local_app_data, "test"].into_iter().collect();
-                let actual = super::local_app_data(&getenv, "test").expect("should return path");
-                assert_eq!(expected, actual)
-            }
-
-            #[test]
-            fn local_app_data_returns_err() {
-                let getenv = |_| Err(VarError::NotPresent);
-                let expected = Err((VarError::NotPresent, "LOCALAPPDATA"));
-                let actual = super::local_app_data(&getenv, "test");
-                assert_eq!(expected, actual);
-            }
-
-            #[test]
-            fn app_data_returns_ok() {
-                let app_data = "C:\\Users\\test\\AppData\\Roaming";
-                let getenv = |s| {
-                    if s == "APPDATA" {
-                        Ok(app_data.into())
-                    } else {
-                        Err(VarError::NotPresent)
-                    }
-                };
-                let expected: PathBuf = [app_data, "test"].into_iter().collect();
-                let actual = super::app_data(&getenv, "test").expect("should return path");
-                assert_eq!(expected, actual)
-            }
-
-            #[test]
-            fn app_data_returns_err() {
-                let getenv = |_| Err(VarError::NotPresent);
-                let expected = Err((VarError::NotPresent, "APPDATA"));
-                let actual = super::app_data(&getenv, "test");
-                assert_eq!(expected, actual);
-            }
-        }
-    }
-
-    #[cfg(target_os = "macos")]
-    mod macos {
-        use std::{
-            env::VarError,
-            path::{Path, PathBuf},
-        };
-
-        #[inline]
-        pub fn support_dir(
-            getenv: &impl Fn(&'static str) -> Result<String, VarError>,
-            name: impl AsRef<Path>,
-        ) -> Result<PathBuf, (VarError, &'static str)> {
-            let var = "HOME";
-            match getenv(var) {
-                Ok(dir) => {
-                    let mut ret = PathBuf::from(dir);
-                    ret.push("Library");
-                    ret.push("Application Support");
-                    ret.push(name);
-                    Ok(ret)
-                }
-                Err(err) => Err((err, var)),
-            }
-        }
-
-        #[cfg(test)]
-        mod tests {
-            use std::{env::VarError, path::PathBuf};
-
-            #[test]
-            fn support_dir_returns_ok() {
-                let home = "/Users/test";
-                let getenv = |s| {
-                    if s == "HOME" {
-                        Ok(home.into())
-                    } else {
-                        Err(VarError::NotPresent)
-                    }
-                };
-                let expected: PathBuf =
-                    [home, "Library", "Application Support", "test"].into_iter().collect();
-                let actual = super::support_dir(&getenv, "test").expect("should return path");
-                assert_eq!(expected, actual)
-            }
-
-            #[test]
-            fn support_dir_returns_err() {
-                let getenv = |_| Err(VarError::NotPresent);
-                let expected = Err((VarError::NotPresent, "HOME"));
-                let actual = super::support_dir(&getenv, "test");
-                assert_eq!(expected, actual);
-            }
-        }
-    }
-
-    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
-    mod xdg {
-        use std::{
-            env::VarError,
-            path::{Path, PathBuf},
-        };
-
-        #[inline]
-        pub fn config_dir(
-            getenv: &impl Fn(&'static str) -> Result<String, VarError>,
-            name: impl AsRef<Path>,
-        ) -> Result<PathBuf, (VarError, &'static str)> {
-            let var = "XDG_CONFIG_DIR";
-            match getenv(var) {
-                Ok(dir) => {
-                    let mut ret = PathBuf::from(dir);
-                    ret.push(name);
-                    return Ok(ret);
-                }
-                Err(err @ VarError::NotUnicode(_)) => return Err((err, var)),
-                Err(VarError::NotPresent) => (),
-            }
-            let var = "HOME";
-            match getenv(var) {
-                Ok(dir) => {
-                    let mut ret = PathBuf::from(dir);
-                    ret.push(".config");
-                    ret.push(name);
-                    Ok(ret)
-                }
-                Err(err) => Err((err, var)),
-            }
-        }
-
-        #[inline]
-        pub fn data_dir(
-            getenv: &impl Fn(&'static str) -> Result<String, VarError>,
-            name: impl AsRef<Path>,
-        ) -> Result<PathBuf, (VarError, &'static str)> {
-            let var = "XDG_DATA_DIR";
-            match getenv(var) {
-                Ok(dir) => {
-                    let mut ret = PathBuf::from(dir);
-                    ret.push(name);
-                    return Ok(ret);
-                }
-                Err(err @ VarError::NotUnicode(_)) => return Err((err, var)),
-                Err(VarError::NotPresent) => (),
-            }
-            let var = "HOME";
-            match getenv(var) {
-                Ok(dir) => {
-                    let mut ret = PathBuf::from(dir);
-                    ret.push(".local");
-                    ret.push("share");
-                    ret.push(name);
-                    Ok(ret)
-                }
-                Err(err) => Err((err, var)),
-            }
-        }
-
-        #[cfg(test)]
-        mod tests {
-            use std::{env::VarError, path::PathBuf};
-
-            #[test]
-            fn config_dir_returns_ok() {
-                let home = "/home/test";
-                let getenv = |s| {
-                    if s == "HOME" {
-                        Ok(home.into())
-                    } else {
-                        Err(VarError::NotPresent)
-                    }
-                };
-                let expected: PathBuf = [home, ".config", "test"].into_iter().collect();
-                let actual = super::config_dir(&getenv, "test").expect("should return path");
-                assert_eq!(expected, actual)
-            }
-
-            #[test]
-            fn config_dir_returns_ok_custom_xdg() {
-                let xdg_config_dir = "/tmp/config";
-                let getenv = |s| {
-                    if s == "XDG_CONFIG_DIR" {
-                        Ok(xdg_config_dir.into())
-                    } else {
-                        Err(VarError::NotPresent)
-                    }
-                };
-                let expected: PathBuf = [xdg_config_dir, "test"].into_iter().collect();
-                let actual = super::config_dir(&getenv, "test").expect("should return path");
-                assert_eq!(expected, actual);
-            }
-
-            #[test]
-            fn config_dir_returns_err() {
-                let getenv = |_| Err(VarError::NotPresent);
-                let expected = Err((VarError::NotPresent, "HOME"));
-                let actual = super::config_dir(&getenv, "test");
-                assert_eq!(expected, actual);
-            }
-
-            #[test]
-            fn data_dir_returns_ok() {
-                let home = "/home/test";
-                let getenv = |s| {
-                    if s == "HOME" {
-                        Ok(home.into())
-                    } else {
-                        Err(VarError::NotPresent)
-                    }
-                };
-                let expected: PathBuf = [home, ".local", "share", "test"].into_iter().collect();
-                let actual = super::data_dir(&getenv, "test").expect("should return path");
-                assert_eq!(expected, actual)
-            }
-
-            #[test]
-            fn data_dir_returns_ok_custom_xdg() {
-                let xdg_data_dir = "/tmp/data";
-                let getenv = |s| {
-                    if s == "XDG_DATA_DIR" {
-                        Ok(xdg_data_dir.into())
-                    } else {
-                        Err(VarError::NotPresent)
-                    }
-                };
-                let expected: PathBuf = [xdg_data_dir, "test"].into_iter().collect();
-                let actual = super::data_dir(&getenv, "test").expect("should return path");
-                assert_eq!(expected, actual);
-            }
-
-            #[test]
-            fn data_dir_returns_err() {
-                let getenv = |_| Err(VarError::NotPresent);
-                let expected = Err((VarError::NotPresent, "HOME"));
-                let actual = super::data_dir(&getenv, "test");
-                assert_eq!(expected, actual);
-            }
-        }
     }
 }
 

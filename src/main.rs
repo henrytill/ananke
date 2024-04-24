@@ -3,7 +3,7 @@ use std::process::ExitCode;
 use anyhow::Result;
 use clap::{Arg, ArgGroup, Command};
 
-use ananke::{command, version};
+use ananke::{cli, version};
 
 fn command() -> Command {
     let version = version::version_info().to_string();
@@ -142,13 +142,13 @@ fn main() -> Result<ExitCode> {
             let description = sub_matches.get_one::<String>("description").cloned().unwrap();
             let identity = sub_matches.get_one::<String>("identity").cloned();
             let metadata = sub_matches.get_one::<String>("metadata").cloned();
-            command::add(description, identity, metadata)
+            cli::add(description, identity, metadata)
         }
         Some(("lookup", sub_matches)) => {
             let description = sub_matches.get_one::<String>("description").cloned().unwrap();
             let identity = sub_matches.get_one::<String>("identity").cloned();
             let verbose = sub_matches.get_one::<bool>("verbose").copied().unwrap_or_default();
-            command::lookup(description, identity, verbose)
+            cli::lookup(description, identity, verbose)
         }
         Some(("modify", sub_matches)) => {
             let description = sub_matches.get_one::<String>("description").cloned();
@@ -156,20 +156,20 @@ fn main() -> Result<ExitCode> {
             let plaintext = sub_matches.get_one::<bool>("plaintext").copied().unwrap_or_default();
             let identity = sub_matches.get_one::<String>("identity").cloned();
             let metadata = sub_matches.get_one::<String>("metadata").cloned();
-            command::modify(description, entry_id, plaintext, None, identity, metadata)
+            cli::modify(description, entry_id, plaintext, None, identity, metadata)
         }
         Some(("remove", sub_matches)) => {
             let description = sub_matches.get_one::<String>("description").cloned();
             let entry_id = sub_matches.get_one::<String>("entry-id").cloned();
-            command::remove(description, entry_id)
+            cli::remove(description, entry_id)
         }
         Some(("import", sub_matches)) => {
             let file = sub_matches.get_one::<String>("file").cloned().unwrap();
-            command::import(file)
+            cli::import(file)
         }
         Some(("export", sub_matches)) => {
             let file = sub_matches.get_one::<String>("file").cloned().unwrap();
-            command::export(file)
+            cli::export(file)
         }
         Some((&_, _)) => panic!(),
         None => panic!(),

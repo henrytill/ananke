@@ -1,5 +1,5 @@
 mod application;
-pub mod command;
+pub mod cli;
 mod config;
 mod data;
 mod gpg;

@@ -4,7 +4,7 @@ use std::{
     process::ExitCode,
 };
 
-use anyhow::Result;
+use anyhow::Error;
 use zeroize::Zeroize;
 
 use crate::{
@@ -19,7 +19,7 @@ use crate::{
 
 const PROMPT_PLAINTEXT: &str = "Enter plaintext: ";
 
-fn configure() -> Result<Config> {
+fn configure() -> Result<Config, Error> {
     ConfigBuilder::new()
         .with_dirs(&std::env::var)?
         .with_config(None)?
@@ -58,7 +58,7 @@ fn format_brief(entry: &Entry, plaintext: &Plaintext) -> String {
     format!("{} {} {}", description, identity, plaintext)
 }
 
-fn format_verbose(entry: &Entry, plaintext: &Plaintext) -> Result<String> {
+fn format_verbose(entry: &Entry, plaintext: &Plaintext) -> Result<String, Error> {
     let mut elements = vec![
         entry.timestamp.isoformat()?,
         entry.entry_id.to_string(),
@@ -81,7 +81,7 @@ fn format_verbose(entry: &Entry, plaintext: &Plaintext) -> Result<String> {
     Ok(ret)
 }
 
-fn format_results(results: &[(Entry, Plaintext)], verbose: bool) -> Result<String> {
+fn format_results(results: &[(Entry, Plaintext)], verbose: bool) -> Result<String, Error> {
     if results.len() == 1 {
         let (entry, plaintext) = &results[0];
         if verbose {
@@ -111,7 +111,7 @@ pub fn add(
     description: String,
     maybe_identity: Option<String>,
     maybe_metadata: Option<String>,
-) -> Result<ExitCode> {
+) -> Result<ExitCode, Error> {
     let plaintext = enter_plaintext()?;
 
     let description = Description::from(description);
@@ -136,7 +136,7 @@ pub fn lookup(
     description: String,
     maybe_identity: Option<String>,
     verbose: bool,
-) -> Result<ExitCode> {
+) -> Result<ExitCode, Error> {
     let description = Description::from(description);
     let maybe_identity = maybe_identity.map(Identity::from);
 
@@ -167,7 +167,7 @@ pub fn modify(
     maybe_description: Option<String>,
     maybe_identity: Option<String>,
     maybe_metadata: Option<String>,
-) -> Result<ExitCode> {
+) -> Result<ExitCode, Error> {
     let maybe_plaintext = if ask_plaintext {
         let plaintext = enter_plaintext()?;
         Some(plaintext)
@@ -200,7 +200,10 @@ pub fn modify(
     Ok(ExitCode::SUCCESS)
 }
 
-pub fn remove(target_description: Option<String>, target_id: Option<String>) -> Result<ExitCode> {
+pub fn remove(
+    target_description: Option<String>,
+    target_id: Option<String>,
+) -> Result<ExitCode, Error> {
     let target = match (target_description, target_id) {
         (Some(d), None) => Target::Description(Description::from(d)),
         (None, Some(i)) => Target::EntryId(EntryId::from(i)),
@@ -222,7 +225,7 @@ pub fn remove(target_description: Option<String>, target_id: Option<String>) -> 
     Ok(ExitCode::SUCCESS)
 }
 
-pub fn import(path: String) -> Result<ExitCode> {
+pub fn import(path: String) -> Result<ExitCode, Error> {
     let path = PathBuf::from(path);
     let config = configure()?;
     match config.backend() {
@@ -238,7 +241,7 @@ pub fn import(path: String) -> Result<ExitCode> {
     Ok(ExitCode::SUCCESS)
 }
 
-pub fn export(path: String) -> Result<ExitCode> {
+pub fn export(path: String) -> Result<ExitCode, Error> {
     let path = PathBuf::from(path);
     let config = configure()?;
     match config.backend() {

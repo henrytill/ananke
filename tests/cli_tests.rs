@@ -1,11 +1,10 @@
 use std::ffi::OsString;
+use std::io;
 use std::path::{Path, PathBuf};
-use std::{fs, io};
 
 use snapbox::cmd::cargo_bin;
 use snapbox::cmd::Command;
 use snapbox::file;
-use snapbox::path::PathFixture;
 
 const BIN: &'static str = env!("CARGO_PKG_NAME");
 
@@ -127,127 +126,153 @@ fn remove_non_existent() {
         .code(1);
 }
 
-#[test]
-fn import() {
-    let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-    let dir = path_fixture.path().expect("should get path");
-    copy_config(dir).expect("should copy");
-    let data_file: OsString = JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
-    let data_file_str: &str = data_file.to_str().expect("should have path");
-    Command::new(cargo_bin(BIN))
-        .args(["import", data_file_str])
-        .envs(vars(dir, dir))
-        .assert()
-        .success();
-    {
-        let schema_path = schema_path(dir);
-        assert!(schema_path.exists());
-        let schema_version = fs::read_to_string(schema_path).expect("should get schema version");
-        assert_eq!(schema_version, CURRENT_SCHEMA_VERSION.to_string());
-    }
+macro_rules! make_tests {
+    ($name:ident, $vars:ident) => {
+        mod $name {
+            use std::{ffi::OsString, fs, path::PathBuf};
+
+            use snapbox::{
+                cmd::{cargo_bin, Command},
+                file,
+                path::PathFixture,
+            };
+
+            use super::{copy_config, schema_path, $vars, BIN, CURRENT_SCHEMA_VERSION, JSON_PATH};
+
+            #[test]
+            fn import() {
+                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
+                let dir = path_fixture.path().expect("should get path");
+                copy_config(dir).expect("should copy");
+                let data_file: OsString =
+                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file_str: &str = data_file.to_str().expect("should have path");
+                Command::new(cargo_bin(BIN))
+                    .args(["import", data_file_str])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .success();
+                {
+                    let schema_path = schema_path(dir);
+                    assert!(schema_path.exists());
+                    let schema_version =
+                        fs::read_to_string(schema_path).expect("should get schema version");
+                    assert_eq!(schema_version, CURRENT_SCHEMA_VERSION.to_string());
+                }
+            }
+
+            #[test]
+            fn import_lookup() {
+                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
+                let dir = path_fixture.path().expect("should get path");
+                copy_config(dir).expect("should copy");
+                let data_file: OsString =
+                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file_str: &str = data_file.to_str().expect("should have path");
+                let schema_path = schema_path(dir);
+                Command::new(cargo_bin(BIN))
+                    .args(["import", data_file_str])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .success();
+                {
+                    let schema_path = schema_path.clone();
+                    assert!(schema_path.exists());
+                    let schema_version =
+                        fs::read_to_string(schema_path).expect("should get schema version");
+                    assert_eq!(schema_version, CURRENT_SCHEMA_VERSION.to_string());
+                }
+                Command::new(cargo_bin(BIN))
+                    .args(["lookup", "foomail"])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .stdout_eq(file!("cli_tests/import_lookup.stdout"))
+                    .success();
+                {
+                    let schema_path = schema_path.clone();
+                    assert!(schema_path.exists());
+                    let schema_version =
+                        fs::read_to_string(schema_path).expect("should get schema version");
+                    assert_eq!(schema_version, CURRENT_SCHEMA_VERSION.to_string());
+                }
+            }
+
+            #[test]
+            fn import_lookup_many() {
+                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
+                let dir = path_fixture.path().expect("should get path");
+                copy_config(dir).expect("should copy");
+                let data_file: OsString =
+                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file_str: &str = data_file.to_str().expect("should have path");
+                Command::new(cargo_bin(BIN))
+                    .args(["import", data_file_str])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .success();
+                Command::new(cargo_bin(BIN))
+                    .args(["lookup", "www"])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .stdout_eq(file!("cli_tests/import_lookup_many.stdout"))
+                    .success();
+            }
+
+            #[test]
+            fn import_add() {
+                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
+                let dir = path_fixture.path().expect("should get path");
+                copy_config(dir).expect("should copy");
+                let data_file: OsString =
+                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file_str: &str = data_file.to_str().expect("should have path");
+                Command::new(cargo_bin(BIN))
+                    .args(["import", data_file_str])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .success();
+                Command::new(cargo_bin(BIN))
+                    .args(["add", "-i", "quux", "https://www.quuxlib.com/"])
+                    .envs($vars(dir, dir))
+                    .stdin("pass137pass")
+                    .assert()
+                    .success();
+                Command::new(cargo_bin(BIN))
+                    .args(["lookup", "https://www.quuxlib.com/"])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .stdout_eq(file!("cli_tests/import_add.stdout"))
+                    .success();
+            }
+
+            #[test]
+            fn import_modify() {
+                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
+                let dir = path_fixture.path().expect("should get path");
+                copy_config(dir).expect("should copy");
+                let data_file: OsString =
+                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file_str: &str = data_file.to_str().expect("should have path");
+                Command::new(cargo_bin(BIN))
+                    .args(["import", data_file_str])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .success();
+                Command::new(cargo_bin(BIN))
+                    .args(["modify", "-p", "-d", "https://www.barphone.com"])
+                    .envs($vars(dir, dir))
+                    .stdin("MyNewPassword")
+                    .assert()
+                    .success();
+                Command::new(cargo_bin(BIN))
+                    .args(["lookup", "barphone"])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .stdout_eq(file!("cli_tests/import_modify.stdout"))
+                    .success();
+            }
+        }
+    };
 }
 
-#[test]
-fn import_lookup() {
-    let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-    let dir = path_fixture.path().expect("should get path");
-    copy_config(dir).expect("should copy");
-    let data_file: OsString = JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
-    let data_file_str: &str = data_file.to_str().expect("should have path");
-    let schema_path = schema_path(dir);
-    Command::new(cargo_bin(BIN))
-        .args(["import", data_file_str])
-        .envs(vars(dir, dir))
-        .assert()
-        .success();
-    {
-        let schema_path = schema_path.clone();
-        assert!(schema_path.exists());
-        let schema_version = fs::read_to_string(schema_path).expect("should get schema version");
-        assert_eq!(schema_version, CURRENT_SCHEMA_VERSION.to_string());
-    }
-    Command::new(cargo_bin(BIN))
-        .args(["lookup", "foomail"])
-        .envs(vars(dir, dir))
-        .assert()
-        .stdout_eq(file!("cli_tests/import_lookup.stdout"))
-        .success();
-    {
-        let schema_path = schema_path.clone();
-        assert!(schema_path.exists());
-        let schema_version = fs::read_to_string(schema_path).expect("should get schema version");
-        assert_eq!(schema_version, CURRENT_SCHEMA_VERSION.to_string());
-    }
-}
-
-#[test]
-fn import_lookup_many() {
-    let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-    let dir = path_fixture.path().expect("should get path");
-    copy_config(dir).expect("should copy");
-    let data_file: OsString = JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
-    let data_file_str: &str = data_file.to_str().expect("should have path");
-    Command::new(cargo_bin(BIN))
-        .args(["import", data_file_str])
-        .envs(vars(dir, dir))
-        .assert()
-        .success();
-    Command::new(cargo_bin(BIN))
-        .args(["lookup", "www"])
-        .envs(vars(dir, dir))
-        .assert()
-        .stdout_eq(file!("cli_tests/import_lookup_many.stdout"))
-        .success();
-}
-
-#[test]
-fn import_add() {
-    let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-    let dir = path_fixture.path().expect("should get path");
-    copy_config(dir).expect("should copy");
-    let data_file: OsString = JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
-    let data_file_str: &str = data_file.to_str().expect("should have path");
-    Command::new(cargo_bin(BIN))
-        .args(["import", data_file_str])
-        .envs(vars(dir, dir))
-        .assert()
-        .success();
-    Command::new(cargo_bin(BIN))
-        .args(["add", "-i", "quux", "https://www.quuxlib.com/"])
-        .envs(vars(dir, dir))
-        .stdin("pass137pass")
-        .assert()
-        .success();
-    Command::new(cargo_bin(BIN))
-        .args(["lookup", "https://www.quuxlib.com/"])
-        .envs(vars(dir, dir))
-        .assert()
-        .stdout_eq(file!("cli_tests/import_add.stdout"))
-        .success();
-}
-
-#[test]
-fn import_modify() {
-    let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-    let dir = path_fixture.path().expect("should get path");
-    copy_config(dir).expect("should copy");
-    let data_file: OsString = JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
-    let data_file_str: &str = data_file.to_str().expect("should have path");
-    Command::new(cargo_bin(BIN))
-        .args(["import", data_file_str])
-        .envs(vars(dir, dir))
-        .assert()
-        .success();
-    Command::new(cargo_bin(BIN))
-        .args(["modify", "-p", "-d", "https://www.barphone.com"])
-        .envs(vars(dir, dir))
-        .stdin("MyNewPassword")
-        .assert()
-        .success();
-    Command::new(cargo_bin(BIN))
-        .args(["lookup", "barphone"])
-        .envs(vars(dir, dir))
-        .assert()
-        .stdout_eq(file!("cli_tests/import_modify.stdout"))
-        .success();
-}
+make_tests!(json, vars);

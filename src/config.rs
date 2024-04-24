@@ -66,6 +66,12 @@ impl Config {
         ret
     }
 
+    pub fn schema_file(&self) -> PathBuf {
+        let mut ret = self.db_dir().to_owned();
+        ret.push("schema");
+        ret
+    }
+
     pub fn data_file(&self) -> PathBuf {
         let mut ret = self.db_dir().to_owned();
         match self.backend {

@@ -7,7 +7,9 @@ use serde_json::ser::{PrettyFormatter, Serializer};
 use super::common::{Application, Target};
 use crate::{
     config::Config,
-    data::{Description, Entry, EntryId, Identity, Metadata, Plaintext, Timestamp},
+    data::{
+        self, Description, Entry, EntryId, Identity, Metadata, Plaintext, SchemaVersion, Timestamp,
+    },
     gpg,
 };
 
@@ -22,6 +24,10 @@ impl JsonApplication {
     const MSG_MULTIPLE_ENTRIES: &'static str = "multiple entries match this target";
 
     pub fn new(config: Config) -> Result<JsonApplication, Error> {
+        let schema_version = data::schema_version(config.schema_file())?;
+        if schema_version > SchemaVersion::CURRENT {
+            migrate(&config, schema_version)?;
+        }
         let entries = if config.data_file().exists() {
             let json = fs::read_to_string(config.data_file())?;
             serde_json::from_str(&json)?
@@ -175,4 +181,8 @@ impl Application for JsonApplication {
         self.write(path)?;
         Ok(())
     }
+}
+
+fn migrate(_config: &Config, _schema_version: SchemaVersion) -> Result<(), Error> {
+    unimplemented!()
 }

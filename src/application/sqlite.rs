@@ -5,13 +5,17 @@ use anyhow::Error;
 use super::common::{Application, Target};
 use crate::{
     config::Config,
-    data::{Description, Entry, Identity, Metadata, Plaintext},
+    data::{self, Description, Entry, Identity, Metadata, Plaintext, SchemaVersion},
 };
 
 pub struct SqliteApplication {}
 
 impl SqliteApplication {
-    pub fn new(_config: Config) -> Result<SqliteApplication, Error> {
+    pub fn new(config: Config) -> Result<SqliteApplication, Error> {
+        let schema_version = data::schema_version(config.schema_file())?;
+        if schema_version > SchemaVersion::CURRENT {
+            migrate(&config, schema_version)?;
+        }
         let ret = SqliteApplication {};
         Ok(ret)
     }
@@ -74,4 +78,8 @@ impl Application for SqliteApplication {
         println!("path: {}", path.display());
         Ok(())
     }
+}
+
+fn migrate(_config: &Config, _schema_version: SchemaVersion) -> Result<(), Error> {
+    unimplemented!()
 }

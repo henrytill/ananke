@@ -1,3 +1,5 @@
+mod schema;
+
 use std::hash::{Hash, Hasher};
 
 use data_encoding::HEXLOWER;
@@ -11,6 +13,8 @@ use time::{
     OffsetDateTime,
 };
 use zeroize::{Zeroize, ZeroizeOnDrop};
+
+pub use schema::{schema_version, SchemaVersion};
 
 /// Wraps a [`String`] in a newtype
 macro_rules! wrap_string {

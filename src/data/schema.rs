@@ -32,18 +32,18 @@ impl From<u64> for SchemaVersion {
 }
 
 pub fn schema_version(path: impl AsRef<Path>) -> Result<SchemaVersion, anyhow::Error> {
-    let schema_version = if path.as_ref().exists() {
+    if path.as_ref().exists() {
         let contents = fs::read_to_string(path)?;
-        SchemaVersion::from_str(contents.as_str())?
-    } else {
-        if let Some(parent) = path.as_ref().parent() {
-            if !parent.exists() {
-                fs::create_dir_all(parent)?;
-            }
+        let schema_version = SchemaVersion::from_str(contents.as_str())?;
+        return Ok(schema_version);
+    }
+
+    let schema_version = SchemaVersion::CURRENT;
+    if let Some(parent) = path.as_ref().parent() {
+        if !parent.exists() {
+            fs::create_dir_all(parent)?;
         }
-        let schema_version = SchemaVersion::CURRENT;
-        fs::write(path, schema_version.to_string())?;
-        schema_version
-    };
+    }
+    fs::write(path, schema_version.to_string())?;
     Ok(schema_version)
 }

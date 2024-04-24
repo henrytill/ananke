@@ -17,6 +17,8 @@ use crate::{
     data::{Description, Entry, EntryId, Identity, Metadata, Plaintext},
 };
 
+const PROMPT_PLAINTEXT: &str = "Enter plaintext: ";
+
 fn configure() -> Result<Config> {
     let mut config_builder = ConfigBuilder::new();
     config_builder =
@@ -42,6 +44,11 @@ fn prompt(display: &str) -> Result<String, io::Error> {
     stdin.lock().read_line(&mut ret)?;
     trim_newline(&mut ret);
     Ok(ret)
+}
+
+fn enter_plaintext() -> Result<Plaintext, io::Error> {
+    let plaintext = prompt(PROMPT_PLAINTEXT)?;
+    Ok(Plaintext::from(plaintext))
 }
 
 fn format_brief(entry: &Entry, plaintext: &Plaintext) -> String {
@@ -105,7 +112,7 @@ pub fn add(
     maybe_identity: Option<String>,
     maybe_metadata: Option<String>,
 ) -> Result<ExitCode> {
-    let plaintext = prompt("Enter plaintext: ").map(Plaintext::from)?;
+    let plaintext = enter_plaintext()?;
 
     let description = Description::from(description);
     let maybe_identity = maybe_identity.map(Identity::from);
@@ -162,8 +169,8 @@ pub fn modify(
     maybe_metadata: Option<String>,
 ) -> Result<ExitCode> {
     let maybe_plaintext = if ask_plaintext {
-        let plaintext = prompt("Enter plaintext: ")?;
-        Some(Plaintext::from(plaintext))
+        let plaintext = enter_plaintext()?;
+        Some(plaintext)
     } else {
         None
     };

@@ -1,6 +1,6 @@
 use std::ffi::OsString;
-use std::io;
 use std::path::{Path, PathBuf};
+use std::{fs, io};
 
 use snapbox::cmd::cargo_bin;
 use snapbox::cmd::Command;
@@ -16,6 +16,16 @@ const GNUPGHOME: [&'static str; 2] = [EXAMPLE_DIR, "gnupg"];
 const INI_PATH: [&'static str; 2] = [EXAMPLE_DIR, "ananke.ini"];
 
 const JSON_PATH: [&'static str; 3] = [EXAMPLE_DIR, "db", "data.json"];
+
+const SCHEMA_PATH: [&'static str; 2] = ["db", "schema"];
+
+const CURRENT_SCHEMA_VERSION: u64 = 3;
+
+fn schema_path(path: impl AsRef<Path>) -> PathBuf {
+    let mut path = PathBuf::from(path.as_ref());
+    path.push(SCHEMA_PATH.into_iter().collect::<PathBuf>());
+    path
+}
 
 fn vars(
     config_dir: impl Into<OsString>,
@@ -129,6 +139,12 @@ fn import() {
         .envs(vars(dir, dir))
         .assert()
         .success();
+    {
+        let schema_path = schema_path(dir);
+        assert!(schema_path.exists());
+        let schema_version = fs::read_to_string(schema_path).expect("should get schema version");
+        assert_eq!(schema_version, CURRENT_SCHEMA_VERSION.to_string());
+    }
 }
 
 #[test]
@@ -138,17 +154,30 @@ fn import_lookup() {
     copy_config(dir).expect("should copy");
     let data_file: OsString = JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
     let data_file_str: &str = data_file.to_str().expect("should have path");
+    let schema_path = schema_path(dir);
     Command::new(cargo_bin(BIN))
         .args(["import", data_file_str])
         .envs(vars(dir, dir))
         .assert()
         .success();
+    {
+        let schema_path = schema_path.clone();
+        assert!(schema_path.exists());
+        let schema_version = fs::read_to_string(schema_path).expect("should get schema version");
+        assert_eq!(schema_version, CURRENT_SCHEMA_VERSION.to_string());
+    }
     Command::new(cargo_bin(BIN))
         .args(["lookup", "foomail"])
         .envs(vars(dir, dir))
         .assert()
         .stdout_eq(file!("cli_tests/import_lookup.stdout"))
         .success();
+    {
+        let schema_path = schema_path.clone();
+        assert!(schema_path.exists());
+        let schema_version = fs::read_to_string(schema_path).expect("should get schema version");
+        assert_eq!(schema_version, CURRENT_SCHEMA_VERSION.to_string());
+    }
 }
 
 #[test]

@@ -1,7 +1,4 @@
-use std::{
-    io::{self, BufRead, Write},
-    process::ExitCode,
-};
+use std::process::ExitCode;
 
 use anyhow::Result;
 use clap::{Arg, ArgGroup, Command};
@@ -138,25 +135,6 @@ fn command() -> Command {
         .arg_required_else_help(true)
 }
 
-fn trim_newline(s: &mut String) {
-    if s.ends_with('\n') {
-        s.pop();
-        if s.ends_with('\r') {
-            s.pop();
-        }
-    }
-}
-
-fn prompt(display: &str) -> Result<String, io::Error> {
-    print!("{}", display);
-    io::stdout().flush()?;
-    let mut ret = String::new();
-    let stdin = io::stdin();
-    stdin.lock().read_line(&mut ret)?;
-    trim_newline(&mut ret);
-    Ok(ret)
-}
-
 fn main() -> Result<ExitCode> {
     let matches = command().get_matches();
     match matches.subcommand() {
@@ -164,8 +142,7 @@ fn main() -> Result<ExitCode> {
             let description = sub_matches.get_one::<String>("description").cloned().unwrap();
             let identity = sub_matches.get_one::<String>("identity").cloned();
             let metadata = sub_matches.get_one::<String>("metadata").cloned();
-            let plaintext = prompt("Enter plaintext: ")?;
-            command::add(description, plaintext, identity, metadata)
+            command::add(description, identity, metadata)
         }
         Some(("lookup", sub_matches)) => {
             let description = sub_matches.get_one::<String>("description").cloned().unwrap();
@@ -179,13 +156,7 @@ fn main() -> Result<ExitCode> {
             let plaintext = sub_matches.get_one::<bool>("plaintext").copied().unwrap_or_default();
             let identity = sub_matches.get_one::<String>("identity").cloned();
             let metadata = sub_matches.get_one::<String>("metadata").cloned();
-            let maybe_plaintext = if plaintext {
-                let plaintext = prompt("Enter plaintext: ")?;
-                Some(plaintext)
-            } else {
-                None
-            };
-            command::modify(description, entry_id, None, maybe_plaintext, identity, metadata)
+            command::modify(description, entry_id, plaintext, None, identity, metadata)
         }
         Some(("remove", sub_matches)) => {
             let description = sub_matches.get_one::<String>("description").cloned();

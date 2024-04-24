@@ -1,4 +1,11 @@
-use std::{path::PathBuf, process::ExitCode};
+use std::{
+    io::{self, BufRead, Write},
+    path::PathBuf,
+    process::ExitCode,
+};
+
+use anyhow::Result;
+use zeroize::Zeroize;
 
 use crate::{
     application::{
@@ -9,9 +16,6 @@ use crate::{
     config::{Backend, Config, ConfigBuilder},
     data::{Description, Entry, EntryId, Identity, Metadata, Plaintext},
 };
-use zeroize::Zeroize;
-
-use anyhow::Result;
 
 fn configure() -> Result<Config> {
     let mut config_builder = ConfigBuilder::new();
@@ -19,6 +23,25 @@ fn configure() -> Result<Config> {
         config_builder.with_dirs(&std::env::var)?.with_config(None)?.with_env(&std::env::var)?;
     let config = config_builder.build()?;
     Ok(config)
+}
+
+fn trim_newline(s: &mut String) {
+    if s.ends_with('\n') {
+        s.pop();
+        if s.ends_with('\r') {
+            s.pop();
+        }
+    }
+}
+
+fn prompt(display: &str) -> Result<String, io::Error> {
+    print!("{}", display);
+    io::stdout().flush()?;
+    let mut ret = String::new();
+    let stdin = io::stdin();
+    stdin.lock().read_line(&mut ret)?;
+    trim_newline(&mut ret);
+    Ok(ret)
 }
 
 fn format_brief(entry: &Entry, plaintext: &Plaintext) -> String {
@@ -79,14 +102,15 @@ fn format_results(results: &[(Entry, Plaintext)], verbose: bool) -> Result<Strin
 
 pub fn add(
     description: String,
-    plaintext: String,
     maybe_identity: Option<String>,
     maybe_metadata: Option<String>,
 ) -> Result<ExitCode> {
+    let plaintext = prompt("Enter plaintext: ").map(Plaintext::from)?;
+
     let description = Description::from(description);
-    let plaintext = Plaintext::from(plaintext);
     let maybe_identity = maybe_identity.map(Identity::from);
     let maybe_metadata = maybe_metadata.map(Metadata::from);
+
     let config = configure()?;
     match config.backend() {
         Backend::Json => {
@@ -108,6 +132,7 @@ pub fn lookup(
 ) -> Result<ExitCode> {
     let description = Description::from(description);
     let maybe_identity = maybe_identity.map(Identity::from);
+
     let config = configure()?;
     let results = match config.backend() {
         Backend::Json => {
@@ -131,21 +156,29 @@ pub fn lookup(
 pub fn modify(
     target_description: Option<String>,
     target_id: Option<String>,
+    ask_plaintext: bool,
     maybe_description: Option<String>,
-    maybe_plaintext: Option<String>,
     maybe_identity: Option<String>,
     maybe_metadata: Option<String>,
 ) -> Result<ExitCode> {
+    let maybe_plaintext = if ask_plaintext {
+        let plaintext = prompt("Enter plaintext: ")?;
+        Some(Plaintext::from(plaintext))
+    } else {
+        None
+    };
+
     let target = match (target_description, target_id) {
         (Some(d), None) => Target::Description(Description::from(d)),
         (None, Some(i)) => Target::EntryId(EntryId::from(i)),
         (Some(_), Some(_)) => panic!(),
         (None, None) => panic!(),
     };
+
     let maybe_description = maybe_description.map(Description::from);
-    let maybe_plaintext = maybe_plaintext.map(Plaintext::from);
     let maybe_identity = maybe_identity.map(Identity::from);
     let maybe_metadata = maybe_metadata.map(Metadata::from);
+
     let config = configure()?;
     match config.backend() {
         Backend::Json => {
@@ -167,6 +200,7 @@ pub fn remove(target_description: Option<String>, target_id: Option<String>) -> 
         (Some(_), Some(_)) => panic!(),
         (None, None) => panic!(),
     };
+
     let config = configure()?;
     match config.backend() {
         Backend::Json => {

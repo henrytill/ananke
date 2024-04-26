@@ -26,7 +26,7 @@ fn schema_path(path: impl AsRef<Path>) -> PathBuf {
     path
 }
 
-fn vars(
+fn json_vars(
     config_dir: impl Into<OsString>,
     data_dir: impl Into<OsString>,
 ) -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
@@ -38,9 +38,22 @@ fn vars(
     ]
 }
 
+fn sqlite_vars(
+    config_dir: impl Into<OsString>,
+    data_dir: impl Into<OsString>,
+) -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
+    let gnupg_home = GNUPGHOME.iter().collect::<PathBuf>();
+    [
+        (OsString::from("GNUPGHOME"), gnupg_home.into_os_string()),
+        (OsString::from("ANANKE_BACKEND"), OsString::from("sqlite")),
+        (OsString::from("ANANKE_CONFIG_DIR"), config_dir.into()),
+        (OsString::from("ANANKE_DATA_DIR"), data_dir.into()),
+    ]
+}
+
 fn example_vars() -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
     let dir = PathBuf::from(EXAMPLE_DIR);
-    vars(dir.clone(), dir)
+    json_vars(dir.clone(), dir)
 }
 
 fn copy_config(path: impl AsRef<Path>) -> Result<(), io::Error> {
@@ -275,4 +288,5 @@ macro_rules! make_tests {
     };
 }
 
-make_tests!(json, vars);
+make_tests!(json, json_vars);
+make_tests!(sqlite, sqlite_vars);

@@ -18,6 +18,7 @@
           name = "ananke";
           pname = "ananke";
           cargoLock = { lockFile = ./Cargo.lock; };
+          buildInputs = with pkgs; [ sqlite ];
           nativeCheckInputs = with pkgs; [ gnupg ];
           src = builtins.path {
             path = ./.;

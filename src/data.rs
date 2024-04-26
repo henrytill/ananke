@@ -1,8 +1,12 @@
 mod schema;
 
-use std::hash::{Hash, Hasher};
+use std::{
+    hash::{Hash, Hasher},
+    str::FromStr,
+};
 
-use data_encoding::HEXLOWER;
+use data_encoding::{DecodeError, BASE64, HEXLOWER};
+use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
 use time::{
@@ -32,6 +36,10 @@ macro_rules! wrap_string {
             pub fn as_str(&self) -> &str {
                 self.0.as_str()
             }
+
+            pub fn into_inner(self) -> String {
+                self.0
+            }
         }
 
         impl From<String> for $name {
@@ -50,6 +58,18 @@ macro_rules! wrap_string {
         impl From<&str> for $name {
             fn from(name: &str) -> Self {
                 Self(name.to_string())
+            }
+        }
+
+        impl ToSql for $name {
+            fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+                self.0.to_sql()
+            }
+        }
+
+        impl FromSql for $name {
+            fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+                String::column_result(value).map(Self)
             }
         }
     };
@@ -144,6 +164,24 @@ impl Timestamp {
     }
 }
 
+impl FromSql for Timestamp {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Timestamp> {
+        let as_string = String::column_result(value)?;
+        let parsed = OffsetDateTime::parse(&as_string, &FORMAT)
+            .map_err(|err| FromSqlError::Other(Box::new(err)))?;
+        Ok(Timestamp(parsed))
+    }
+}
+
+impl ToSql for Timestamp {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        let encoded = self
+            .isoformat()
+            .map_err(|err| rusqlite::Error::ToSqlConversionFailure(Box::new(err)))?;
+        encoded.leak().to_sql()
+    }
+}
+
 const FORMAT_CONFIG: EncodedConfig = Config::DEFAULT.set_year_is_six_digits(false).encode();
 const FORMAT: Iso8601<FORMAT_CONFIG> = Iso8601::<FORMAT_CONFIG>;
 time::serde::format_description!(iso8601, OffsetDateTime, FORMAT);
@@ -160,6 +198,36 @@ impl Ciphertext {
 impl AsRef<[u8]> for Ciphertext {
     fn as_ref(&self) -> &[u8] {
         self.0.as_ref()
+    }
+}
+
+impl FromStr for Ciphertext {
+    type Err = DecodeError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let decoded = BASE64.decode(s.as_bytes())?;
+        Ok(Ciphertext(decoded))
+    }
+}
+
+impl ToString for Ciphertext {
+    fn to_string(&self) -> String {
+        BASE64.encode(&self.0)
+    }
+}
+
+impl FromSql for Ciphertext {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Ciphertext> {
+        let bytes = value.as_bytes()?;
+        let decoded = BASE64.decode(bytes).map_err(|err| FromSqlError::Other(Box::new(err)))?;
+        Ok(Ciphertext(decoded))
+    }
+}
+
+impl ToSql for Ciphertext {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        let encoded = BASE64.encode(&self.0);
+        encoded.leak().to_sql()
     }
 }
 

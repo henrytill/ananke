@@ -1,10 +1,8 @@
 use std::{ffi::OsString, fs, path::PathBuf};
 
 use anyhow::Error;
-use serde::Serialize;
-use serde_json::ser::{PrettyFormatter, Serializer};
 
-use super::common::{Application, Target};
+use super::common::{self, Application, Target};
 use crate::{
     config::Config,
     data::{
@@ -39,18 +37,7 @@ impl JsonApplication {
 
     fn write(&self, path: PathBuf) -> Result<(), Error> {
         let entries: &[Entry] = self.entries.as_slice();
-        let mut buf = Vec::new();
-        let formatter = PrettyFormatter::with_indent(b"    ");
-        let mut ser = Serializer::with_formatter(&mut buf, formatter);
-        entries.serialize(&mut ser)?;
-        let mut ret = String::from_utf8(buf)?;
-        ret.push('\n');
-        if let Some(parent) = path.parent() {
-            if !parent.exists() {
-                fs::create_dir_all(parent)?;
-            }
-        }
-        fs::write(path, ret).map_err(Into::into)
+        common::write(path, entries)
     }
 }
 

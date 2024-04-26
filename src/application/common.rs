@@ -1,8 +1,14 @@
-use std::path::PathBuf;
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
+
+use serde::Serialize;
+use serde_json::ser::{PrettyFormatter, Serializer};
 
 use crate::data::{Description, Entry, EntryId, Identity, Metadata, Plaintext};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Target {
     EntryId(EntryId),
     Description(Description),
@@ -52,4 +58,19 @@ pub trait Application {
     fn import(&mut self, path: PathBuf) -> Result<(), Self::Error>;
 
     fn export(&self, path: PathBuf) -> Result<(), Self::Error>;
+}
+
+pub fn write(path: impl AsRef<Path>, entries: &[Entry]) -> Result<(), anyhow::Error> {
+    let mut buf = Vec::new();
+    let formatter = PrettyFormatter::with_indent(b"    ");
+    let mut ser = Serializer::with_formatter(&mut buf, formatter);
+    entries.serialize(&mut ser)?;
+    let mut ret = String::from_utf8(buf)?;
+    ret.push('\n');
+    if let Some(parent) = path.as_ref().parent() {
+        if !parent.exists() {
+            fs::create_dir_all(parent)?;
+        }
+    }
+    fs::write(path, ret).map_err(Into::into)
 }

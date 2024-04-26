@@ -118,9 +118,10 @@ impl Application for SqliteApplication {
         maybe_identity: Option<Identity>,
         maybe_metadata: Option<Metadata>,
     ) -> Result<(), Error> {
-        let (stmt, params) = make_query(target.clone(), maybe_identity.clone());
         let tx = self.connection.transaction()?;
-        {
+
+        let mut entries = {
+            let (stmt, params) = make_query(target.clone(), maybe_identity.clone());
             let mut stmt = tx.prepare(&stmt)?;
             let mut rows = stmt.query(params_from_iter(params))?;
             let mut entries = Vec::new();
@@ -137,17 +138,20 @@ impl Application for SqliteApplication {
                     metadata,
                 })
             }
+            entries
+        };
 
-            let entries_len = entries.len();
+        let entries_len = entries.len();
 
-            if entries_len == 0 {
-                return Err(Error::msg(Self::MSG_NO_ENTRIES));
-            }
+        if entries_len == 0 {
+            return Err(Error::msg(Self::MSG_NO_ENTRIES));
+        }
 
-            if entries_len > 1 {
-                return Err(Error::msg(Self::MSG_MULTIPLE_ENTRIES));
-            }
+        if entries_len > 1 {
+            return Err(Error::msg(Self::MSG_MULTIPLE_ENTRIES));
+        }
 
+        let entry = {
             let mut entry = entries.remove(0);
             if let Some(description) = maybe_description {
                 entry.description = description
@@ -163,11 +167,15 @@ impl Application for SqliteApplication {
                 entry.metadata = maybe_metadata
             }
             entry.update()?;
+            entry
+        };
 
+        {
             let (stmt, params) = make_update(target, entry)?;
             let mut stmt = tx.prepare(&stmt)?;
             stmt.execute(params_from_iter(params))?;
         }
+
         tx.commit()?;
         Ok(())
     }

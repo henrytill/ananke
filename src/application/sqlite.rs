@@ -242,10 +242,7 @@ impl Application for SqliteApplication {
     }
 }
 
-fn make_query(
-    target: Target,
-    maybe_identity: Option<Identity>,
-) -> (String, impl Iterator<Item = String>) {
+fn make_query(target: Target, maybe_identity: Option<Identity>) -> (String, Vec<String>) {
     let mut sql = String::from(
         "SELECT id, keyid, timestamp, description, identity, ciphertext, meta FROM entries WHERE ",
     );
@@ -266,7 +263,7 @@ fn make_query(
         params.push(identity.into_inner());
     }
     sql.push_str(&wheres.join(" AND "));
-    (sql, params.into_iter())
+    (sql, params)
 }
 
 fn make_update<'a>(

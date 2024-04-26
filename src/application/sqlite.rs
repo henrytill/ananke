@@ -197,8 +197,7 @@ impl Application for SqliteApplication {
     }
 
     fn import(&mut self, path: PathBuf) -> Result<(), Error> {
-        let json = fs::read_to_string(path)?;
-        let entries: Vec<Entry> = serde_json::from_str(&json)?;
+        let entries: Vec<Entry> = common::read(path)?;
         let tx = self.connection.transaction()?;
         {
             let mut stmt = tx.prepare(INSERT)?;

@@ -60,6 +60,11 @@ pub trait Application {
     fn export(&self, path: PathBuf) -> Result<(), Self::Error>;
 }
 
+pub fn read(path: impl AsRef<Path>) -> Result<Vec<Entry>, anyhow::Error> {
+    let json = fs::read_to_string(path)?;
+    serde_json::from_str(&json).map_err(Into::into)
+}
+
 pub fn write(path: impl AsRef<Path>, entries: &[Entry]) -> Result<(), anyhow::Error> {
     let mut buf = Vec::new();
     let formatter = PrettyFormatter::with_indent(b"    ");

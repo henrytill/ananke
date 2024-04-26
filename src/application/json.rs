@@ -1,4 +1,4 @@
-use std::{ffi::OsString, fs, path::PathBuf};
+use std::{ffi::OsString, path::PathBuf};
 
 use anyhow::Error;
 
@@ -27,8 +27,7 @@ impl JsonApplication {
             migrate(&config, schema_version)?;
         }
         let entries = if config.data_file().exists() {
-            let json = fs::read_to_string(config.data_file())?;
-            serde_json::from_str(&json)?
+            common::read(config.data_file())?
         } else {
             Vec::new()
         };
@@ -157,8 +156,7 @@ impl Application for JsonApplication {
     }
 
     fn import(&mut self, path: PathBuf) -> Result<(), Self::Error> {
-        let json = fs::read_to_string(path)?;
-        let entries: Vec<Entry> = serde_json::from_str(&json)?;
+        let entries: Vec<Entry> = common::read(path)?;
         self.entries.extend(entries);
         self.write(self.config.data_file())?;
         Ok(())

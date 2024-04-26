@@ -1,7 +1,7 @@
 use std::{convert::TryFrom, ffi::OsString, fs, path::PathBuf};
 
 use anyhow::Error;
-use rusqlite::{named_params, params_from_iter, Connection};
+use rusqlite::{named_params, params_from_iter, Connection, ToSql};
 
 use super::common::{self, Application, Target};
 use crate::{
@@ -171,9 +171,9 @@ impl Application for SqliteApplication {
         };
 
         {
-            let (stmt, params) = make_update(target, entry)?;
+            let (stmt, params) = make_update(&target, &entry)?;
             let mut stmt = tx.prepare(&stmt)?;
-            stmt.execute(params_from_iter(params))?;
+            stmt.execute(params.as_slice())?;
         }
 
         tx.commit()?;
@@ -269,54 +269,48 @@ fn make_query(
     (sql, params.into_iter())
 }
 
-fn make_update(
-    target: Target,
-    entry: Entry,
-) -> Result<(String, impl Iterator<Item = String>), Error> {
-    let mut params = vec![];
-    let mut wheres = vec![];
+fn make_update<'a>(
+    target: &'a Target,
+    entry: &'a Entry,
+) -> Result<(String, Vec<(&'a str, &'a dyn ToSql)>), Error> {
+    let mut wheres: Vec<&str> = vec![];
+    let mut params: Vec<(&'a str, &'a dyn ToSql)> = vec![];
+
     match target {
-        Target::EntryId(entry_id) => {
-            wheres.push("entries.id = ?1");
-            params.push(entry_id.into_inner());
+        Target::EntryId(ref entry_id) => {
+            wheres.push("entries.id = :target");
+            params.push((":target", entry_id));
         }
-        Target::Description(description) => {
-            wheres.push("entries.description = ?1");
-            params.push(description.into_inner());
+        Target::Description(ref description) => {
+            wheres.push("entries.description = :target");
+            params.push((":target", description));
         }
     }
-    let mut sets = vec![];
-    sets.push("id = ?2");
-    params.push(entry.entry_id.into_inner());
 
-    sets.push("timestamp = ?3");
-    params.push(entry.timestamp.isoformat()?);
+    let mut sets: Vec<&str> = vec![];
+    sets.push("id = :id");
+    params.push((":id", &entry.entry_id));
 
-    sets.push("keyid = ?4");
-    params.push(entry.key_id.into_inner());
+    sets.push("timestamp = :timestamp");
+    params.push((":timestamp", &entry.timestamp));
 
-    sets.push("description = ?5");
-    params.push(entry.description.into_inner());
+    sets.push("keyid = :keyid");
+    params.push((":keyid", &entry.key_id));
 
-    sets.push("ciphertext = ?6");
-    params.push(entry.ciphertext.to_string());
+    sets.push("description = :description");
+    params.push((":description", &entry.description));
 
-    if let Some(identity) = entry.identity {
-        sets.push("identity = ?7");
-        params.push(identity.into_inner());
-    } else {
-        sets.push("identity = NULL");
-    }
+    sets.push("ciphertext = :ciphertext");
+    params.push((":ciphertext", &entry.ciphertext));
 
-    if let Some(metadata) = entry.metadata {
-        sets.push("meta = ?8");
-        params.push(metadata.into_inner());
-    } else {
-        sets.push("meta = NULL");
-    }
+    sets.push("identity = :identity");
+    params.push((":identity", &entry.identity));
+
+    sets.push("meta = :meta");
+    params.push((":meta", &entry.metadata));
 
     let sql = format!("UPDATE entries SET {} WHERE {}", sets.join(", "), wheres.join(" AND "));
-    Ok((sql, params.into_iter()))
+    Ok((sql, params))
 }
 
 fn migrate(

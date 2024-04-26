@@ -265,10 +265,12 @@ fn make_query(target: Target, maybe_identity: Option<Identity>) -> (String, Vec<
     (sql, params)
 }
 
+type NamedParams<'a> = Vec<(&'a str, &'a dyn ToSql)>;
+
 fn make_update<'a>(
     target: &'a Target,
     entry: &'a Entry,
-) -> Result<(String, Vec<(&'a str, &'a dyn ToSql)>), Error> {
+) -> Result<(String, NamedParams<'a>), Error> {
     let mut wheres: Vec<&str> = vec![];
     let mut params: Vec<(&'a str, &'a dyn ToSql)> = vec![];
 

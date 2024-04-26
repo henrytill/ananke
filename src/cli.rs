@@ -162,7 +162,7 @@ pub fn lookup(
 
 pub fn modify(
     target_description: Option<String>,
-    target_id: Option<String>,
+    target_entry_id: Option<String>,
     ask_plaintext: bool,
     maybe_description: Option<String>,
     maybe_identity: Option<String>,
@@ -175,7 +175,7 @@ pub fn modify(
         None
     };
 
-    let target = match (target_description, target_id) {
+    let target = match (target_description, target_entry_id) {
         (Some(d), None) => Target::Description(Description::from(d)),
         (None, Some(i)) => Target::EntryId(EntryId::from(i)),
         (Some(_), Some(_)) => panic!(),
@@ -202,9 +202,9 @@ pub fn modify(
 
 pub fn remove(
     target_description: Option<String>,
-    target_id: Option<String>,
+    target_entry_id: Option<String>,
 ) -> Result<ExitCode, Error> {
-    let target = match (target_description, target_id) {
+    let target = match (target_description, target_entry_id) {
         (Some(d), None) => Target::Description(Description::from(d)),
         (None, Some(i)) => Target::EntryId(EntryId::from(i)),
         (Some(_), Some(_)) => panic!(),

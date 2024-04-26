@@ -221,7 +221,7 @@ impl Application for SqliteApplication {
     fn export(&self, path: PathBuf) -> Result<(), Error> {
         let stmt =
             "SELECT id, keyid, timestamp, description, identity, ciphertext, meta FROM entries";
-        let mut stmt = self.connection.prepare(&stmt)?;
+        let mut stmt = self.connection.prepare(stmt)?;
         let mut rows = stmt.query([])?;
         let mut entries = Vec::new();
         while let Some(row) = rows.next()? {

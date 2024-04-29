@@ -298,6 +298,50 @@ macro_rules! make_tests {
                     .failure()
                     .code(1);
             }
+
+            #[test]
+            fn modify_multiple() {
+                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
+                let dir = path_fixture.path().expect("should get path");
+                copy_config(dir).expect("should copy");
+                let data_file: OsString =
+                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file_str: &str = data_file.to_str().expect("should have path");
+                Command::new(cargo_bin(BIN))
+                    .args(["import", data_file_str])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .success();
+                Command::new(cargo_bin(BIN))
+                    .args(["remove", "-d", "https://www.foomail.com"])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .stderr_eq(file!("cli_tests/modify_multiple.stderr"))
+                    .failure()
+                    .code(1);
+            }
+
+            #[test]
+            fn remove_multiple() {
+                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
+                let dir = path_fixture.path().expect("should get path");
+                copy_config(dir).expect("should copy");
+                let data_file: OsString =
+                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file_str: &str = data_file.to_str().expect("should have path");
+                Command::new(cargo_bin(BIN))
+                    .args(["import", data_file_str])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .success();
+                Command::new(cargo_bin(BIN))
+                    .args(["remove", "-d", "https://www.foomail.com"])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .stderr_eq(file!("cli_tests/remove_multiple.stderr"))
+                    .failure()
+                    .code(1);
+            }
         }
     };
 }

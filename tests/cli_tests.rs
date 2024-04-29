@@ -51,11 +51,6 @@ fn sqlite_vars(
     ]
 }
 
-fn example_vars() -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
-    let dir = PathBuf::from(EXAMPLE_DIR);
-    json_vars(dir.clone(), dir)
-}
-
 fn copy_config(path: impl AsRef<Path>) -> Result<(), io::Error> {
     let source = INI_PATH.into_iter().collect::<PathBuf>();
     let dest: PathBuf = {
@@ -69,74 +64,12 @@ fn copy_config(path: impl AsRef<Path>) -> Result<(), io::Error> {
 
 #[test]
 fn usage() {
+    let vars: [(OsString, OsString); 0] = [];
     Command::new(cargo_bin(BIN))
-        .envs(example_vars())
+        .envs(vars)
         .assert()
         .stderr_matches(file!("cli_tests/usage.stderr"))
         .failure();
-}
-
-#[test]
-fn lookup_foo() {
-    Command::new(cargo_bin(BIN))
-        .args(["lookup", "foo"])
-        .envs(example_vars())
-        .assert()
-        .stdout_eq(file!("cli_tests/lookup_foo.stdout"))
-        .success();
-}
-
-#[test]
-fn lookup_www() {
-    Command::new(cargo_bin(BIN))
-        .args(["lookup", "www"])
-        .envs(example_vars())
-        .assert()
-        .stdout_eq(file!("cli_tests/lookup_www.stdout"))
-        .success();
-}
-
-#[test]
-fn lookup_www_verbose() {
-    Command::new(cargo_bin(BIN))
-        .args(["lookup", "www", "-v"])
-        .envs(example_vars())
-        .assert()
-        .stdout_eq(file!("cli_tests/lookup_www_verbose.stdout"))
-        .success();
-}
-
-#[test]
-fn lookup_non_existent() {
-    Command::new(cargo_bin(BIN))
-        .args(["lookup", "paul"])
-        .envs(example_vars())
-        .assert()
-        .stderr_eq(String::new())
-        .failure()
-        .code(1);
-}
-
-#[test]
-fn modify_non_existent() {
-    Command::new(cargo_bin(BIN))
-        .args(["modify", "-d", "paul"])
-        .envs(example_vars())
-        .assert()
-        .stderr_eq(file!("cli_tests/modify_non_existent.stderr"))
-        .failure()
-        .code(1);
-}
-
-#[test]
-fn remove_non_existent() {
-    Command::new(cargo_bin(BIN))
-        .args(["remove", "-d", "paul"])
-        .envs(example_vars())
-        .assert()
-        .stderr_eq(file!("cli_tests/remove_non_existent.stderr"))
-        .failure()
-        .code(1);
 }
 
 macro_rules! make_tests {
@@ -232,7 +165,7 @@ macro_rules! make_tests {
             }
 
             #[test]
-            fn import_add() {
+            fn import_lookup_many_verbose() {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
@@ -245,17 +178,33 @@ macro_rules! make_tests {
                     .assert()
                     .success();
                 Command::new(cargo_bin(BIN))
-                    .args(["add", "-i", "quux", "https://www.quuxlib.com/"])
+                    .args(["lookup", "www", "-v"])
                     .envs($vars(dir, dir))
-                    .stdin("pass137pass")
+                    .assert()
+                    .stdout_eq(file!("cli_tests/import_lookup_many_verbose.stdout"))
+                    .success();
+            }
+
+            #[test]
+            fn import_lookup_non_existent() {
+                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
+                let dir = path_fixture.path().expect("should get path");
+                copy_config(dir).expect("should copy");
+                let data_file: OsString =
+                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file_str: &str = data_file.to_str().expect("should have path");
+                Command::new(cargo_bin(BIN))
+                    .args(["import", data_file_str])
+                    .envs($vars(dir, dir))
                     .assert()
                     .success();
                 Command::new(cargo_bin(BIN))
-                    .args(["lookup", "https://www.quuxlib.com/"])
+                    .args(["lookup", "paul"])
                     .envs($vars(dir, dir))
                     .assert()
-                    .stdout_eq(file!("cli_tests/import_add.stdout"))
-                    .success();
+                    .stderr_eq(String::new())
+                    .failure()
+                    .code(1);
             }
 
             #[test]
@@ -283,6 +232,50 @@ macro_rules! make_tests {
                     .assert()
                     .stdout_eq(file!("cli_tests/import_modify.stdout"))
                     .success();
+            }
+
+            #[test]
+            fn import_modify_non_existent() {
+                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
+                let dir = path_fixture.path().expect("should get path");
+                copy_config(dir).expect("should copy");
+                let data_file: OsString =
+                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file_str: &str = data_file.to_str().expect("should have path");
+                Command::new(cargo_bin(BIN))
+                    .args(["import", data_file_str])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .success();
+                Command::new(cargo_bin(BIN))
+                    .args(["modify", "-d", "paul"])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .stderr_eq(file!("cli_tests/import_modify_non_existent.stderr"))
+                    .failure()
+                    .code(1);
+            }
+
+            #[test]
+            fn import_remove_non_existent() {
+                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
+                let dir = path_fixture.path().expect("should get path");
+                copy_config(dir).expect("should copy");
+                let data_file: OsString =
+                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file_str: &str = data_file.to_str().expect("should have path");
+                Command::new(cargo_bin(BIN))
+                    .args(["import", data_file_str])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .success();
+                Command::new(cargo_bin(BIN))
+                    .args(["remove", "-d", "paul"])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .stderr_eq(file!("cli_tests/import_remove_non_existent.stderr"))
+                    .failure()
+                    .code(1);
             }
         }
     };

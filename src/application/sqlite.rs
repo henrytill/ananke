@@ -181,18 +181,45 @@ impl Application for SqliteApplication {
     }
 
     fn remove(&mut self, target: Target) -> Result<(), Error> {
-        match target {
-            Target::EntryId(entry_id) => {
-                let sql = "DELETE FROM entries WHERE id = :id";
-                let mut stmt = self.connection.prepare(sql)?;
-                stmt.execute(named_params! { ":id": entry_id, })?;
+        let tx = self.connection.transaction()?;
+        {
+            let count: u64 = match target {
+                Target::EntryId(ref entry_id) => {
+                    let sql = "SELECT count(*) FROM entries WHERE id = :id";
+                    let mut stmt = tx.prepare(sql)?;
+                    let params = named_params! { ":id": entry_id, };
+                    stmt.query_row(params, |row| row.get(0))?
+                }
+                Target::Description(ref description) => {
+                    let sql = "SELECT count(*) FROM entries WHERE description = :description";
+                    let mut stmt = tx.prepare(sql)?;
+                    let params = named_params! { ":description": description, };
+                    stmt.query_row(params, |row| row.get(0))?
+                }
+            };
+
+            if count == 0 {
+                return Err(Error::msg(Self::MSG_NO_ENTRIES));
             }
-            Target::Description(description) => {
-                let sql = "DELETE FROM entries WHERE description = :description";
-                let mut stmt = self.connection.prepare(sql)?;
-                stmt.execute(named_params! { ":description": description, })?;
+
+            if count > 1 {
+                return Err(Error::msg(Self::MSG_MULTIPLE_ENTRIES));
+            }
+
+            match target {
+                Target::EntryId(ref entry_id) => {
+                    let sql = "DELETE FROM entries WHERE id = :id";
+                    let mut stmt = tx.prepare(sql)?;
+                    stmt.execute(named_params! { ":id": entry_id, })?;
+                }
+                Target::Description(ref description) => {
+                    let sql = "DELETE FROM entries WHERE description = :description";
+                    let mut stmt = tx.prepare(sql)?;
+                    stmt.execute(named_params! { ":description": description, })?;
+                }
             }
         }
+        tx.commit()?;
         Ok(())
     }
 

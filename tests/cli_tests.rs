@@ -108,7 +108,7 @@ macro_rules! make_tests {
             }
 
             #[test]
-            fn import_lookup() {
+            fn lookup() {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
@@ -132,7 +132,7 @@ macro_rules! make_tests {
                     .args(["lookup", "foomail"])
                     .envs($vars(dir, dir))
                     .assert()
-                    .stdout_eq(file!("cli_tests/import_lookup.stdout"))
+                    .stdout_eq(file!("cli_tests/lookup.stdout"))
                     .success();
                 {
                     let schema_path = schema_path.clone();
@@ -144,7 +144,7 @@ macro_rules! make_tests {
             }
 
             #[test]
-            fn import_lookup_single() {
+            fn lookup_single() {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
@@ -160,12 +160,12 @@ macro_rules! make_tests {
                     .args(["lookup", "foomail", "-i", "quux"])
                     .envs($vars(dir, dir))
                     .assert()
-                    .stdout_eq(file!("cli_tests/import_lookup_single.stdout"))
+                    .stdout_eq(file!("cli_tests/lookup_single.stdout"))
                     .success();
             }
 
             #[test]
-            fn import_lookup_many() {
+            fn lookup_many() {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
@@ -181,12 +181,12 @@ macro_rules! make_tests {
                     .args(["lookup", "www"])
                     .envs($vars(dir, dir))
                     .assert()
-                    .stdout_eq(file!("cli_tests/import_lookup_many.stdout"))
+                    .stdout_eq(file!("cli_tests/lookup_many.stdout"))
                     .success();
             }
 
             #[test]
-            fn import_lookup_many_verbose() {
+            fn lookup_many_verbose() {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
@@ -202,12 +202,12 @@ macro_rules! make_tests {
                     .args(["lookup", "www", "-v"])
                     .envs($vars(dir, dir))
                     .assert()
-                    .stdout_eq(file!("cli_tests/import_lookup_many_verbose.stdout"))
+                    .stdout_eq(file!("cli_tests/lookup_many_verbose.stdout"))
                     .success();
             }
 
             #[test]
-            fn import_lookup_non_existent() {
+            fn lookup_non_existent() {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
@@ -229,7 +229,7 @@ macro_rules! make_tests {
             }
 
             #[test]
-            fn import_modify() {
+            fn modify() {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
@@ -251,12 +251,12 @@ macro_rules! make_tests {
                     .args(["lookup", "barphone"])
                     .envs($vars(dir, dir))
                     .assert()
-                    .stdout_eq(file!("cli_tests/import_modify.stdout"))
+                    .stdout_eq(file!("cli_tests/modify.stdout"))
                     .success();
             }
 
             #[test]
-            fn import_modify_non_existent() {
+            fn modify_non_existent() {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
@@ -272,13 +272,13 @@ macro_rules! make_tests {
                     .args(["modify", "-d", "paul"])
                     .envs($vars(dir, dir))
                     .assert()
-                    .stderr_eq(file!("cli_tests/import_modify_non_existent.stderr"))
+                    .stderr_eq(file!("cli_tests/modify_non_existent.stderr"))
                     .failure()
                     .code(1);
             }
 
             #[test]
-            fn import_remove_non_existent() {
+            fn remove_non_existent() {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
@@ -294,7 +294,7 @@ macro_rules! make_tests {
                     .args(["remove", "-d", "paul"])
                     .envs($vars(dir, dir))
                     .assert()
-                    .stderr_eq(file!("cli_tests/import_remove_non_existent.stderr"))
+                    .stderr_eq(file!("cli_tests/remove_non_existent.stderr"))
                     .failure()
                     .code(1);
             }

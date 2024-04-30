@@ -1,10 +1,13 @@
-use std::ffi::OsString;
-use std::io;
-use std::path::{Path, PathBuf};
+use std::{
+    ffi::OsString,
+    io,
+    path::{Path, PathBuf},
+};
 
-use snapbox::cmd::cargo_bin;
-use snapbox::cmd::Command;
-use snapbox::file;
+use snapbox::{
+    cmd::{cargo_bin, Command},
+    file,
+};
 
 const BIN: &'static str = env!("CARGO_PKG_NAME");
 

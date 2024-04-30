@@ -9,17 +9,17 @@ use snapbox::{
     file,
 };
 
-const BIN: &'static str = env!("CARGO_PKG_NAME");
+const BIN: &str = env!("CARGO_PKG_NAME");
 
-const EXAMPLE_DIR: &'static str = r"example";
+const EXAMPLE_DIR: &str = r"example";
 
-const GNUPGHOME: [&'static str; 2] = [EXAMPLE_DIR, "gnupg"];
+const GNUPGHOME: [&str; 2] = [EXAMPLE_DIR, "gnupg"];
 
-const JSON_PATH: [&'static str; 3] = [EXAMPLE_DIR, "db", "data.json"];
+const JSON_PATH: [&str; 3] = [EXAMPLE_DIR, "db", "data.json"];
 
 macro_rules! data_file {
     () => {
-        $crate::JSON_PATH.into_iter().collect::<PathBuf>().into_os_string()
+        $crate::JSON_PATH.into_iter().collect::<std::path::PathBuf>().into_os_string()
     };
 }
 
@@ -50,7 +50,7 @@ fn sqlite_vars(
 }
 
 fn copy_config(path: impl AsRef<Path>) -> Result<(), io::Error> {
-    const INI_PATH: [&'static str; 2] = [EXAMPLE_DIR, "ananke.ini"];
+    const INI_PATH: [&str; 2] = [EXAMPLE_DIR, "ananke.ini"];
     let source = INI_PATH.into_iter().collect::<PathBuf>();
     let dest: PathBuf = {
         let mut ret: PathBuf = path.as_ref().into();
@@ -62,7 +62,7 @@ fn copy_config(path: impl AsRef<Path>) -> Result<(), io::Error> {
 }
 
 fn check_schema(dir: impl AsRef<Path>) {
-    const SCHEMA_PATH: [&'static str; 2] = ["db", "schema"];
+    const SCHEMA_PATH: [&str; 2] = ["db", "schema"];
     const CURRENT_SCHEMA_VERSION: u64 = 3;
     let schema_path = {
         let mut path = PathBuf::from(dir.as_ref());
@@ -87,8 +87,6 @@ fn usage() {
 macro_rules! make_tests {
     ($name:ident, $vars:ident) => {
         mod $name {
-            use std::{ffi::OsString, path::PathBuf};
-
             use snapbox::{
                 cmd::{cargo_bin, Command},
                 file,
@@ -97,13 +95,18 @@ macro_rules! make_tests {
 
             use super::{check_schema, copy_config, $vars, BIN};
 
+            const MSG_SHOULD_GET_PATH_FIXTURE: &'static str = "should get path fixture";
+            const MSG_SHOULD_GET_PATH: &'static str = "should get path";
+            const MSG_SHOULD_COPY: &'static str = "should copy";
+            const MSG_SHOULD_TO_STR: &'static str = "should convert to str";
+
             #[test]
             fn import() {
-                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-                let dir = path_fixture.path().expect("should get path");
-                copy_config(dir).expect("should copy");
-                let data_file: OsString = data_file!();
-                let data_file_str: &str = data_file.to_str().expect("should have path");
+                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
+                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                copy_config(dir).expect(MSG_SHOULD_COPY);
+                let data_file = data_file!();
+                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
                     .envs($vars(dir, dir))
@@ -114,11 +117,11 @@ macro_rules! make_tests {
 
             #[test]
             fn lookup() {
-                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-                let dir = path_fixture.path().expect("should get path");
-                copy_config(dir).expect("should copy");
-                let data_file: OsString = data_file!();
-                let data_file_str: &str = data_file.to_str().expect("should have path");
+                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
+                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                copy_config(dir).expect(MSG_SHOULD_COPY);
+                let data_file = data_file!();
+                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
                     .envs($vars(dir, dir))
@@ -136,11 +139,11 @@ macro_rules! make_tests {
 
             #[test]
             fn lookup_single() {
-                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-                let dir = path_fixture.path().expect("should get path");
-                copy_config(dir).expect("should copy");
-                let data_file: OsString = data_file!();
-                let data_file_str: &str = data_file.to_str().expect("should have path");
+                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
+                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                copy_config(dir).expect(MSG_SHOULD_COPY);
+                let data_file = data_file!();
+                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
                     .envs($vars(dir, dir))
@@ -156,11 +159,11 @@ macro_rules! make_tests {
 
             #[test]
             fn lookup_many() {
-                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-                let dir = path_fixture.path().expect("should get path");
-                copy_config(dir).expect("should copy");
-                let data_file: OsString = data_file!();
-                let data_file_str: &str = data_file.to_str().expect("should have path");
+                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
+                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                copy_config(dir).expect(MSG_SHOULD_COPY);
+                let data_file = data_file!();
+                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
                     .envs($vars(dir, dir))
@@ -176,11 +179,11 @@ macro_rules! make_tests {
 
             #[test]
             fn lookup_many_verbose() {
-                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-                let dir = path_fixture.path().expect("should get path");
-                copy_config(dir).expect("should copy");
-                let data_file: OsString = data_file!();
-                let data_file_str: &str = data_file.to_str().expect("should have path");
+                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
+                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                copy_config(dir).expect(MSG_SHOULD_COPY);
+                let data_file = data_file!();
+                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
                     .envs($vars(dir, dir))
@@ -196,11 +199,11 @@ macro_rules! make_tests {
 
             #[test]
             fn lookup_non_existent() {
-                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-                let dir = path_fixture.path().expect("should get path");
-                copy_config(dir).expect("should copy");
-                let data_file: OsString = data_file!();
-                let data_file_str: &str = data_file.to_str().expect("should have path");
+                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
+                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                copy_config(dir).expect(MSG_SHOULD_COPY);
+                let data_file = data_file!();
+                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
                     .envs($vars(dir, dir))
@@ -217,11 +220,11 @@ macro_rules! make_tests {
 
             #[test]
             fn modify() {
-                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-                let dir = path_fixture.path().expect("should get path");
-                copy_config(dir).expect("should copy");
-                let data_file: OsString = data_file!();
-                let data_file_str: &str = data_file.to_str().expect("should have path");
+                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
+                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                copy_config(dir).expect(MSG_SHOULD_COPY);
+                let data_file = data_file!();
+                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
                     .envs($vars(dir, dir))
@@ -243,11 +246,11 @@ macro_rules! make_tests {
 
             #[test]
             fn modify_from_entry_id() {
-                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-                let dir = path_fixture.path().expect("should get path");
-                copy_config(dir).expect("should copy");
-                let data_file: OsString = data_file!();
-                let data_file_str: &str = data_file.to_str().expect("should have path");
+                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
+                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                copy_config(dir).expect(MSG_SHOULD_COPY);
+                let data_file = data_file!();
+                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
                     .envs($vars(dir, dir))
@@ -269,11 +272,11 @@ macro_rules! make_tests {
 
             #[test]
             fn modify_non_existent() {
-                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-                let dir = path_fixture.path().expect("should get path");
-                copy_config(dir).expect("should copy");
-                let data_file: OsString = data_file!();
-                let data_file_str: &str = data_file.to_str().expect("should have path");
+                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
+                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                copy_config(dir).expect(MSG_SHOULD_COPY);
+                let data_file = data_file!();
+                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
                     .envs($vars(dir, dir))
@@ -290,11 +293,11 @@ macro_rules! make_tests {
 
             #[test]
             fn modify_multiple() {
-                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-                let dir = path_fixture.path().expect("should get path");
-                copy_config(dir).expect("should copy");
-                let data_file: OsString = data_file!();
-                let data_file_str: &str = data_file.to_str().expect("should have path");
+                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
+                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                copy_config(dir).expect(MSG_SHOULD_COPY);
+                let data_file = data_file!();
+                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
                     .envs($vars(dir, dir))
@@ -311,11 +314,11 @@ macro_rules! make_tests {
 
             #[test]
             fn remove() {
-                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-                let dir = path_fixture.path().expect("should get path");
-                copy_config(dir).expect("should copy");
-                let data_file: OsString = data_file!();
-                let data_file_str: &str = data_file.to_str().expect("should have path");
+                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
+                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                copy_config(dir).expect(MSG_SHOULD_COPY);
+                let data_file = data_file!();
+                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
                     .envs($vars(dir, dir))
@@ -337,11 +340,11 @@ macro_rules! make_tests {
 
             #[test]
             fn remove_from_entry_id() {
-                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-                let dir = path_fixture.path().expect("should get path");
-                copy_config(dir).expect("should copy");
-                let data_file: OsString = data_file!();
-                let data_file_str: &str = data_file.to_str().expect("should have path");
+                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
+                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                copy_config(dir).expect(MSG_SHOULD_COPY);
+                let data_file = data_file!();
+                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
                     .envs($vars(dir, dir))
@@ -363,11 +366,11 @@ macro_rules! make_tests {
 
             #[test]
             fn remove_non_existent() {
-                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-                let dir = path_fixture.path().expect("should get path");
-                copy_config(dir).expect("should copy");
-                let data_file: OsString = data_file!();
-                let data_file_str: &str = data_file.to_str().expect("should have path");
+                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
+                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                copy_config(dir).expect(MSG_SHOULD_COPY);
+                let data_file = data_file!();
+                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
                     .envs($vars(dir, dir))
@@ -384,11 +387,11 @@ macro_rules! make_tests {
 
             #[test]
             fn remove_multiple() {
-                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
-                let dir = path_fixture.path().expect("should get path");
-                copy_config(dir).expect("should copy");
-                let data_file: OsString = data_file!();
-                let data_file_str: &str = data_file.to_str().expect("should have path");
+                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
+                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                copy_config(dir).expect(MSG_SHOULD_COPY);
+                let data_file = data_file!();
+                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
                     .envs($vars(dir, dir))

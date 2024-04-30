@@ -1,6 +1,6 @@
 use std::{
     ffi::OsString,
-    io,
+    fs, io,
     path::{Path, PathBuf},
 };
 
@@ -27,12 +27,6 @@ macro_rules! data_file {
     () => {
         JSON_PATH.into_iter().collect::<PathBuf>().into_os_string()
     };
-}
-
-fn schema_path(path: impl AsRef<Path>) -> PathBuf {
-    let mut path = PathBuf::from(path.as_ref());
-    path.push(SCHEMA_PATH.into_iter().collect::<PathBuf>());
-    path
 }
 
 fn json_vars(
@@ -68,8 +62,19 @@ fn copy_config(path: impl AsRef<Path>) -> Result<(), io::Error> {
         ret.push("ananke.ini");
         ret
     };
-    std::fs::copy(source, dest)?;
+    fs::copy(source, dest)?;
     Ok(())
+}
+
+fn check_schema(dir: impl AsRef<Path>) {
+    let schema_path = {
+        let mut path = PathBuf::from(dir.as_ref());
+        path.push(SCHEMA_PATH.into_iter().collect::<PathBuf>());
+        path
+    };
+    assert!(schema_path.exists());
+    let schema_version = fs::read_to_string(schema_path).expect("should get schema version");
+    assert_eq!(schema_version, CURRENT_SCHEMA_VERSION.to_string());
 }
 
 #[test]
@@ -85,7 +90,7 @@ fn usage() {
 macro_rules! make_tests {
     ($name:ident, $vars:ident) => {
         mod $name {
-            use std::{ffi::OsString, fs, path::PathBuf};
+            use std::{ffi::OsString, path::PathBuf};
 
             use snapbox::{
                 cmd::{cargo_bin, Command},
@@ -93,7 +98,7 @@ macro_rules! make_tests {
                 path::PathFixture,
             };
 
-            use super::{copy_config, schema_path, $vars, BIN, CURRENT_SCHEMA_VERSION, JSON_PATH};
+            use super::{check_schema, copy_config, $vars, BIN, JSON_PATH};
 
             #[test]
             fn import() {
@@ -107,13 +112,7 @@ macro_rules! make_tests {
                     .envs($vars(dir, dir))
                     .assert()
                     .success();
-                {
-                    let schema_path = schema_path(dir);
-                    assert!(schema_path.exists());
-                    let schema_version =
-                        fs::read_to_string(schema_path).expect("should get schema version");
-                    assert_eq!(schema_version, CURRENT_SCHEMA_VERSION.to_string());
-                }
+                check_schema(dir);
             }
 
             #[test]
@@ -123,32 +122,19 @@ macro_rules! make_tests {
                 copy_config(dir).expect("should copy");
                 let data_file: OsString = data_file!();
                 let data_file_str: &str = data_file.to_str().expect("should have path");
-                let schema_path = schema_path(dir);
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
                     .envs($vars(dir, dir))
                     .assert()
                     .success();
-                {
-                    let schema_path = schema_path.clone();
-                    assert!(schema_path.exists());
-                    let schema_version =
-                        fs::read_to_string(schema_path).expect("should get schema version");
-                    assert_eq!(schema_version, CURRENT_SCHEMA_VERSION.to_string());
-                }
+                check_schema(dir);
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "foomail"])
                     .envs($vars(dir, dir))
                     .assert()
                     .stdout_eq(file!("cli_tests/lookup.stdout"))
                     .success();
-                {
-                    let schema_path = schema_path.clone();
-                    assert!(schema_path.exists());
-                    let schema_version =
-                        fs::read_to_string(schema_path).expect("should get schema version");
-                    assert_eq!(schema_version, CURRENT_SCHEMA_VERSION.to_string());
-                }
+                check_schema(dir);
             }
 
             #[test]

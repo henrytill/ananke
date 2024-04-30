@@ -20,6 +20,12 @@ const SCHEMA_PATH: [&'static str; 2] = ["db", "schema"];
 
 const CURRENT_SCHEMA_VERSION: u64 = 3;
 
+macro_rules! data_file {
+    () => {
+        JSON_PATH.into_iter().collect::<PathBuf>().into_os_string()
+    };
+}
+
 fn schema_path(path: impl AsRef<Path>) -> PathBuf {
     let mut path = PathBuf::from(path.as_ref());
     path.push(SCHEMA_PATH.into_iter().collect::<PathBuf>());
@@ -91,8 +97,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
-                let data_file: OsString =
-                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file: OsString = data_file!();
                 let data_file_str: &str = data_file.to_str().expect("should have path");
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
@@ -113,8 +118,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
-                let data_file: OsString =
-                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file: OsString = data_file!();
                 let data_file_str: &str = data_file.to_str().expect("should have path");
                 let schema_path = schema_path(dir);
                 Command::new(cargo_bin(BIN))
@@ -149,8 +153,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
-                let data_file: OsString =
-                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file: OsString = data_file!();
                 let data_file_str: &str = data_file.to_str().expect("should have path");
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
@@ -170,8 +173,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
-                let data_file: OsString =
-                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file: OsString = data_file!();
                 let data_file_str: &str = data_file.to_str().expect("should have path");
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
@@ -191,8 +193,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
-                let data_file: OsString =
-                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file: OsString = data_file!();
                 let data_file_str: &str = data_file.to_str().expect("should have path");
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
@@ -212,8 +213,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
-                let data_file: OsString =
-                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file: OsString = data_file!();
                 let data_file_str: &str = data_file.to_str().expect("should have path");
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
@@ -234,8 +234,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
-                let data_file: OsString =
-                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file: OsString = data_file!();
                 let data_file_str: &str = data_file.to_str().expect("should have path");
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
@@ -261,8 +260,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
-                let data_file: OsString =
-                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file: OsString = data_file!();
                 let data_file_str: &str = data_file.to_str().expect("should have path");
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
@@ -288,8 +286,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
-                let data_file: OsString =
-                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file: OsString = data_file!();
                 let data_file_str: &str = data_file.to_str().expect("should have path");
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
@@ -310,8 +307,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
-                let data_file: OsString =
-                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file: OsString = data_file!();
                 let data_file_str: &str = data_file.to_str().expect("should have path");
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
@@ -332,8 +328,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
-                let data_file: OsString =
-                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file: OsString = data_file!();
                 let data_file_str: &str = data_file.to_str().expect("should have path");
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
@@ -359,8 +354,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
-                let data_file: OsString =
-                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file: OsString = data_file!();
                 let data_file_str: &str = data_file.to_str().expect("should have path");
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
@@ -386,8 +380,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
-                let data_file: OsString =
-                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file: OsString = data_file!();
                 let data_file_str: &str = data_file.to_str().expect("should have path");
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])
@@ -408,8 +401,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");
                 copy_config(dir).expect("should copy");
-                let data_file: OsString =
-                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file: OsString = data_file!();
                 let data_file_str: &str = data_file.to_str().expect("should have path");
                 Command::new(cargo_bin(BIN))
                     .args(["import", data_file_str])

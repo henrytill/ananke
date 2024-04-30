@@ -49,8 +49,9 @@ impl SqliteApplication {
         }
         let mut connection = rusqlite::Connection::open(config.data_file())?;
         let schema_version = data::schema_version(config.schema_file())?;
-        if schema_version > SchemaVersion::CURRENT {
+        if schema_version != SchemaVersion::CURRENT {
             migrate(&mut connection, &config, schema_version)?;
+            fs::write(config.schema_file(), SchemaVersion::CURRENT.to_string())?;
         }
         connection.execute_batch(CREATE_TABLE)?;
         let ret = SqliteApplication { config, connection };
@@ -339,9 +340,33 @@ fn make_update<'a>(
 }
 
 fn migrate(
-    _connection: &mut Connection,
-    _config: &Config,
-    _schema_version: SchemaVersion,
+    connection: &mut Connection,
+    config: &Config,
+    schema_version: SchemaVersion,
 ) -> Result<(), Error> {
-    unimplemented!()
+    if schema_version == SchemaVersion::new(2) {
+        Ok(())
+    } else if schema_version == SchemaVersion::new(1) {
+        let tx = connection.transaction()?;
+        {
+            tx.execute_batch("ALTER TABLE entries RENAME TO entries_v1")?;
+            tx.execute_batch(CREATE_TABLE)?;
+            let sql = "\
+INSERT INTO entries
+(id, keyid, timestamp, description, identity, ciphertext, meta)
+SELECT id, ?1, timestamp, description, identity, ciphertext, meta
+FROM entries_v1
+";
+            let mut stmt = tx.prepare(sql)?;
+            stmt.execute([config.key_id()])?;
+            tx.execute_batch("DROP TABLE entries_v1")?;
+        }
+        tx.commit()?;
+        migrate(connection, config, SchemaVersion::new(2))
+    } else {
+        Err(Error::msg(format!(
+            "no supported migration path for schema version {}",
+            schema_version.to_string()
+        )))
+    }
 }

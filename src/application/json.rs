@@ -1,6 +1,13 @@
-use std::{ffi::OsString, path::PathBuf};
+use std::{
+    collections::HashMap,
+    ffi::OsString,
+    fs,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Error;
+use serde::Serialize;
+use serde_json::{ser::PrettyFormatter, Map, Serializer, Value};
 
 use super::base::{self, Application, Target};
 use crate::{
@@ -23,8 +30,9 @@ impl JsonApplication {
 
     pub fn new(config: Config) -> Result<JsonApplication, Error> {
         let schema_version = data::schema_version(config.schema_file())?;
-        if schema_version > SchemaVersion::CURRENT {
+        if schema_version != SchemaVersion::CURRENT {
             migrate(&config, schema_version)?;
+            fs::write(config.schema_file(), SchemaVersion::CURRENT.to_string())?;
         }
         let entries =
             if config.data_file().exists() { base::read(config.data_file())? } else { Vec::new() };
@@ -165,6 +173,58 @@ impl Application for JsonApplication {
     }
 }
 
-fn migrate(_config: &Config, _schema_version: SchemaVersion) -> Result<(), Error> {
-    unimplemented!()
+fn write_value(path: impl AsRef<Path>, value: Value) -> Result<(), anyhow::Error> {
+    let mut buf = Vec::new();
+    let formatter = PrettyFormatter::with_indent(b"    ");
+    let mut ser = Serializer::with_formatter(&mut buf, formatter);
+    value.serialize(&mut ser)?;
+    let mut ret = String::from_utf8(buf)?;
+    ret.push('\n');
+    if let Some(parent) = path.as_ref().parent() {
+        if !parent.exists() {
+            fs::create_dir_all(parent)?;
+        }
+    }
+    fs::write(path, ret).map_err(Into::into)
+}
+
+fn migrate(config: &Config, schema_version: SchemaVersion) -> Result<(), Error> {
+    if schema_version == SchemaVersion::new(2) {
+        let mappings: HashMap<String, String> = HashMap::from_iter(
+            [
+                ("Timestamp", "timestamp"),
+                ("Id", "id"),
+                ("KeyId", "keyId"),
+                ("Description", "description"),
+                ("Identity", "identity"),
+                ("Ciphertext", "ciphertext"),
+                ("Meta", "meta"),
+            ]
+            .into_iter()
+            .map(|(k, v)| (String::from(k), String::from(v))),
+        );
+        let json = fs::read_to_string(config.data_file())?;
+        let mut value: Value = serde_json::from_str(&json)?;
+        let arr = value.as_array_mut().ok_or_else(|| Error::msg("value is not an array"))?;
+        for value in arr {
+            let obj = value.as_object_mut().ok_or_else(|| Error::msg("value is not an object"))?;
+            let mut target = Map::new();
+            for (k, v) in obj.into_iter() {
+                if let Some(mapped) = mappings.get(k) {
+                    target.insert(mapped.to_owned(), v.to_owned());
+                } else {
+                    target.insert(k.to_owned(), v.to_owned());
+                }
+            }
+            *value = target.into();
+        }
+        write_value(config.data_file(), value).map_err(Into::into)
+    } else if schema_version == SchemaVersion::new(1) {
+        Err(Error::msg("schema version 1 not supported by JSON backend"))
+    } else {
+        Err(Error::msg(format!(
+            "no supported migration path for schema version {}",
+            schema_version.to_string()
+        )))
+    }
 }

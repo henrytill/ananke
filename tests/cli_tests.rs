@@ -45,7 +45,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
                 super::import($vars(dir));
-                base::check_schema(dir);
+                base::check_schema(dir, 3);
             }
 
             #[test]
@@ -53,14 +53,14 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
                 super::import($vars(dir));
-                base::check_schema(dir);
+                base::check_schema(dir, 3);
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "foomail"])
                     .envs($vars(dir))
                     .assert()
                     .stdout_eq(file!("cli_tests/lookup.stdout"))
                     .success();
-                base::check_schema(dir);
+                base::check_schema(dir, 3);
             }
 
             #[test]

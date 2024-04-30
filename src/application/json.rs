@@ -2,7 +2,7 @@ use std::{ffi::OsString, path::PathBuf};
 
 use anyhow::Error;
 
-use super::common::{self, Application, Target};
+use super::base::{self, Application, Target};
 use crate::{
     config::Config,
     data::{
@@ -26,17 +26,14 @@ impl JsonApplication {
         if schema_version > SchemaVersion::CURRENT {
             migrate(&config, schema_version)?;
         }
-        let entries = if config.data_file().exists() {
-            common::read(config.data_file())?
-        } else {
-            Vec::new()
-        };
+        let entries =
+            if config.data_file().exists() { base::read(config.data_file())? } else { Vec::new() };
         Ok(JsonApplication { config, entries })
     }
 
     fn write(&self, path: PathBuf) -> Result<(), Error> {
         let entries: &[Entry] = self.entries.as_slice();
-        common::write(path, entries)
+        base::write(path, entries)
     }
 }
 
@@ -156,7 +153,7 @@ impl Application for JsonApplication {
     }
 
     fn import(&mut self, path: PathBuf) -> Result<(), Self::Error> {
-        let entries: Vec<Entry> = common::read(path)?;
+        let entries: Vec<Entry> = base::read(path)?;
         self.entries.extend(entries);
         self.write(self.config.data_file())?;
         Ok(())

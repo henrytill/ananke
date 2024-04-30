@@ -3,7 +3,7 @@ use std::{convert::TryFrom, ffi::OsString, fs, path::PathBuf};
 use anyhow::Error;
 use rusqlite::{named_params, params_from_iter, Connection, ToSql};
 
-use super::common::{self, Application, Target};
+use super::base::{self, Application, Target};
 use crate::{
     config::{Backend, Config},
     data::{
@@ -224,7 +224,7 @@ impl Application for SqliteApplication {
     }
 
     fn import(&mut self, path: PathBuf) -> Result<(), Error> {
-        let entries: Vec<Entry> = common::read(path)?;
+        let entries: Vec<Entry> = base::read(path)?;
         let tx = self.connection.transaction()?;
         {
             let mut stmt = tx.prepare(INSERT)?;
@@ -263,7 +263,7 @@ impl Application for SqliteApplication {
                 metadata,
             })
         }
-        common::write(path, &entries)?;
+        base::write(path, &entries)?;
         Ok(())
     }
 }

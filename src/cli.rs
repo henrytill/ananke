@@ -9,7 +9,7 @@ use zeroize::Zeroize;
 
 use crate::{
     application::{
-        common::{Application, Target},
+        base::{Application, Target},
         json::JsonApplication,
         sqlite::SqliteApplication,
     },

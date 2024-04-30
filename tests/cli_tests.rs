@@ -1,6 +1,6 @@
 use std::{
     ffi::{OsStr, OsString},
-    fs, io,
+    fs,
     path::{Path, PathBuf},
 };
 
@@ -41,7 +41,7 @@ fn sqlite_vars(
     ]
 }
 
-fn copy_config(path: impl AsRef<Path>) -> Result<(), io::Error> {
+fn copy_config(path: impl AsRef<Path>) {
     const INI_PATH: [&str; 2] = [EXAMPLE_DIR, "ananke.ini"];
     let source = INI_PATH.into_iter().collect::<PathBuf>();
     let dest: PathBuf = {
@@ -49,8 +49,7 @@ fn copy_config(path: impl AsRef<Path>) -> Result<(), io::Error> {
         ret.push("ananke.ini");
         ret
     };
-    fs::copy(source, dest)?;
-    Ok(())
+    fs::copy(source, dest).expect("should copy");
 }
 
 fn import(vars: impl IntoIterator<Item = (impl AsRef<OsStr>, impl AsRef<OsStr>)>) {
@@ -96,13 +95,12 @@ macro_rules! make_tests {
 
             const MSG_SHOULD_GET_PATH_FIXTURE: &'static str = "should get path fixture";
             const MSG_SHOULD_GET_PATH: &'static str = "should get path";
-            const MSG_SHOULD_COPY: &'static str = "should copy";
 
             #[test]
             fn import() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                super::copy_config(dir).expect(MSG_SHOULD_COPY);
+                super::copy_config(dir);
                 super::import($vars(dir, dir));
                 super::check_schema(dir);
             }
@@ -111,7 +109,7 @@ macro_rules! make_tests {
             fn lookup() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                super::copy_config(dir).expect(MSG_SHOULD_COPY);
+                super::copy_config(dir);
                 super::import($vars(dir, dir));
                 super::check_schema(dir);
                 Command::new(cargo_bin(BIN))
@@ -127,7 +125,7 @@ macro_rules! make_tests {
             fn lookup_single() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                super::copy_config(dir).expect(MSG_SHOULD_COPY);
+                super::copy_config(dir);
                 super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "foomail", "-i", "quux"])
@@ -141,7 +139,7 @@ macro_rules! make_tests {
             fn lookup_many() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                super::copy_config(dir).expect(MSG_SHOULD_COPY);
+                super::copy_config(dir);
                 super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "www"])
@@ -155,7 +153,7 @@ macro_rules! make_tests {
             fn lookup_many_verbose() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                super::copy_config(dir).expect(MSG_SHOULD_COPY);
+                super::copy_config(dir);
                 super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "www", "-v"])
@@ -169,7 +167,7 @@ macro_rules! make_tests {
             fn lookup_non_existent() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                super::copy_config(dir).expect(MSG_SHOULD_COPY);
+                super::copy_config(dir);
                 super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "paul"])
@@ -184,7 +182,7 @@ macro_rules! make_tests {
             fn modify() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                super::copy_config(dir).expect(MSG_SHOULD_COPY);
+                super::copy_config(dir);
                 super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["modify", "-p", "-d", "https://www.barphone.com"])
@@ -204,7 +202,7 @@ macro_rules! make_tests {
             fn modify_from_entry_id() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                super::copy_config(dir).expect(MSG_SHOULD_COPY);
+                super::copy_config(dir);
                 super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["modify", "-p", "-e", "39d8363eda9253a779c7719997b1a2656af19af7"])
@@ -224,7 +222,7 @@ macro_rules! make_tests {
             fn modify_non_existent() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                super::copy_config(dir).expect(MSG_SHOULD_COPY);
+                super::copy_config(dir);
                 super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["modify", "-d", "paul"])
@@ -239,7 +237,7 @@ macro_rules! make_tests {
             fn modify_multiple() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                super::copy_config(dir).expect(MSG_SHOULD_COPY);
+                super::copy_config(dir);
                 super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-d", "https://www.foomail.com"])
@@ -254,7 +252,7 @@ macro_rules! make_tests {
             fn remove() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                super::copy_config(dir).expect(MSG_SHOULD_COPY);
+                super::copy_config(dir);
                 super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-d", "https://www.barphone.com"])
@@ -274,7 +272,7 @@ macro_rules! make_tests {
             fn remove_from_entry_id() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                super::copy_config(dir).expect(MSG_SHOULD_COPY);
+                super::copy_config(dir);
                 super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-e", "39d8363eda9253a779c7719997b1a2656af19af7"])
@@ -294,7 +292,7 @@ macro_rules! make_tests {
             fn remove_non_existent() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                super::copy_config(dir).expect(MSG_SHOULD_COPY);
+                super::copy_config(dir);
                 super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-d", "paul"])
@@ -309,7 +307,7 @@ macro_rules! make_tests {
             fn remove_multiple() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                super::copy_config(dir).expect(MSG_SHOULD_COPY);
+                super::copy_config(dir);
                 super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-d", "https://www.foomail.com"])

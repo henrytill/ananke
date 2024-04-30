@@ -248,7 +248,7 @@ macro_rules! make_tests {
                     .assert()
                     .success();
                 Command::new(cargo_bin(BIN))
-                    .args(["lookup", "barphone"])
+                    .args(["lookup", "https://www.barphone.com"])
                     .envs($vars(dir, dir))
                     .assert()
                     .stdout_eq(file!("cli_tests/modify.stdout"))
@@ -275,7 +275,7 @@ macro_rules! make_tests {
                     .assert()
                     .success();
                 Command::new(cargo_bin(BIN))
-                    .args(["lookup", "barphone"])
+                    .args(["lookup", "https://www.barphone.com"])
                     .envs($vars(dir, dir))
                     .assert()
                     .stdout_eq(file!("cli_tests/modify.stdout"))

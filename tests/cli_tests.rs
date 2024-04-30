@@ -15,17 +15,11 @@ const EXAMPLE_DIR: &'static str = r"example";
 
 const GNUPGHOME: [&'static str; 2] = [EXAMPLE_DIR, "gnupg"];
 
-const INI_PATH: [&'static str; 2] = [EXAMPLE_DIR, "ananke.ini"];
-
 const JSON_PATH: [&'static str; 3] = [EXAMPLE_DIR, "db", "data.json"];
-
-const SCHEMA_PATH: [&'static str; 2] = ["db", "schema"];
-
-const CURRENT_SCHEMA_VERSION: u64 = 3;
 
 macro_rules! data_file {
     () => {
-        JSON_PATH.into_iter().collect::<PathBuf>().into_os_string()
+        $crate::JSON_PATH.into_iter().collect::<PathBuf>().into_os_string()
     };
 }
 
@@ -56,6 +50,7 @@ fn sqlite_vars(
 }
 
 fn copy_config(path: impl AsRef<Path>) -> Result<(), io::Error> {
+    const INI_PATH: [&'static str; 2] = [EXAMPLE_DIR, "ananke.ini"];
     let source = INI_PATH.into_iter().collect::<PathBuf>();
     let dest: PathBuf = {
         let mut ret: PathBuf = path.as_ref().into();
@@ -67,6 +62,8 @@ fn copy_config(path: impl AsRef<Path>) -> Result<(), io::Error> {
 }
 
 fn check_schema(dir: impl AsRef<Path>) {
+    const SCHEMA_PATH: [&'static str; 2] = ["db", "schema"];
+    const CURRENT_SCHEMA_VERSION: u64 = 3;
     let schema_path = {
         let mut path = PathBuf::from(dir.as_ref());
         path.push(SCHEMA_PATH.into_iter().collect::<PathBuf>());
@@ -98,7 +95,7 @@ macro_rules! make_tests {
                 path::PathFixture,
             };
 
-            use super::{check_schema, copy_config, $vars, BIN, JSON_PATH};
+            use super::{check_schema, copy_config, $vars, BIN};
 
             #[test]
             fn import() {

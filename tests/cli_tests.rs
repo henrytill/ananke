@@ -33,6 +33,7 @@ fn json_vars(
     let gnupg_home = GNUPGHOME.iter().collect::<PathBuf>();
     [
         (OsString::from("GNUPGHOME"), gnupg_home.into_os_string()),
+        (OsString::from("ANANKE_BACKEND"), OsString::from("json")),
         (OsString::from("ANANKE_CONFIG_DIR"), config_dir.into()),
         (OsString::from("ANANKE_DATA_DIR"), data_dir.into()),
     ]

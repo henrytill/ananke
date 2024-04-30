@@ -1,5 +1,5 @@
 use std::{
-    ffi::OsString,
+    ffi::{OsStr, OsString},
     fs, io,
     path::{Path, PathBuf},
 };
@@ -14,14 +14,6 @@ const BIN: &str = env!("CARGO_PKG_NAME");
 const EXAMPLE_DIR: &str = r"example";
 
 const GNUPGHOME: [&str; 2] = [EXAMPLE_DIR, "gnupg"];
-
-const JSON_PATH: [&str; 3] = [EXAMPLE_DIR, "db", "data.json"];
-
-macro_rules! data_file {
-    () => {
-        $crate::JSON_PATH.into_iter().collect::<std::path::PathBuf>().into_os_string()
-    };
-}
 
 fn json_vars(
     config_dir: impl Into<OsString>,
@@ -61,6 +53,13 @@ fn copy_config(path: impl AsRef<Path>) -> Result<(), io::Error> {
     Ok(())
 }
 
+fn import(vars: impl IntoIterator<Item = (impl AsRef<OsStr>, impl AsRef<OsStr>)>) {
+    const JSON_PATH: [&str; 3] = [EXAMPLE_DIR, "db", "data.json"];
+    let data_file = JSON_PATH.into_iter().collect::<std::path::PathBuf>().into_os_string();
+    let data_file_str = data_file.to_str().expect("should convert to str");
+    Command::new(cargo_bin(BIN)).args(["import", data_file_str]).envs(vars).assert().success();
+}
+
 fn check_schema(dir: impl AsRef<Path>) {
     const SCHEMA_PATH: [&str; 2] = ["db", "schema"];
     const CURRENT_SCHEMA_VERSION: u64 = 3;
@@ -98,20 +97,13 @@ macro_rules! make_tests {
             const MSG_SHOULD_GET_PATH_FIXTURE: &'static str = "should get path fixture";
             const MSG_SHOULD_GET_PATH: &'static str = "should get path";
             const MSG_SHOULD_COPY: &'static str = "should copy";
-            const MSG_SHOULD_TO_STR: &'static str = "should convert to str";
 
             #[test]
             fn import() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
                 copy_config(dir).expect(MSG_SHOULD_COPY);
-                let data_file = data_file!();
-                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
-                Command::new(cargo_bin(BIN))
-                    .args(["import", data_file_str])
-                    .envs($vars(dir, dir))
-                    .assert()
-                    .success();
+                super::import($vars(dir, dir));
                 check_schema(dir);
             }
 
@@ -120,13 +112,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
                 copy_config(dir).expect(MSG_SHOULD_COPY);
-                let data_file = data_file!();
-                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
-                Command::new(cargo_bin(BIN))
-                    .args(["import", data_file_str])
-                    .envs($vars(dir, dir))
-                    .assert()
-                    .success();
+                super::import($vars(dir, dir));
                 check_schema(dir);
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "foomail"])
@@ -142,13 +128,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
                 copy_config(dir).expect(MSG_SHOULD_COPY);
-                let data_file = data_file!();
-                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
-                Command::new(cargo_bin(BIN))
-                    .args(["import", data_file_str])
-                    .envs($vars(dir, dir))
-                    .assert()
-                    .success();
+                super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "foomail", "-i", "quux"])
                     .envs($vars(dir, dir))
@@ -162,13 +142,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
                 copy_config(dir).expect(MSG_SHOULD_COPY);
-                let data_file = data_file!();
-                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
-                Command::new(cargo_bin(BIN))
-                    .args(["import", data_file_str])
-                    .envs($vars(dir, dir))
-                    .assert()
-                    .success();
+                super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "www"])
                     .envs($vars(dir, dir))
@@ -182,13 +156,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
                 copy_config(dir).expect(MSG_SHOULD_COPY);
-                let data_file = data_file!();
-                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
-                Command::new(cargo_bin(BIN))
-                    .args(["import", data_file_str])
-                    .envs($vars(dir, dir))
-                    .assert()
-                    .success();
+                super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "www", "-v"])
                     .envs($vars(dir, dir))
@@ -202,13 +170,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
                 copy_config(dir).expect(MSG_SHOULD_COPY);
-                let data_file = data_file!();
-                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
-                Command::new(cargo_bin(BIN))
-                    .args(["import", data_file_str])
-                    .envs($vars(dir, dir))
-                    .assert()
-                    .success();
+                super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "paul"])
                     .envs($vars(dir, dir))
@@ -223,13 +185,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
                 copy_config(dir).expect(MSG_SHOULD_COPY);
-                let data_file = data_file!();
-                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
-                Command::new(cargo_bin(BIN))
-                    .args(["import", data_file_str])
-                    .envs($vars(dir, dir))
-                    .assert()
-                    .success();
+                super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["modify", "-p", "-d", "https://www.barphone.com"])
                     .envs($vars(dir, dir))
@@ -249,13 +205,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
                 copy_config(dir).expect(MSG_SHOULD_COPY);
-                let data_file = data_file!();
-                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
-                Command::new(cargo_bin(BIN))
-                    .args(["import", data_file_str])
-                    .envs($vars(dir, dir))
-                    .assert()
-                    .success();
+                super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["modify", "-p", "-e", "39d8363eda9253a779c7719997b1a2656af19af7"])
                     .envs($vars(dir, dir))
@@ -275,13 +225,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
                 copy_config(dir).expect(MSG_SHOULD_COPY);
-                let data_file = data_file!();
-                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
-                Command::new(cargo_bin(BIN))
-                    .args(["import", data_file_str])
-                    .envs($vars(dir, dir))
-                    .assert()
-                    .success();
+                super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["modify", "-d", "paul"])
                     .envs($vars(dir, dir))
@@ -296,13 +240,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
                 copy_config(dir).expect(MSG_SHOULD_COPY);
-                let data_file = data_file!();
-                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
-                Command::new(cargo_bin(BIN))
-                    .args(["import", data_file_str])
-                    .envs($vars(dir, dir))
-                    .assert()
-                    .success();
+                super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-d", "https://www.foomail.com"])
                     .envs($vars(dir, dir))
@@ -317,13 +255,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
                 copy_config(dir).expect(MSG_SHOULD_COPY);
-                let data_file = data_file!();
-                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
-                Command::new(cargo_bin(BIN))
-                    .args(["import", data_file_str])
-                    .envs($vars(dir, dir))
-                    .assert()
-                    .success();
+                super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-d", "https://www.barphone.com"])
                     .envs($vars(dir, dir))
@@ -343,13 +275,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
                 copy_config(dir).expect(MSG_SHOULD_COPY);
-                let data_file = data_file!();
-                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
-                Command::new(cargo_bin(BIN))
-                    .args(["import", data_file_str])
-                    .envs($vars(dir, dir))
-                    .assert()
-                    .success();
+                super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-e", "39d8363eda9253a779c7719997b1a2656af19af7"])
                     .envs($vars(dir, dir))
@@ -369,13 +295,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
                 copy_config(dir).expect(MSG_SHOULD_COPY);
-                let data_file = data_file!();
-                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
-                Command::new(cargo_bin(BIN))
-                    .args(["import", data_file_str])
-                    .envs($vars(dir, dir))
-                    .assert()
-                    .success();
+                super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-d", "paul"])
                     .envs($vars(dir, dir))
@@ -390,13 +310,7 @@ macro_rules! make_tests {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
                 copy_config(dir).expect(MSG_SHOULD_COPY);
-                let data_file = data_file!();
-                let data_file_str = data_file.to_str().expect(MSG_SHOULD_TO_STR);
-                Command::new(cargo_bin(BIN))
-                    .args(["import", data_file_str])
-                    .envs($vars(dir, dir))
-                    .assert()
-                    .success();
+                super::import($vars(dir, dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-d", "https://www.foomail.com"])
                     .envs($vars(dir, dir))

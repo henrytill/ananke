@@ -283,6 +283,60 @@ macro_rules! make_tests {
             }
 
             #[test]
+            fn modify_from_entry_id() {
+                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
+                let dir = path_fixture.path().expect("should get path");
+                copy_config(dir).expect("should copy");
+                let data_file: OsString =
+                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file_str: &str = data_file.to_str().expect("should have path");
+                Command::new(cargo_bin(BIN))
+                    .args(["import", data_file_str])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .success();
+                Command::new(cargo_bin(BIN))
+                    .args(["modify", "-p", "-e", "39d8363eda9253a779c7719997b1a2656af19af7"])
+                    .envs($vars(dir, dir))
+                    .stdin("MyNewPassword")
+                    .assert()
+                    .success();
+                Command::new(cargo_bin(BIN))
+                    .args(["lookup", "barphone"])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .stdout_eq(file!("cli_tests/modify.stdout"))
+                    .success();
+            }
+
+            #[test]
+            fn remove_from_entry_id() {
+                let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
+                let dir = path_fixture.path().expect("should get path");
+                copy_config(dir).expect("should copy");
+                let data_file: OsString =
+                    JSON_PATH.into_iter().collect::<PathBuf>().into_os_string();
+                let data_file_str: &str = data_file.to_str().expect("should have path");
+                Command::new(cargo_bin(BIN))
+                    .args(["import", data_file_str])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .success();
+                Command::new(cargo_bin(BIN))
+                    .args(["remove", "-e", "39d8363eda9253a779c7719997b1a2656af19af7"])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .success();
+                Command::new(cargo_bin(BIN))
+                    .args(["lookup", "https://www.barphone.com"])
+                    .envs($vars(dir, dir))
+                    .assert()
+                    .stderr_eq(String::new())
+                    .failure()
+                    .code(1);
+            }
+
+            #[test]
             fn modify_non_existent() {
                 let path_fixture = PathFixture::mutable_temp().expect("should get path fixture");
                 let dir = path_fixture.path().expect("should get path");

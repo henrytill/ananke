@@ -44,8 +44,7 @@ macro_rules! make_tests {
             fn import() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                base::copy_config(dir);
-                super::import($vars(dir, dir));
+                super::import($vars(dir));
                 base::check_schema(dir);
             }
 
@@ -53,12 +52,11 @@ macro_rules! make_tests {
             fn lookup() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                base::copy_config(dir);
-                super::import($vars(dir, dir));
+                super::import($vars(dir));
                 base::check_schema(dir);
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "foomail"])
-                    .envs($vars(dir, dir))
+                    .envs($vars(dir))
                     .assert()
                     .stdout_eq(file!("cli_tests/lookup.stdout"))
                     .success();
@@ -69,11 +67,10 @@ macro_rules! make_tests {
             fn lookup_single() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                base::copy_config(dir);
-                super::import($vars(dir, dir));
+                super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "foomail", "-i", "quux"])
-                    .envs($vars(dir, dir))
+                    .envs($vars(dir))
                     .assert()
                     .stdout_eq(file!("cli_tests/lookup_single.stdout"))
                     .success();
@@ -83,11 +80,10 @@ macro_rules! make_tests {
             fn lookup_many() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                base::copy_config(dir);
-                super::import($vars(dir, dir));
+                super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "www"])
-                    .envs($vars(dir, dir))
+                    .envs($vars(dir))
                     .assert()
                     .stdout_eq(file!("cli_tests/lookup_many.stdout"))
                     .success();
@@ -97,11 +93,10 @@ macro_rules! make_tests {
             fn lookup_many_verbose() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                base::copy_config(dir);
-                super::import($vars(dir, dir));
+                super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "www", "-v"])
-                    .envs($vars(dir, dir))
+                    .envs($vars(dir))
                     .assert()
                     .stdout_eq(file!("cli_tests/lookup_many_verbose.stdout"))
                     .success();
@@ -111,11 +106,10 @@ macro_rules! make_tests {
             fn lookup_non_existent() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                base::copy_config(dir);
-                super::import($vars(dir, dir));
+                super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "paul"])
-                    .envs($vars(dir, dir))
+                    .envs($vars(dir))
                     .assert()
                     .stderr_eq(String::new())
                     .failure()
@@ -126,17 +120,16 @@ macro_rules! make_tests {
             fn modify() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                base::copy_config(dir);
-                super::import($vars(dir, dir));
+                super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["modify", "-p", "-d", "https://www.barphone.com"])
-                    .envs($vars(dir, dir))
+                    .envs($vars(dir))
                     .stdin("MyNewPassword")
                     .assert()
                     .success();
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "https://www.barphone.com"])
-                    .envs($vars(dir, dir))
+                    .envs($vars(dir))
                     .assert()
                     .stdout_eq(file!("cli_tests/modify.stdout"))
                     .success();
@@ -146,17 +139,16 @@ macro_rules! make_tests {
             fn modify_from_entry_id() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                base::copy_config(dir);
-                super::import($vars(dir, dir));
+                super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["modify", "-p", "-e", "39d8363eda9253a779c7719997b1a2656af19af7"])
-                    .envs($vars(dir, dir))
+                    .envs($vars(dir))
                     .stdin("MyNewPassword")
                     .assert()
                     .success();
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "https://www.barphone.com"])
-                    .envs($vars(dir, dir))
+                    .envs($vars(dir))
                     .assert()
                     .stdout_eq(file!("cli_tests/modify.stdout"))
                     .success();
@@ -166,11 +158,10 @@ macro_rules! make_tests {
             fn modify_non_existent() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                base::copy_config(dir);
-                super::import($vars(dir, dir));
+                super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["modify", "-d", "paul"])
-                    .envs($vars(dir, dir))
+                    .envs($vars(dir))
                     .assert()
                     .stderr_eq(file!("cli_tests/modify_non_existent.stderr"))
                     .failure()
@@ -181,11 +172,10 @@ macro_rules! make_tests {
             fn modify_multiple() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                base::copy_config(dir);
-                super::import($vars(dir, dir));
+                super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-d", "https://www.foomail.com"])
-                    .envs($vars(dir, dir))
+                    .envs($vars(dir))
                     .assert()
                     .stderr_eq(file!("cli_tests/modify_multiple.stderr"))
                     .failure()
@@ -196,16 +186,15 @@ macro_rules! make_tests {
             fn remove() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                base::copy_config(dir);
-                super::import($vars(dir, dir));
+                super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-d", "https://www.barphone.com"])
-                    .envs($vars(dir, dir))
+                    .envs($vars(dir))
                     .assert()
                     .success();
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "https://www.barphone.com"])
-                    .envs($vars(dir, dir))
+                    .envs($vars(dir))
                     .assert()
                     .stderr_eq(String::new())
                     .failure()
@@ -216,16 +205,15 @@ macro_rules! make_tests {
             fn remove_from_entry_id() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                base::copy_config(dir);
-                super::import($vars(dir, dir));
+                super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-e", "39d8363eda9253a779c7719997b1a2656af19af7"])
-                    .envs($vars(dir, dir))
+                    .envs($vars(dir))
                     .assert()
                     .success();
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "https://www.barphone.com"])
-                    .envs($vars(dir, dir))
+                    .envs($vars(dir))
                     .assert()
                     .stderr_eq(String::new())
                     .failure()
@@ -236,11 +224,10 @@ macro_rules! make_tests {
             fn remove_non_existent() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                base::copy_config(dir);
-                super::import($vars(dir, dir));
+                super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-d", "paul"])
-                    .envs($vars(dir, dir))
+                    .envs($vars(dir))
                     .assert()
                     .stderr_eq(file!("cli_tests/remove_non_existent.stderr"))
                     .failure()
@@ -251,11 +238,10 @@ macro_rules! make_tests {
             fn remove_multiple() {
                 let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
                 let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
-                base::copy_config(dir);
-                super::import($vars(dir, dir));
+                super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-d", "https://www.foomail.com"])
-                    .envs($vars(dir, dir))
+                    .envs($vars(dir))
                     .assert()
                     .stderr_eq(file!("cli_tests/remove_multiple.stderr"))
                     .failure()

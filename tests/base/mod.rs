@@ -11,40 +11,27 @@ pub const EXAMPLE_DIR: &str = r"example";
 const GNUPGHOME: [&str; 2] = [EXAMPLE_DIR, "gnupg"];
 
 pub fn json_vars(
-    config_dir: impl Into<OsString>,
     data_dir: impl Into<OsString>,
 ) -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
     let gnupg_home = GNUPGHOME.iter().collect::<PathBuf>();
     [
         (OsString::from("GNUPGHOME"), gnupg_home.into_os_string()),
         (OsString::from("ANANKE_BACKEND"), OsString::from("json")),
-        (OsString::from("ANANKE_CONFIG_DIR"), config_dir.into()),
+        (OsString::from("ANANKE_KEY_ID"), OsString::from("371C136C")),
         (OsString::from("ANANKE_DATA_DIR"), data_dir.into()),
     ]
 }
 
 pub fn sqlite_vars(
-    config_dir: impl Into<OsString>,
     data_dir: impl Into<OsString>,
 ) -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
     let gnupg_home = GNUPGHOME.iter().collect::<PathBuf>();
     [
         (OsString::from("GNUPGHOME"), gnupg_home.into_os_string()),
         (OsString::from("ANANKE_BACKEND"), OsString::from("sqlite")),
-        (OsString::from("ANANKE_CONFIG_DIR"), config_dir.into()),
+        (OsString::from("ANANKE_KEY_ID"), OsString::from("371C136C")),
         (OsString::from("ANANKE_DATA_DIR"), data_dir.into()),
     ]
-}
-
-pub fn copy_config(path: impl AsRef<Path>) {
-    const INI_PATH: [&str; 2] = [EXAMPLE_DIR, "ananke.ini"];
-    let source = INI_PATH.into_iter().collect::<PathBuf>();
-    let dest: PathBuf = {
-        let mut ret: PathBuf = path.as_ref().into();
-        ret.push("ananke.ini");
-        ret
-    };
-    fs::copy(source, dest).expect("should copy");
 }
 
 pub fn check_schema(dir: impl AsRef<Path>) {

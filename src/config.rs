@@ -190,7 +190,11 @@ impl ConfigBuilder {
             input
         } else if let Some(mut path) = self.maybe_config_dir.to_owned() {
             path.push(Self::CONFIG_FILE);
-            fs::read_to_string(path)?
+            if path.exists() {
+                fs::read_to_string(path)?
+            } else {
+                String::new()
+            }
         } else {
             return Err(Error::msg(MSG_MISSING_CONFIG_DIR));
         };

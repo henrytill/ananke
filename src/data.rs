@@ -319,9 +319,9 @@ mod tests {
             let formatter = PrettyFormatter::with_indent(b"    ");
             let mut ser = Serializer::with_formatter(&mut buf, formatter);
             entries.serialize(&mut ser).unwrap();
-            let mut ret = String::from_utf8(buf).unwrap();
-            ret.push('\n');
-            ret
+            let mut tmp = String::from_utf8(buf).unwrap();
+            tmp.push('\n');
+            tmp
         };
         #[cfg(target_os = "windows")]
         let actual = actual.replace("\n", "\r\n");

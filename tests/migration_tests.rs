@@ -62,10 +62,10 @@ mod json {
             .success();
         base::check_schema(dir, 3);
         let data_file = {
-            let mut path = dir.to_path_buf();
-            path.push("db");
-            path.push("data.json");
-            path
+            let mut tmp = dir.to_path_buf();
+            tmp.push("db");
+            tmp.push("data.json");
+            tmp
         };
         let actual = fs::read(data_file).unwrap();
         snapbox::assert_eq(file!("migration_tests/data-schema-v3.json"), actual);

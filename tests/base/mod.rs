@@ -37,9 +37,9 @@ pub fn sqlite_vars(
 pub fn check_schema(dir: impl AsRef<Path>, version: u64) {
     const SCHEMA_PATH: [&str; 2] = ["db", "schema"];
     let schema_path = {
-        let mut path = PathBuf::from(dir.as_ref());
-        path.push(SCHEMA_PATH.into_iter().collect::<PathBuf>());
-        path
+        let mut tmp = PathBuf::from(dir.as_ref());
+        tmp.push(SCHEMA_PATH.into_iter().collect::<PathBuf>());
+        tmp
     };
     assert!(schema_path.exists());
     let schema_version = fs::read_to_string(schema_path).unwrap();

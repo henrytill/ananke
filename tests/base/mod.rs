@@ -42,6 +42,6 @@ pub fn check_schema(dir: impl AsRef<Path>, version: u64) {
         path
     };
     assert!(schema_path.exists());
-    let schema_version = fs::read_to_string(schema_path).expect("should get schema version");
+    let schema_version = fs::read_to_string(schema_path).unwrap();
     assert_eq!(schema_version, version.to_string());
 }

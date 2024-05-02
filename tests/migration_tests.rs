@@ -3,10 +3,6 @@ mod base;
 
 use std::{fs, path::Path};
 
-const MSG_SHOULD_GET_PATH_FIXTURE: &str = "should get path fixture";
-const MSG_SHOULD_GET_PATH: &str = "should get path";
-const MSG_SHOULD_READ: &str = "should read";
-
 fn create_schema_file(dir: impl AsRef<Path>, version: u64) {
     const TARGET: [&str; 2] = ["db", "schema"];
     let target_file = {
@@ -16,10 +12,10 @@ fn create_schema_file(dir: impl AsRef<Path>, version: u64) {
     };
     if let Some(parent) = target_file.parent() {
         if !parent.exists() {
-            fs::create_dir_all(parent).expect("should create dir");
+            fs::create_dir_all(parent).unwrap();
         }
     }
-    fs::write(target_file, version.to_string()).expect("should write");
+    fs::write(target_file, version.to_string()).unwrap();
 }
 
 mod json {
@@ -32,10 +28,7 @@ mod json {
         path::PathFixture,
     };
 
-    use crate::{
-        base::{self, BIN},
-        MSG_SHOULD_GET_PATH, MSG_SHOULD_GET_PATH_FIXTURE, MSG_SHOULD_READ,
-    };
+    use crate::base::{self, BIN};
 
     fn copy_data(dir: impl AsRef<Path>) {
         const SOURCE: [&str; 3] = ["tests", "migration_tests", "data-schema-v2.json"];
@@ -48,16 +41,16 @@ mod json {
         };
         if let Some(parent) = target_file.parent() {
             if !parent.exists() {
-                fs::create_dir_all(parent).expect("should create dir");
+                fs::create_dir_all(parent).unwrap();
             }
         }
-        fs::copy(data_file, target_file).expect("should copy");
+        fs::copy(data_file, target_file).unwrap();
     }
 
     #[test]
     fn migrate_v2_v3() {
-        let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
-        let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+        let path_fixture = PathFixture::mutable_temp().unwrap();
+        let dir = path_fixture.path().unwrap();
         copy_data(dir);
         super::create_schema_file(dir, 2);
         let vars = base::json_vars(dir);
@@ -74,7 +67,7 @@ mod json {
             path.push("data.json");
             path
         };
-        let actual = fs::read(data_file).expect(MSG_SHOULD_READ);
+        let actual = fs::read(data_file).unwrap();
         snapbox::assert_eq(file!("migration_tests/data-schema-v3.json"), actual);
     }
 }
@@ -89,10 +82,7 @@ mod sqlite {
         path::PathFixture,
     };
 
-    use crate::{
-        base::{self, BIN},
-        MSG_SHOULD_GET_PATH, MSG_SHOULD_GET_PATH_FIXTURE,
-    };
+    use crate::base::{self, BIN};
 
     fn copy_data(dir: impl AsRef<Path>) {
         const SOURCE: [&str; 3] = ["tests", "migration_tests", "data-schema-v1.sql"];
@@ -105,19 +95,19 @@ mod sqlite {
         };
         if let Some(parent) = target_file.parent() {
             if !parent.exists() {
-                fs::create_dir_all(parent).expect("should create dir");
+                fs::create_dir_all(parent).unwrap();
             }
         };
-        let connection = Connection::open(target_file).expect("should open");
-        let batch = fs::read_to_string(data_file).expect("should read");
-        connection.execute_batch(batch.as_str()).expect("should execute");
-        connection.close().expect("should close");
+        let connection = Connection::open(target_file).unwrap();
+        let batch = fs::read_to_string(data_file).unwrap();
+        connection.execute_batch(batch.as_str()).unwrap();
+        connection.close().unwrap();
     }
 
     #[test]
     fn migrate_v1_v3() {
-        let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
-        let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+        let path_fixture = PathFixture::mutable_temp().unwrap();
+        let dir = path_fixture.path().unwrap();
         copy_data(dir);
         super::create_schema_file(dir, 1);
         let vars = base::sqlite_vars(dir);

@@ -112,8 +112,8 @@ mod tests {
         let key_id = KeyId::from("371C136C");
         let plaintext = Plaintext::from("Hello, world!");
         let vars = vars();
-        let encrypted = super::encrypt(&key_id, &plaintext, vars.clone()).expect("should encrypt");
-        let decrypted = super::decrypt(&encrypted, vars).expect("should decrypt");
+        let encrypted = super::encrypt(&key_id, &plaintext, vars.clone()).unwrap();
+        let decrypted = super::decrypt(&encrypted, vars).unwrap();
         assert_eq!(plaintext, decrypted);
     }
 
@@ -132,8 +132,8 @@ mod tests {
         let key_id = KeyId::from("371C136C");
         let plaintext = Plaintext::from(random);
         let vars = vars();
-        let encrypted = super::encrypt(&key_id, &plaintext, vars.clone()).expect("should encrypt");
-        let decrypted = super::decrypt(&encrypted, vars).expect("should decrypt");
+        let encrypted = super::encrypt(&key_id, &plaintext, vars.clone()).unwrap();
+        let decrypted = super::decrypt(&encrypted, vars).unwrap();
         assert_eq!(plaintext, decrypted);
     }
 }

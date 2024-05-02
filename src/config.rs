@@ -295,7 +295,7 @@ allow_multiple_keys={}
             key_id.to_string(),
             mult_keys.to_string()
         );
-        let actual = ConfigBuilder::new().with_config(Some(input)).expect("should parse");
+        let actual = ConfigBuilder::new().with_config(Some(input)).unwrap();
         assert_eq!(expected, actual);
     }
 
@@ -303,7 +303,7 @@ allow_multiple_keys={}
     fn with_config_parses_empty_ini() {
         let expected = ConfigBuilder::new();
         let input = String::new();
-        let actual = ConfigBuilder::new().with_config(Some(input)).expect("should parse");
+        let actual = ConfigBuilder::new().with_config(Some(input)).unwrap();
         assert_eq!(expected, actual);
     }
 
@@ -342,7 +342,7 @@ allow_multiple_keys={}
             maybe_key_id: Some(key_id),
             mult_keys,
         };
-        let actual = ConfigBuilder::new().with_env(&getenv).expect("should parse");
+        let actual = ConfigBuilder::new().with_env(&getenv).unwrap();
         assert_eq!(expected, actual);
     }
 }

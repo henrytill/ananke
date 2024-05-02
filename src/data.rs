@@ -313,14 +313,14 @@ mod tests {
     #[test]
     fn roundtrip_example() {
         let path: PathBuf = EXAMPLE_PATH.iter().collect();
-        let expected = fs::read_to_string(path).expect("should read file");
-        let entries: Vec<Entry> = serde_json::from_str(&expected).expect("should deserialize");
+        let expected = fs::read_to_string(path).unwrap();
+        let entries: Vec<Entry> = serde_json::from_str(&expected).unwrap();
         let actual = {
             let mut buf = Vec::new();
             let formatter = PrettyFormatter::with_indent(b"    ");
             let mut ser = Serializer::with_formatter(&mut buf, formatter);
-            entries.serialize(&mut ser).expect("should serialize");
-            let mut ret = String::from_utf8(buf).expect("should convert to string");
+            entries.serialize(&mut ser).unwrap();
+            let mut ret = String::from_utf8(buf).unwrap();
             ret.push('\n');
             ret
         };
@@ -332,10 +332,10 @@ mod tests {
     #[test]
     fn check_ids() {
         let path: PathBuf = EXAMPLE_PATH.iter().collect();
-        let expected = fs::read_to_string(path).expect("should read file");
-        let entries: Vec<Entry> = serde_json::from_str(&expected).expect("should deserialize");
+        let expected = fs::read_to_string(path).unwrap();
+        let entries: Vec<Entry> = serde_json::from_str(&expected).unwrap();
         for entry in entries {
-            let fresh_id = entry.fresh_entry_id().expect("should regenerate id");
+            let fresh_id = entry.fresh_entry_id().unwrap();
             assert_eq!(entry.entry_id, fresh_id);
         }
     }

@@ -12,7 +12,7 @@ use base::{BIN, EXAMPLE_DIR};
 fn import(vars: impl IntoIterator<Item = (impl AsRef<OsStr>, impl AsRef<OsStr>)>) {
     const JSON_PATH: [&str; 3] = [EXAMPLE_DIR, "db", "data.json"];
     let data_file = JSON_PATH.into_iter().collect::<std::path::PathBuf>().into_os_string();
-    let data_file_str = data_file.to_str().expect("should convert to str");
+    let data_file_str = data_file.to_str().unwrap();
     Command::new(cargo_bin(BIN)).args(["import", data_file_str]).envs(vars).assert().success();
 }
 
@@ -37,21 +37,18 @@ macro_rules! make_tests {
 
             use crate::base::{self, BIN};
 
-            const MSG_SHOULD_GET_PATH_FIXTURE: &'static str = "should get path fixture";
-            const MSG_SHOULD_GET_PATH: &'static str = "should get path";
-
             #[test]
             fn import() {
-                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
-                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                let path_fixture = PathFixture::mutable_temp().unwrap();
+                let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
                 base::check_schema(dir, 3);
             }
 
             #[test]
             fn lookup() {
-                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
-                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                let path_fixture = PathFixture::mutable_temp().unwrap();
+                let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
                 base::check_schema(dir, 3);
                 Command::new(cargo_bin(BIN))
@@ -65,8 +62,8 @@ macro_rules! make_tests {
 
             #[test]
             fn lookup_single() {
-                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
-                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                let path_fixture = PathFixture::mutable_temp().unwrap();
+                let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "foomail", "-i", "quux"])
@@ -78,8 +75,8 @@ macro_rules! make_tests {
 
             #[test]
             fn lookup_many() {
-                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
-                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                let path_fixture = PathFixture::mutable_temp().unwrap();
+                let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "www"])
@@ -91,8 +88,8 @@ macro_rules! make_tests {
 
             #[test]
             fn lookup_many_verbose() {
-                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
-                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                let path_fixture = PathFixture::mutable_temp().unwrap();
+                let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "www", "-v"])
@@ -104,8 +101,8 @@ macro_rules! make_tests {
 
             #[test]
             fn lookup_non_existent() {
-                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
-                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                let path_fixture = PathFixture::mutable_temp().unwrap();
+                let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "paul"])
@@ -118,8 +115,8 @@ macro_rules! make_tests {
 
             #[test]
             fn modify() {
-                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
-                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                let path_fixture = PathFixture::mutable_temp().unwrap();
+                let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["modify", "-p", "-d", "https://www.barphone.com"])
@@ -137,8 +134,8 @@ macro_rules! make_tests {
 
             #[test]
             fn modify_from_entry_id() {
-                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
-                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                let path_fixture = PathFixture::mutable_temp().unwrap();
+                let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["modify", "-p", "-e", "39d8363eda9253a779c7719997b1a2656af19af7"])
@@ -156,8 +153,8 @@ macro_rules! make_tests {
 
             #[test]
             fn modify_non_existent() {
-                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
-                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                let path_fixture = PathFixture::mutable_temp().unwrap();
+                let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["modify", "-d", "paul"])
@@ -170,8 +167,8 @@ macro_rules! make_tests {
 
             #[test]
             fn modify_multiple() {
-                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
-                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                let path_fixture = PathFixture::mutable_temp().unwrap();
+                let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-d", "https://www.foomail.com"])
@@ -184,8 +181,8 @@ macro_rules! make_tests {
 
             #[test]
             fn remove() {
-                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
-                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                let path_fixture = PathFixture::mutable_temp().unwrap();
+                let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-d", "https://www.barphone.com"])
@@ -203,8 +200,8 @@ macro_rules! make_tests {
 
             #[test]
             fn remove_from_entry_id() {
-                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
-                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                let path_fixture = PathFixture::mutable_temp().unwrap();
+                let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-e", "39d8363eda9253a779c7719997b1a2656af19af7"])
@@ -222,8 +219,8 @@ macro_rules! make_tests {
 
             #[test]
             fn remove_non_existent() {
-                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
-                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                let path_fixture = PathFixture::mutable_temp().unwrap();
+                let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-d", "paul"])
@@ -236,8 +233,8 @@ macro_rules! make_tests {
 
             #[test]
             fn remove_multiple() {
-                let path_fixture = PathFixture::mutable_temp().expect(MSG_SHOULD_GET_PATH_FIXTURE);
-                let dir = path_fixture.path().expect(MSG_SHOULD_GET_PATH);
+                let path_fixture = PathFixture::mutable_temp().unwrap();
+                let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
                     .args(["remove", "-d", "https://www.foomail.com"])

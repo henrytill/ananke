@@ -1,5 +1,3 @@
-use std::fmt;
-
 pub struct CommitInfo {
     pub short_commit_hash: String,
     pub commit_hash: String,
@@ -11,8 +9,8 @@ pub struct VersionInfo {
     pub commit_info: Option<CommitInfo>,
 }
 
-impl fmt::Display for VersionInfo {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl std::fmt::Display for VersionInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.version)?;
         if let Some(ref ci) = self.commit_info {
             write!(f, " ({} {})", ci.short_commit_hash, ci.commit_date)?;

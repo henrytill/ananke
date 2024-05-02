@@ -48,9 +48,9 @@ macro_rules! wrap_string {
             }
         }
 
-        impl ToString for $name {
-            fn to_string(&self) -> String {
-                self.0.to_string()
+        impl std::fmt::Display for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                self.0.fmt(f)
             }
         }
 
@@ -104,9 +104,9 @@ impl From<String> for Plaintext {
     }
 }
 
-impl ToString for Plaintext {
-    fn to_string(&self) -> String {
-        self.0.to_string()
+impl std::fmt::Display for Plaintext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }
 
@@ -124,8 +124,7 @@ impl EntryId {
         description: &Description,
         maybe_identity: Option<&Identity>,
     ) -> Result<EntryId, time::error::Format> {
-        let mut input =
-            format!("{}{}{}", key_id.to_string(), timestamp.isoformat()?, description.to_string());
+        let mut input = format!("{}{}{}", key_id, timestamp.isoformat()?, description);
         if let Some(identity) = maybe_identity {
             input.push_str(identity.as_str())
         }
@@ -210,9 +209,9 @@ impl FromStr for Ciphertext {
     }
 }
 
-impl ToString for Ciphertext {
-    fn to_string(&self) -> String {
-        BASE64.encode(&self.0)
+impl std::fmt::Display for Ciphertext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", BASE64.encode(&self.0))
     }
 }
 

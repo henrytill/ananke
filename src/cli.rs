@@ -73,7 +73,7 @@ fn format_verbose(entry: &Entry, plaintext: &Plaintext) -> Result<String, Error>
     elements.push(plaintext.to_string());
 
     if let Some(ref metadata) = entry.metadata {
-        elements.push(format!("\"{}\"", metadata.to_string()))
+        elements.push(format!("\"{}\"", metadata))
     }
 
     let ret = elements.join(" ");

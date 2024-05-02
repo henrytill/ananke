@@ -30,13 +30,13 @@ impl FromStr for Backend {
     }
 }
 
-impl ToString for Backend {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for Backend {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
             Backend::Json => "json",
             Backend::Sqlite => "sqlite",
         };
-        String::from(str)
+        write!(f, "{}", str)
     }
 }
 
@@ -108,9 +108,9 @@ impl FromStr for Flag {
     }
 }
 
-impl ToString for Flag {
-    fn to_string(&self) -> String {
-        self.0.to_string()
+impl std::fmt::Display for Flag {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }
 
@@ -290,10 +290,7 @@ backend={}
 key_id={}
 allow_multiple_keys={}
 ",
-            data_dir,
-            backend.to_string(),
-            key_id.to_string(),
-            mult_keys.to_string()
+            data_dir, backend, key_id, mult_keys
         );
         let actual = ConfigBuilder::new().with_config(Some(input)).unwrap();
         assert_eq!(expected, actual);

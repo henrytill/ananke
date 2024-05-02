@@ -224,7 +224,7 @@ fn migrate(config: &Config, schema_version: SchemaVersion) -> Result<(), Error> 
     } else {
         Err(Error::msg(format!(
             "no supported migration path for schema version {}",
-            schema_version.to_string()
+            schema_version
         )))
     }
 }

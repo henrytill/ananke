@@ -19,9 +19,9 @@ impl FromStr for SchemaVersion {
     }
 }
 
-impl ToString for SchemaVersion {
-    fn to_string(&self) -> String {
-        self.0.to_string()
+impl std::fmt::Display for SchemaVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }
 

@@ -366,7 +366,7 @@ FROM entries_v1
     } else {
         Err(Error::msg(format!(
             "no supported migration path for schema version {}",
-            schema_version.to_string()
+            schema_version
         )))
     }
 }

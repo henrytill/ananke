@@ -2,6 +2,7 @@ use std::{
     ffi::OsStr,
     io::{self, Read, Write},
     process::{Command, Stdio},
+    thread::JoinHandle,
 };
 
 use anyhow::Error;
@@ -26,7 +27,7 @@ where
         .stderr(Stdio::null())
         .spawn()?;
 
-    let stdout_handle = {
+    let stdout_handle: JoinHandle<Result<Vec<u8>, io::Error>> = {
         let mut stdout = child.stdout.take().ok_or_else(|| Error::msg(MSG_TAKE_STDOUT))?;
         std::thread::spawn(move || {
             let mut buf = Vec::new();
@@ -45,9 +46,8 @@ where
         return Err(Error::from(io::Error::other(format!("gpg exited with status {}", status))));
     }
 
-    let stdout: Result<Vec<u8>, io::Error> =
-        stdout_handle.join().map_err(|_| Error::msg(MSG_JOIN))?;
-    let buf: Vec<u8> = stdout?;
+    let join_result = stdout_handle.join().map_err(|_| Error::msg(MSG_JOIN))?;
+    let buf = join_result?;
     Ok(Ciphertext::new(buf))
 }
 
@@ -65,7 +65,7 @@ where
         .stderr(Stdio::null())
         .spawn()?;
 
-    let stdout_handle = {
+    let stdout_handle: JoinHandle<Result<Vec<u8>, io::Error>> = {
         let mut stdout = child.stdout.take().ok_or_else(|| Error::msg(MSG_TAKE_STDOUT))?;
         std::thread::spawn(move || {
             let mut buf = Vec::new();
@@ -84,9 +84,8 @@ where
         return Err(Error::from(io::Error::other(format!("gpg exited with status {}", status))));
     }
 
-    let stdout: Result<Vec<u8>, io::Error> =
-        stdout_handle.join().map_err(|_| Error::msg(MSG_JOIN))?;
-    let buf: Vec<u8> = stdout?;
+    let join_result = stdout_handle.join().map_err(|_| Error::msg(MSG_JOIN))?;
+    let buf = join_result?;
     let txt = String::from_utf8(buf)?;
     Ok(Plaintext::new(txt))
 }

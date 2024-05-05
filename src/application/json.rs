@@ -9,8 +9,8 @@ use anyhow::Error;
 use serde::Serialize;
 use serde_json::{ser::PrettyFormatter, Map, Serializer, Value};
 
-use super::base::{self, Application, Target};
 use crate::{
+    application::base::{self, Application, Target},
     config::Config,
     data::{
         self, Description, Entry, EntryId, Identity, Metadata, Plaintext, SchemaVersion, Timestamp,

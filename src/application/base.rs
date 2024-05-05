@@ -17,9 +17,8 @@ pub enum Target {
 impl Target {
     pub fn matches(&self, entry: &Entry) -> bool {
         match self {
-            Target::EntryId(entry_id) if *entry_id == entry.entry_id => true,
-            Target::Description(d) if *d == entry.description => true,
-            _ => false,
+            Target::EntryId(entry_id) => *entry_id == entry.entry_id,
+            Target::Description(description) => *description == entry.description,
         }
     }
 }

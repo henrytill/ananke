@@ -264,8 +264,8 @@ impl ConfigBuilder {
 mod tests {
     use std::{env::VarError, path::PathBuf};
 
-    use super::{Backend, ConfigBuilder, Flag};
-    use crate::{config::MSG_MISSING_CONFIG_DIR, data::KeyId};
+    use super::{Backend, ConfigBuilder, Flag, MSG_MISSING_CONFIG_DIR};
+    use crate::data::KeyId;
 
     #[test]
     fn with_config_parses_ini() {

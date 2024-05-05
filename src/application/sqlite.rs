@@ -3,8 +3,8 @@ use std::{convert::TryFrom, ffi::OsString, fs, path::PathBuf};
 use anyhow::Error;
 use rusqlite::{named_params, params_from_iter, Connection, ToSql};
 
-use super::base::{self, Application, Target};
 use crate::{
+    application::base::{self, Application, Target},
     config::{Backend, Config},
     data::{
         self, Description, Entry, EntryId, Identity, Metadata, Plaintext, SchemaVersion, Timestamp,

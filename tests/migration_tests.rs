@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 mod base;
 
 use std::{fs, path::Path};

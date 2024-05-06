@@ -83,10 +83,8 @@ mod sqlite {
 
     use crate::base::{self, BIN};
 
-    fn copy_data(dir: impl AsRef<Path>) {
-        const SOURCE: [&str; 3] = ["tests", "migration_tests", "data-schema-v1.sql"];
+    fn copy_data(dir: impl AsRef<Path>, source: impl AsRef<Path>) {
         const TARGET: [&str; 2] = ["db", "db.sqlite"];
-        let data_file = SOURCE.into_iter().collect::<std::path::PathBuf>();
         let target_file = {
             let mut tmp = dir.as_ref().to_path_buf();
             tmp.push(TARGET.into_iter().collect::<std::path::PathBuf>());
@@ -98,17 +96,41 @@ mod sqlite {
             }
         };
         let connection = Connection::open(target_file).unwrap();
-        let batch = fs::read_to_string(data_file).unwrap();
+        let batch = fs::read_to_string(source.as_ref()).unwrap();
         connection.execute_batch(batch.as_str()).unwrap();
         connection.close().unwrap();
     }
 
     #[test]
     fn migrate_v1_v3() {
+        let data_file = {
+            const SOURCE: [&str; 3] = ["tests", "migration_tests", "data-schema-v1.sql"];
+            SOURCE.into_iter().collect::<std::path::PathBuf>()
+        };
         let path_fixture = PathFixture::mutable_temp().unwrap();
         let dir = path_fixture.path().unwrap();
-        copy_data(dir);
+        copy_data(dir, data_file);
         super::create_schema_file(dir, 1);
+        let vars = base::sqlite_vars(dir);
+        Command::new(cargo_bin(BIN))
+            .args(["lookup", "foomail"])
+            .envs(vars)
+            .assert()
+            .stdout_eq(file!("cli_tests/lookup.stdout"))
+            .success();
+        base::check_schema(dir, 3);
+    }
+
+    #[test]
+    fn migrate_v2_v3() {
+        let data_file = {
+            const SOURCE: [&str; 3] = ["tests", "migration_tests", "data-schema-v2.sql"];
+            SOURCE.into_iter().collect::<std::path::PathBuf>()
+        };
+        let path_fixture = PathFixture::mutable_temp().unwrap();
+        let dir = path_fixture.path().unwrap();
+        copy_data(dir, data_file);
+        super::create_schema_file(dir, 2);
         let vars = base::sqlite_vars(dir);
         Command::new(cargo_bin(BIN))
             .args(["lookup", "foomail"])

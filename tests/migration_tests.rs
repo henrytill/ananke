@@ -2,6 +2,8 @@ mod base;
 
 use std::{fs, path::Path};
 
+const UNKNOWN_SCHEMA_VERSION: u64 = u64::MAX;
+
 fn create_schema_file(dir: impl AsRef<Path>, version: u64) {
     const TARGET: [&str; 2] = ["db", "schema"];
     let target_file = {
@@ -27,7 +29,10 @@ mod json {
         path::PathFixture,
     };
 
-    use crate::base::{self, BIN};
+    use crate::{
+        base::{self, BIN},
+        UNKNOWN_SCHEMA_VERSION,
+    };
 
     fn copy_data(dir: impl AsRef<Path>) {
         const SOURCE: [&str; 3] = ["tests", "migration_tests", "data-schema-v2.json"];
@@ -69,6 +74,21 @@ mod json {
         let actual = fs::read(data_file).unwrap();
         snapbox::assert_eq(file!("migration_tests/data-schema-v3.json"), actual);
     }
+
+    #[test]
+    fn migrate_to_unknown_schema_version() {
+        let path_fixture = PathFixture::mutable_temp().unwrap();
+        let dir = path_fixture.path().unwrap();
+        copy_data(dir);
+        super::create_schema_file(dir, UNKNOWN_SCHEMA_VERSION);
+        let vars = base::json_vars(dir);
+        Command::new(cargo_bin(BIN))
+            .args(["lookup", "foomail"])
+            .envs(vars)
+            .assert()
+            .stderr_eq(file!("migration_tests/migrate_to_unknown_schema_version.stderr"))
+            .failure();
+    }
 }
 
 mod sqlite {
@@ -81,7 +101,10 @@ mod sqlite {
         path::PathFixture,
     };
 
-    use crate::base::{self, BIN};
+    use crate::{
+        base::{self, BIN},
+        UNKNOWN_SCHEMA_VERSION,
+    };
 
     fn copy_data(dir: impl AsRef<Path>, source: impl AsRef<Path>) {
         const TARGET: [&str; 2] = ["db", "db.sqlite"];
@@ -139,5 +162,24 @@ mod sqlite {
             .stdout_eq(file!("cli_tests/lookup.stdout"))
             .success();
         base::check_schema(dir, 3);
+    }
+
+    #[test]
+    fn migrate_to_unknown_schema_version() {
+        let data_file = {
+            const SOURCE: [&str; 3] = ["tests", "migration_tests", "data-schema-v2.sql"];
+            SOURCE.into_iter().collect::<std::path::PathBuf>()
+        };
+        let path_fixture = PathFixture::mutable_temp().unwrap();
+        let dir = path_fixture.path().unwrap();
+        copy_data(dir, data_file);
+        super::create_schema_file(dir, UNKNOWN_SCHEMA_VERSION);
+        let vars = base::sqlite_vars(dir);
+        Command::new(cargo_bin(BIN))
+            .args(["lookup", "foomail"])
+            .envs(vars)
+            .assert()
+            .stderr_eq(file!("migration_tests/migrate_to_unknown_schema_version.stderr"))
+            .failure();
     }
 }

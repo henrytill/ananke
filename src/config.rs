@@ -122,12 +122,6 @@ pub struct ConfigBuilder {
     mult_keys: Flag,
 }
 
-impl Default for ConfigBuilder {
-    fn default() -> ConfigBuilder {
-        ConfigBuilder::new()
-    }
-}
-
 impl std::fmt::Debug for ConfigBuilder {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ConfigBuilder")

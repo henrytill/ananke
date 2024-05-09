@@ -159,9 +159,9 @@ impl IniSelector {
 }
 
 impl<'a> ConfigBuilder<'a> {
-    const QUALIFIER: &'static str = "com.github";
-    const ORGANIZATION: &'static str = "henrytill";
-    const NAME: &'static str = "ananke";
+    const PROJECT_QUALIFIER: &'static str = "com.github";
+    const PROJECT_ORGANIZATION: &'static str = "henrytill";
+    const PROJECT_NAME: &'static str = "ananke";
     const CONFIG_FILE: &'static str = "ananke.ini";
     const ENV_CONFIG_DIR: &'static str = "ANANKE_CONFIG_DIR";
     const ENV_DATA_DIR: &'static str = "ANANKE_DATA_DIR";
@@ -187,8 +187,12 @@ impl<'a> ConfigBuilder<'a> {
     }
 
     pub fn with_dirs(mut self) -> Result<ConfigBuilder<'a>, Error> {
-        let project_dirs = ProjectDirs::from(Self::QUALIFIER, Self::ORGANIZATION, Self::NAME)
-            .ok_or_else(|| Error::msg(MSG_PROJECT_DIRS))?;
+        let project_dirs = ProjectDirs::from(
+            Self::PROJECT_QUALIFIER,
+            Self::PROJECT_ORGANIZATION,
+            Self::PROJECT_NAME,
+        )
+        .ok_or_else(|| Error::msg(MSG_PROJECT_DIRS))?;
 
         if let Ok(config_dir) = (self.getenv)(Self::ENV_CONFIG_DIR) {
             self.maybe_config_dir = Some(PathBuf::from(config_dir))

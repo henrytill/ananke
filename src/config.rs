@@ -114,7 +114,6 @@ impl std::fmt::Display for Flag {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
 pub struct ConfigBuilder {
     maybe_config_dir: Option<PathBuf>,
     maybe_data_dir: Option<PathBuf>,
@@ -128,6 +127,30 @@ impl Default for ConfigBuilder {
         ConfigBuilder::new()
     }
 }
+
+impl std::fmt::Debug for ConfigBuilder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ConfigBuilder")
+            .field("maybe_config_dir", &self.maybe_config_dir)
+            .field("maybe_data_dir", &self.maybe_data_dir)
+            .field("backend", &self.backend)
+            .field("maybe_key_id", &self.maybe_key_id)
+            .field("mult_keys", &self.mult_keys)
+            .finish()
+    }
+}
+
+impl PartialEq for ConfigBuilder {
+    fn eq(&self, other: &ConfigBuilder) -> bool {
+        self.maybe_config_dir == other.maybe_config_dir
+            && self.maybe_data_dir == other.maybe_data_dir
+            && self.backend == other.backend
+            && self.maybe_key_id == other.maybe_key_id
+            && self.mult_keys == other.mult_keys
+    }
+}
+
+impl Eq for ConfigBuilder {}
 
 struct IniSelector {
     section: &'static str,

@@ -186,7 +186,7 @@ impl<'a> ConfigBuilder<'a> {
         }
     }
 
-    pub fn with_dirs(mut self) -> Result<ConfigBuilder<'a>, Error> {
+    pub fn with_defaults(mut self) -> Result<ConfigBuilder<'a>, Error> {
         let project_dirs = ProjectDirs::from(
             Self::PROJECT_QUALIFIER,
             Self::PROJECT_ORGANIZATION,

@@ -20,7 +20,7 @@ use crate::{
 const PROMPT_PLAINTEXT: &str = "Enter plaintext: ";
 
 fn configure() -> Result<Config, Error> {
-    ConfigBuilder::new(std::env::var).with_dirs()?.with_ini(None)?.with_env()?.build()
+    ConfigBuilder::new(std::env::var).with_defaults()?.with_ini(None)?.with_env()?.build()
 }
 
 fn trim_newline(s: &mut String) {

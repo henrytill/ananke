@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: ["master"]
+    branches: ['master', 'develop']
   pull_request:
-    branches: ["master"]
+    branches: ['master']
   workflow_dispatch:
 
 jobs:
@@ -23,7 +23,7 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
       - run: cargo build
       - run: cargo test
-  flake:
+  linux-flake:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

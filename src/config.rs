@@ -114,7 +114,8 @@ impl std::fmt::Display for Flag {
     }
 }
 
-pub struct ConfigBuilder {
+pub struct ConfigBuilder<'a> {
+    getenv: Box<dyn Fn(&'static str) -> Result<String, env::VarError> + 'a>,
     maybe_config_dir: Option<PathBuf>,
     maybe_data_dir: Option<PathBuf>,
     backend: Backend,
@@ -122,7 +123,7 @@ pub struct ConfigBuilder {
     mult_keys: Flag,
 }
 
-impl std::fmt::Debug for ConfigBuilder {
+impl<'a> std::fmt::Debug for ConfigBuilder<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ConfigBuilder")
             .field("maybe_config_dir", &self.maybe_config_dir)
@@ -134,7 +135,7 @@ impl std::fmt::Debug for ConfigBuilder {
     }
 }
 
-impl PartialEq for ConfigBuilder {
+impl<'a> PartialEq for ConfigBuilder<'a> {
     fn eq(&self, other: &ConfigBuilder) -> bool {
         self.maybe_config_dir == other.maybe_config_dir
             && self.maybe_data_dir == other.maybe_data_dir
@@ -144,7 +145,7 @@ impl PartialEq for ConfigBuilder {
     }
 }
 
-impl Eq for ConfigBuilder {}
+impl<'a> Eq for ConfigBuilder<'a> {}
 
 struct IniSelector {
     section: &'static str,
@@ -157,7 +158,7 @@ impl IniSelector {
     }
 }
 
-impl ConfigBuilder {
+impl<'a> ConfigBuilder<'a> {
     const QUALIFIER: &'static str = "com.github";
     const ORGANIZATION: &'static str = "henrytill";
     const NAME: &'static str = "ananke";
@@ -172,8 +173,11 @@ impl ConfigBuilder {
     const INI_KEY_ID: IniSelector = IniSelector::new("gpg", "key_id");
     const INI_MULT_KEYS: IniSelector = IniSelector::new("gpg", "allow_multiple_keys");
 
-    pub fn new() -> ConfigBuilder {
+    pub fn new(
+        getenv: impl Fn(&'static str) -> Result<String, std::env::VarError> + 'a,
+    ) -> ConfigBuilder<'a> {
         ConfigBuilder {
+            getenv: Box::new(getenv),
             maybe_config_dir: None,
             maybe_data_dir: None,
             backend: Backend::default(),
@@ -182,14 +186,11 @@ impl ConfigBuilder {
         }
     }
 
-    pub fn with_dirs(
-        mut self,
-        getenv: &impl Fn(&'static str) -> Result<String, env::VarError>,
-    ) -> Result<ConfigBuilder, Error> {
+    pub fn with_dirs(mut self) -> Result<ConfigBuilder<'a>, Error> {
         let project_dirs = ProjectDirs::from(Self::QUALIFIER, Self::ORGANIZATION, Self::NAME)
             .ok_or_else(|| Error::msg(MSG_PROJECT_DIRS))?;
 
-        if let Ok(config_dir) = getenv(Self::ENV_CONFIG_DIR) {
+        if let Ok(config_dir) = (self.getenv)(Self::ENV_CONFIG_DIR) {
             self.maybe_config_dir = Some(PathBuf::from(config_dir))
         } else {
             let config_dir = project_dirs.config_dir().into();
@@ -202,7 +203,7 @@ impl ConfigBuilder {
         Ok(self)
     }
 
-    pub fn with_ini(mut self, maybe_input: Option<String>) -> Result<ConfigBuilder, Error> {
+    pub fn with_ini(mut self, maybe_input: Option<String>) -> Result<ConfigBuilder<'a>, Error> {
         let input = if let Some(input) = maybe_input {
             input
         } else if let Some(mut path) = self.maybe_config_dir.to_owned() {
@@ -240,25 +241,22 @@ impl ConfigBuilder {
         Ok(self)
     }
 
-    pub fn with_env(
-        mut self,
-        getenv: &impl Fn(&'static str) -> Result<String, env::VarError>,
-    ) -> Result<ConfigBuilder, Error> {
-        if let Ok(data_dir) = getenv(Self::ENV_DATA_DIR) {
+    pub fn with_env(mut self) -> Result<ConfigBuilder<'a>, Error> {
+        if let Ok(data_dir) = (self.getenv)(Self::ENV_DATA_DIR) {
             self.maybe_data_dir = Some(PathBuf::from(data_dir))
         }
 
-        if let Ok(backend) = getenv(Self::ENV_BACKEND) {
+        if let Ok(backend) = (self.getenv)(Self::ENV_BACKEND) {
             if let Ok(backend) = backend.parse::<Backend>() {
                 self.backend = backend
             }
         }
 
-        if let Ok(key_id) = getenv(Self::ENV_KEY_ID) {
+        if let Ok(key_id) = (self.getenv)(Self::ENV_KEY_ID) {
             self.maybe_key_id = Some(KeyId::from(key_id))
         }
 
-        if let Ok(mult_keys) = getenv(Self::ENV_MULT_KEYS) {
+        if let Ok(mult_keys) = (self.getenv)(Self::ENV_MULT_KEYS) {
             self.mult_keys = mult_keys.parse::<Flag>()?
         }
 
@@ -284,6 +282,10 @@ mod tests {
     use super::{Backend, ConfigBuilder, Flag, MSG_MISSING_CONFIG_DIR};
     use crate::data::KeyId;
 
+    fn empty_getenv(_var: &str) -> Result<String, VarError> {
+        Err(VarError::NotPresent)
+    }
+
     #[test]
     fn with_ini_parses_ini() {
         let data_dir = "/tmp/data";
@@ -291,6 +293,7 @@ mod tests {
         let key_id = KeyId::from("371C136C");
         let mult_keys = Flag::from(true);
         let expected = ConfigBuilder {
+            getenv: Box::new(empty_getenv),
             maybe_config_dir: None,
             maybe_data_dir: Some(PathBuf::from(data_dir)),
             backend,
@@ -309,21 +312,21 @@ allow_multiple_keys={}
 ",
             data_dir, backend, key_id, mult_keys
         );
-        let actual = ConfigBuilder::new().with_ini(Some(input)).unwrap();
+        let actual = ConfigBuilder::new(empty_getenv).with_ini(Some(input)).unwrap();
         assert_eq!(expected, actual);
     }
 
     #[test]
     fn with_ini_parses_empty_ini() {
-        let expected = ConfigBuilder::new();
+        let expected = ConfigBuilder::new(empty_getenv);
         let input = String::new();
-        let actual = ConfigBuilder::new().with_ini(Some(input)).unwrap();
+        let actual = ConfigBuilder::new(empty_getenv).with_ini(Some(input)).unwrap();
         assert_eq!(expected, actual);
     }
 
     #[test]
     fn with_ini_returns_missing_config_dir() {
-        let result = ConfigBuilder::new().with_ini(None);
+        let result = ConfigBuilder::new(empty_getenv).with_ini(None);
         if let Err(err) = result {
             if MSG_MISSING_CONFIG_DIR == err.to_string() {
                 return;
@@ -350,13 +353,14 @@ allow_multiple_keys={}
             }
         };
         let expected = ConfigBuilder {
+            getenv: Box::new(&getenv),
             maybe_config_dir: None,
             maybe_data_dir: Some(PathBuf::from(data_dir)),
             backend,
             maybe_key_id: Some(key_id),
             mult_keys,
         };
-        let actual = ConfigBuilder::new().with_env(&getenv).unwrap();
+        let actual = ConfigBuilder::new(&getenv).with_env().unwrap();
         assert_eq!(expected, actual);
     }
 }

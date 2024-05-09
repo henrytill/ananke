@@ -194,14 +194,14 @@ impl<'a> ConfigBuilder<'a> {
         )
         .ok_or_else(|| Error::msg(MSG_PROJECT_DIRS))?;
 
-        if let Ok(config_dir) = (self.getenv)(Self::ENV_CONFIG_DIR) {
-            self.maybe_config_dir = Some(PathBuf::from(config_dir))
+        let config_dir: PathBuf = if let Ok(config_dir) = (self.getenv)(Self::ENV_CONFIG_DIR) {
+            config_dir.into()
         } else {
-            let config_dir = project_dirs.config_dir().into();
-            self.maybe_config_dir = Some(config_dir);
-        }
+            project_dirs.config_dir().into()
+        };
+        self.maybe_config_dir = Some(config_dir);
 
-        let data_dir = project_dirs.data_dir().into();
+        let data_dir: PathBuf = project_dirs.data_dir().into();
         self.maybe_data_dir = Some(data_dir);
 
         Ok(self)

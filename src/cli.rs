@@ -22,7 +22,7 @@ const PROMPT_PLAINTEXT: &str = "Enter plaintext: ";
 fn configure() -> Result<Config, Error> {
     ConfigBuilder::new()
         .with_dirs(&std::env::var)?
-        .with_config(None)?
+        .with_ini(None)?
         .with_env(&std::env::var)?
         .build()
 }

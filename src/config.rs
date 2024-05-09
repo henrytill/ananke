@@ -185,7 +185,7 @@ impl ConfigBuilder {
         Ok(self)
     }
 
-    pub fn with_config(mut self, maybe_input: Option<String>) -> Result<ConfigBuilder, Error> {
+    pub fn with_ini(mut self, maybe_input: Option<String>) -> Result<ConfigBuilder, Error> {
         let input = if let Some(input) = maybe_input {
             input
         } else if let Some(mut path) = self.maybe_config_dir.to_owned() {
@@ -268,7 +268,7 @@ mod tests {
     use crate::data::KeyId;
 
     #[test]
-    fn with_config_parses_ini() {
+    fn with_ini_parses_ini() {
         let data_dir = "/tmp/data";
         let backend = Backend::Sqlite;
         let key_id = KeyId::from("371C136C");
@@ -292,21 +292,21 @@ allow_multiple_keys={}
 ",
             data_dir, backend, key_id, mult_keys
         );
-        let actual = ConfigBuilder::new().with_config(Some(input)).unwrap();
+        let actual = ConfigBuilder::new().with_ini(Some(input)).unwrap();
         assert_eq!(expected, actual);
     }
 
     #[test]
-    fn with_config_parses_empty_ini() {
+    fn with_ini_parses_empty_ini() {
         let expected = ConfigBuilder::new();
         let input = String::new();
-        let actual = ConfigBuilder::new().with_config(Some(input)).unwrap();
+        let actual = ConfigBuilder::new().with_ini(Some(input)).unwrap();
         assert_eq!(expected, actual);
     }
 
     #[test]
-    fn with_config_returns_missing_config_dir() {
-        let result = ConfigBuilder::new().with_config(None);
+    fn with_ini_returns_missing_config_dir() {
+        let result = ConfigBuilder::new().with_ini(None);
         if let Err(err) = result {
             if MSG_MISSING_CONFIG_DIR == err.to_string() {
                 return;

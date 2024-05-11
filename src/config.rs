@@ -115,7 +115,7 @@ impl std::fmt::Display for Flag {
 }
 
 pub struct ConfigBuilder<'a> {
-    getenv: Box<dyn Fn(&'static str) -> Result<String, env::VarError> + 'a>,
+    getenv: Box<dyn Fn(&'a str) -> Result<String, env::VarError> + 'a>,
     maybe_config_dir: Option<PathBuf>,
     maybe_data_dir: Option<PathBuf>,
     backend: Backend,
@@ -174,7 +174,7 @@ impl<'a> ConfigBuilder<'a> {
     const INI_MULT_KEYS: IniSelector = IniSelector::new("gpg", "allow_multiple_keys");
 
     pub fn new(
-        getenv: impl Fn(&'static str) -> Result<String, std::env::VarError> + 'a,
+        getenv: impl Fn(&'a str) -> Result<String, std::env::VarError> + 'a,
     ) -> ConfigBuilder<'a> {
         ConfigBuilder {
             getenv: Box::new(getenv),

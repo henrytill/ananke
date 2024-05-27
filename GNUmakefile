@@ -17,6 +17,7 @@ TEST_OBJECTS += test/json_parse_test.o
 .PHONY: all
 all: $(BINOUT)/json_parse_test
 
+test/json_parse_test.o: CFLAGS += -DPRINT
 test/json_parse_test.o: include/entry.h include/yyjson.h
 
 $(BINOUT)/json_parse_test: $(TEST_OBJECTS)

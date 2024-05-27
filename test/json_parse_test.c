@@ -121,12 +121,13 @@ static int make_entry(yyjson_val *entry_val, struct entry *out, struct error *er
     return 0;
 }
 
-static struct entries *deserialize(size_t buf_len, char buf[buf_len + 1], struct error *err)
+static struct entries *deserialize(size_t buf_len, char buf[buf_len], struct error *err)
 {
+    assert(buf_len - 1 == strlen(buf));
     struct entries *ret = NULL;
 
     yyjson_read_err yyjson_err = {0};
-    yyjson_doc *doc = yyjson_read_opts(buf, buf_len, 0, NULL, &yyjson_err);
+    yyjson_doc *doc = yyjson_read_opts(buf, buf_len - 1, 0, NULL, &yyjson_err);
     if (doc == NULL) {
         err->rc = -JSON;
         err->msg = yyjson_err.msg;
@@ -267,7 +268,7 @@ int main(int argc, char *argv[])
     assert(strlen(buf) == fsize);
 
     struct error err = {0};
-    struct entries *es = deserialize(strlen(buf), buf, &err);
+    struct entries *es = deserialize(strlen(buf) + 1, buf, &err);
     if (es == NULL || err.rc != 0) {
         (void)fprintf(stderr, "deserialize failed: %s\n", err.msg);
         goto out_free_buf;

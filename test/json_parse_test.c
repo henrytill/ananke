@@ -25,15 +25,16 @@ enum {
 #define MSG_WRONG_TYPE    "wrong type for key: "
 
 #ifdef PRINT
+#define PADDING "\t"
 static void print_entry(struct entry *e)
 {
     printf("id=%s\n", e->id);
-    printf("    timestamp=%s\n", e->timestamp);
-    printf("    key_id=%s\n", e->key_id);
-    printf("    description=%s\n", e->description);
-    printf("    identity=%s\n", e->identity);
-    printf("    ciphertext=%s\n", e->ciphertext);
-    printf("    metadata=%s\n", e->metadata);
+    printf(PADDING "timestamp=%s\n", e->timestamp);
+    printf(PADDING "key_id=%s\n", e->key_id);
+    printf(PADDING "description=%s\n", e->description);
+    printf(PADDING "identity=%s\n", e->identity);
+    printf(PADDING "ciphertext=%s\n", e->ciphertext);
+    printf(PADDING "metadata=%s\n", e->metadata);
 }
 #endif
 
@@ -42,6 +43,7 @@ static inline void print_entries(struct entries *es)
 {
     for (size_t i = 0; i < es->len; ++i) {
         print_entry(&es->data[i]);
+        printf("\n");
     };
 }
 #else

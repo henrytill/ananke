@@ -1,4 +1,4 @@
-CFLAGS = -g -std=c11 -Iinclude -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion
+CFLAGS = -g -std=c99 -Iinclude -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion
 BINOUT = _bin
 
 HEADERS =

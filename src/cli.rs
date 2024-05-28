@@ -252,3 +252,11 @@ pub fn export(path: String) -> Result<ExitCode, Error> {
     }
     Ok(ExitCode::SUCCESS)
 }
+
+pub fn configure(list: bool) -> Result<ExitCode, Error> {
+    if list {
+        let config = config()?;
+        println!("{}", config.pretty_print())
+    }
+    Ok(ExitCode::SUCCESS)
+}

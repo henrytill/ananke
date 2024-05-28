@@ -122,6 +122,12 @@ fn command() -> Command {
             .arg_required_else_help(true)
     };
 
+    let configure = {
+        let arg_list =
+            Arg::new("list").short('l').long("list").num_args(0).help("List the configuration");
+        Command::new("configure").about("Create, modify, and list configuration").arg(arg_list)
+    };
+
     Command::new("ananke")
         .about("A password manager")
         .version(version)
@@ -132,6 +138,7 @@ fn command() -> Command {
         .subcommand(remove)
         .subcommand(import)
         .subcommand(export)
+        .subcommand(configure)
         .arg_required_else_help(true)
 }
 
@@ -170,6 +177,10 @@ fn main() -> Result<ExitCode> {
         Some(("export", sub_matches)) => {
             let file = sub_matches.get_one::<String>("file").cloned().unwrap();
             cli::export(file)
+        }
+        Some(("configure", sub_matches)) => {
+            let list = sub_matches.get_one::<bool>("list").copied().unwrap_or_default();
+            cli::configure(list)
         }
         Some((&_, _)) => panic!(),
         None => panic!(),

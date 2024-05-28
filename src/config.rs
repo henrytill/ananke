@@ -80,6 +80,22 @@ impl Config {
         }
         ret
     }
+
+    pub fn pretty_print(&self) -> String {
+        format!(
+            "\
+config_dir = {}
+data_dir = {}
+backend = {}
+key_id = {}
+allow_multiple_keys = {}",
+            self.config_dir.display(),
+            self.data_dir.display(),
+            self.backend,
+            self.key_id,
+            self.mult_keys
+        )
+    }
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]

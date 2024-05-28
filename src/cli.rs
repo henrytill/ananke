@@ -19,7 +19,7 @@ use crate::{
 
 const PROMPT_PLAINTEXT: &str = "Enter plaintext: ";
 
-fn configure() -> Result<Config, Error> {
+fn config() -> Result<Config, Error> {
     ConfigBuilder::new(std::env::var).with_defaults()?.with_ini(None)?.with_env()?.build()
 }
 
@@ -114,7 +114,7 @@ pub fn add(
     let maybe_identity = maybe_identity.map(Identity::from);
     let maybe_metadata = maybe_metadata.map(Metadata::from);
 
-    let config = configure()?;
+    let config = config()?;
     match config.backend() {
         Backend::Json => {
             let mut app = JsonApplication::new(config)?;
@@ -136,7 +136,7 @@ pub fn lookup(
     let description = Description::from(description);
     let maybe_identity = maybe_identity.map(Identity::from);
 
-    let config = configure()?;
+    let config = config()?;
     let results = match config.backend() {
         Backend::Json => {
             let app = JsonApplication::new(config)?;
@@ -182,7 +182,7 @@ pub fn modify(
     let maybe_identity = maybe_identity.map(Identity::from);
     let maybe_metadata = maybe_metadata.map(Metadata::from);
 
-    let config = configure()?;
+    let config = config()?;
     match config.backend() {
         Backend::Json => {
             let mut app = JsonApplication::new(config)?;
@@ -207,7 +207,7 @@ pub fn remove(
         (None, None) => panic!(),
     };
 
-    let config = configure()?;
+    let config = config()?;
     match config.backend() {
         Backend::Json => {
             let mut app = JsonApplication::new(config)?;
@@ -223,7 +223,7 @@ pub fn remove(
 
 pub fn import(path: String) -> Result<ExitCode, Error> {
     let path = PathBuf::from(path);
-    let config = configure()?;
+    let config = config()?;
     match config.backend() {
         Backend::Json => {
             let mut app = JsonApplication::new(config)?;
@@ -239,7 +239,7 @@ pub fn import(path: String) -> Result<ExitCode, Error> {
 
 pub fn export(path: String) -> Result<ExitCode, Error> {
     let path = PathBuf::from(path);
-    let config = configure()?;
+    let config = config()?;
     match config.backend() {
         Backend::Json => {
             let app = JsonApplication::new(config)?;

@@ -15,6 +15,7 @@ use crate::{
     },
     config::{Backend, Config, ConfigBuilder},
     data::{Description, Entry, EntryId, Identity, Metadata, Plaintext},
+    gpg,
 };
 
 const PROMPT_PLAINTEXT: &str = "Enter plaintext: ";
@@ -258,5 +259,7 @@ pub fn configure(list: bool) -> Result<ExitCode, Error> {
         let config = config()?;
         println!("{}", config.pretty_print())
     }
+    let key_id = gpg::suggest_key()?;
+    println!("key_id: {:?}", key_id);
     Ok(ExitCode::SUCCESS)
 }

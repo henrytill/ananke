@@ -1,6 +1,6 @@
 use std::{
     ffi::OsStr,
-    io::{self, Read, Write},
+    io::{self, BufRead, BufReader, Read, Write},
     process::{Command, Stdio},
     thread::JoinHandle,
 };
@@ -88,6 +88,87 @@ where
     let buf = join_result?;
     let txt = String::from_utf8(buf)?;
     Ok(Plaintext::new(txt))
+}
+
+pub fn suggest_key() -> Result<Option<KeyId>, Error> {
+    let mut child = Command::new("gpgconf")
+        .args(["--list-options", "gpg"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()?;
+
+    let maybe_key_id: Option<KeyId> = {
+        let mut tmp = None;
+        let stdout = child.stdout.take().ok_or_else(|| Error::msg(MSG_TAKE_STDOUT))?;
+        for line in BufReader::new(stdout).lines() {
+            let line = line?;
+            let mut fields = line.split(':');
+            match fields.next() {
+                Some("default-key") => {}
+                _ => continue,
+            }
+            match fields.nth(8) {
+                Some(key) if !key.is_empty() => {
+                    let key = &key[1..];
+                    tmp = Some(KeyId::from(key));
+                }
+                _ => {}
+            }
+            break;
+        }
+        tmp
+    };
+
+    let status = child.wait()?;
+    if !status.success() {
+        return Err(Error::from(io::Error::other(format!("gpg exited with status {}", status))));
+    }
+
+    if let result @ Some(_) = maybe_key_id {
+        return Ok(result);
+    }
+
+    let mut child = Command::new("gpg")
+        .args(["-k", "--with-colons"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()?;
+
+    let maybe_key_id: Option<KeyId> = {
+        let mut tmp = None;
+        let stdout = child.stdout.take().ok_or_else(|| Error::msg(MSG_TAKE_STDOUT))?;
+        for line in BufReader::new(stdout).lines() {
+            let line = line?;
+            let mut fields = line.split(':');
+            match fields.next() {
+                Some("pub") => {}
+                _ => continue,
+            }
+            match fields.nth(3) {
+                Some(key) if !key.is_empty() => {
+                    let start_pos = key.char_indices().nth_back(7).map(|x| x.0).unwrap_or(0);
+                    let key = &key[start_pos..];
+                    tmp = Some(KeyId::from(key));
+                }
+                _ => {}
+            }
+            break;
+        }
+        tmp
+    };
+
+    let status = child.wait()?;
+    if !status.success() {
+        return Err(Error::from(io::Error::other(format!("gpg exited with status {}", status))));
+    }
+
+    if let result @ Some(_) = maybe_key_id {
+        return Ok(result);
+    }
+
+    Ok(None)
 }
 
 #[cfg(test)]

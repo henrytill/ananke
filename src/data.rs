@@ -54,7 +54,6 @@ macro_rules! wrap_string {
             }
         }
 
-        #[cfg(test)]
         impl From<&str> for $name {
             fn from(name: &str) -> Self {
                 Self(name.to_string())

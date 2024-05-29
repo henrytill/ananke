@@ -13,15 +13,16 @@ const MSG_TAKE_STDOUT: &str = "missing stdout";
 const MSG_TAKE_STDIN: &str = "missing stdin";
 const MSG_JOIN: &str = "join thread failed";
 
-pub fn encrypt<I, K, V>(key_id: &KeyId, plaintext: &Plaintext, vars: I) -> Result<Ciphertext, Error>
+pub fn encrypt<F, I, K, V>(key_id: &KeyId, plaintext: &Plaintext, f: F) -> Result<Ciphertext, Error>
 where
+    F: Fn() -> I,
     I: IntoIterator<Item = (K, V)>,
     K: AsRef<OsStr>,
     V: AsRef<OsStr>,
 {
     let mut child = Command::new("gpg")
         .args(["--batch", "-q", "-e", "-r", key_id.as_str()])
-        .envs(vars)
+        .envs(f())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
@@ -51,15 +52,16 @@ where
     Ok(Ciphertext::new(buf))
 }
 
-pub fn decrypt<I, K, V>(ciphertext: &Ciphertext, vars: I) -> Result<Plaintext, Error>
+pub fn decrypt<F, I, K, V>(ciphertext: &Ciphertext, f: F) -> Result<Plaintext, Error>
 where
+    F: Fn() -> I,
     I: IntoIterator<Item = (K, V)>,
     K: AsRef<OsStr>,
     V: AsRef<OsStr>,
 {
     let mut child = Command::new("gpg")
         .args(["--batch", "-q", "-d"])
-        .envs(vars)
+        .envs(f())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
@@ -90,9 +92,16 @@ where
     Ok(Plaintext::new(txt))
 }
 
-pub fn suggest_key() -> Result<Option<KeyId>, Error> {
+pub fn suggest_key<F, I, K, V>(f: F) -> Result<Option<KeyId>, Error>
+where
+    F: Fn() -> I,
+    I: IntoIterator<Item = (K, V)>,
+    K: AsRef<OsStr>,
+    V: AsRef<OsStr>,
+{
     let mut child = Command::new("gpgconf")
         .args(["--list-options", "gpg"])
+        .envs(f())
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
@@ -131,6 +140,7 @@ pub fn suggest_key() -> Result<Option<KeyId>, Error> {
 
     let mut child = Command::new("gpg")
         .args(["-k", "--with-colons"])
+        .envs(f())
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
@@ -183,7 +193,7 @@ mod tests {
 
     const RANDOM_LEN: usize = 100 * 1024 * 1024;
 
-    fn vars() -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
+    fn vars() -> impl IntoIterator<Item = (OsString, OsString)> {
         [(OsString::from("GNUPGHOME"), GNUPGHOME.iter().collect::<PathBuf>().into_os_string())]
     }
 
@@ -191,8 +201,7 @@ mod tests {
     fn roundtrip() {
         let key_id = KeyId::from("371C136C");
         let plaintext = Plaintext::from("Hello, world!");
-        let vars = vars();
-        let encrypted = super::encrypt(&key_id, &plaintext, vars.clone()).unwrap();
+        let encrypted = super::encrypt(&key_id, &plaintext, vars).unwrap();
         let decrypted = super::decrypt(&encrypted, vars).unwrap();
         assert_eq!(plaintext, decrypted);
     }
@@ -211,8 +220,7 @@ mod tests {
         };
         let key_id = KeyId::from("371C136C");
         let plaintext = Plaintext::from(random);
-        let vars = vars();
-        let encrypted = super::encrypt(&key_id, &plaintext, vars.clone()).unwrap();
+        let encrypted = super::encrypt(&key_id, &plaintext, vars).unwrap();
         let decrypted = super::decrypt(&encrypted, vars).unwrap();
         assert_eq!(plaintext, decrypted);
     }

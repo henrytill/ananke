@@ -259,7 +259,7 @@ pub fn configure(list: bool) -> Result<ExitCode, Error> {
         let config = config()?;
         println!("{}", config.pretty_print())
     }
-    let key_id = gpg::suggest_key()?;
+    let key_id = gpg::suggest_key(std::env::vars)?;
     println!("key_id: {:?}", key_id);
     Ok(ExitCode::SUCCESS)
 }

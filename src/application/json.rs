@@ -43,6 +43,10 @@ impl JsonApplication {
         let entries: &[Entry] = self.entries.as_slice();
         base::write(path, entries)
     }
+
+    fn env() -> impl Iterator<Item = (OsString, OsString)> {
+        Self::ENV.into_iter()
+    }
 }
 
 impl Application for JsonApplication {
@@ -58,7 +62,7 @@ impl Application for JsonApplication {
         let timestamp = Timestamp::now();
         let key_id = self.config.key_id();
         let entry_id = EntryId::make(key_id, &timestamp, &description, maybe_identity.as_ref())?;
-        let ciphertext = gpg::encrypt(key_id, &plaintext, Self::ENV)?;
+        let ciphertext = gpg::encrypt(key_id, &plaintext, Self::env)?;
         let identity = maybe_identity;
         let metadata = maybe_metadata;
         let entry = {
@@ -80,11 +84,11 @@ impl Application for JsonApplication {
         for entry in self.entries.iter().filter(|e| e.description.contains(description.as_str())) {
             match (maybe_identity.as_ref(), entry.identity.as_ref()) {
                 (Some(identity), Some(entry_identity)) if identity == entry_identity => {
-                    let plaintext = gpg::decrypt(&entry.ciphertext, Self::ENV)?;
+                    let plaintext = gpg::decrypt(&entry.ciphertext, Self::env)?;
                     ret.push((entry.clone(), plaintext))
                 }
                 (None, _) => {
-                    let plaintext = gpg::decrypt(&entry.ciphertext, Self::ENV)?;
+                    let plaintext = gpg::decrypt(&entry.ciphertext, Self::env)?;
                     ret.push((entry.clone(), plaintext))
                 }
                 (_, _) => (),
@@ -122,7 +126,7 @@ impl Application for JsonApplication {
             entry.description = description
         }
         if let Some(plaintext) = maybe_plaintext {
-            entry.ciphertext = gpg::encrypt(&entry.key_id, &plaintext, Self::ENV)?
+            entry.ciphertext = gpg::encrypt(&entry.key_id, &plaintext, Self::env)?
         }
         if maybe_identity.is_some() {
             entry.identity = maybe_identity

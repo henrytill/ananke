@@ -224,4 +224,11 @@ mod tests {
         let decrypted = super::decrypt(&encrypted, vars).unwrap();
         assert_eq!(plaintext, decrypted);
     }
+
+    #[test]
+    fn suggest_key() {
+        let expected = Some(KeyId::from("371C136C"));
+        let actual = super::suggest_key(vars).unwrap();
+        assert_eq!(expected, actual);
+    }
 }

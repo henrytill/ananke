@@ -99,6 +99,8 @@ where
     K: AsRef<OsStr>,
     V: AsRef<OsStr>,
 {
+    // Try getting default public key
+    // https://lists.gnupg.org/pipermail/gnupg-devel/2011-November/026308.html
     let mut child = Command::new("gpgconf")
         .args(["--list-options", "gpg"])
         .envs(f())
@@ -138,6 +140,7 @@ where
         return Ok(result);
     }
 
+    // Fall back to getting first public key listed
     let mut child = Command::new("gpg")
         .args(["-k", "--with-colons"])
         .envs(f())

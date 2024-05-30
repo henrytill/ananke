@@ -14,8 +14,20 @@ const MSG_MISSING_KEY_ID: &str = "missing key_id";
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub enum Backend {
     #[default]
-    Json,
-    Sqlite,
+    Json = 0,
+    Sqlite = 1,
+}
+
+impl TryFrom<u8> for Backend {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Backend::Json),
+            1 => Ok(Backend::Sqlite),
+            _ => Err(()),
+        }
+    }
 }
 
 impl FromStr for Backend {
@@ -134,7 +146,7 @@ pub struct ConfigBuilder<'a> {
     getenv: Box<dyn Fn(&'a str) -> Result<String, env::VarError> + 'a>,
     maybe_config_dir: Option<PathBuf>,
     maybe_data_dir: Option<PathBuf>,
-    backend: Backend,
+    maybe_backend: Option<Backend>,
     maybe_key_id: Option<KeyId>,
     mult_keys: Flag,
 }
@@ -144,7 +156,7 @@ impl<'a> std::fmt::Debug for ConfigBuilder<'a> {
         f.debug_struct("ConfigBuilder")
             .field("maybe_config_dir", &self.maybe_config_dir)
             .field("maybe_data_dir", &self.maybe_data_dir)
-            .field("backend", &self.backend)
+            .field("backend", &self.maybe_backend)
             .field("maybe_key_id", &self.maybe_key_id)
             .field("mult_keys", &self.mult_keys)
             .finish()
@@ -155,7 +167,7 @@ impl<'a> PartialEq for ConfigBuilder<'a> {
     fn eq(&self, other: &ConfigBuilder) -> bool {
         self.maybe_config_dir == other.maybe_config_dir
             && self.maybe_data_dir == other.maybe_data_dir
-            && self.backend == other.backend
+            && self.maybe_backend == other.maybe_backend
             && self.maybe_key_id == other.maybe_key_id
             && self.mult_keys == other.mult_keys
     }
@@ -196,7 +208,7 @@ impl<'a> ConfigBuilder<'a> {
             getenv: Box::new(getenv),
             maybe_config_dir: None,
             maybe_data_dir: None,
-            backend: Backend::default(),
+            maybe_backend: None,
             mult_keys: Flag::default(),
             maybe_key_id: None,
         }
@@ -245,9 +257,7 @@ impl<'a> ConfigBuilder<'a> {
         }
 
         if let Some(backend) = config.get(Self::INI_BACKEND.section, Self::INI_BACKEND.key) {
-            if let Ok(backend) = backend.parse::<Backend>() {
-                self.backend = backend
-            }
+            self.maybe_backend = backend.parse::<Backend>().ok()
         }
 
         if let Some(key_id) = config.get(Self::INI_KEY_ID.section, Self::INI_KEY_ID.key) {
@@ -267,9 +277,7 @@ impl<'a> ConfigBuilder<'a> {
         }
 
         if let Ok(backend) = (self.getenv)(Self::ENV_BACKEND) {
-            if let Ok(backend) = backend.parse::<Backend>() {
-                self.backend = backend
-            }
+            self.maybe_backend = backend.parse::<Backend>().ok()
         }
 
         if let Ok(key_id) = (self.getenv)(Self::ENV_KEY_ID) {
@@ -288,10 +296,62 @@ impl<'a> ConfigBuilder<'a> {
             self.maybe_config_dir.take().ok_or_else(|| Error::msg(MSG_MISSING_CONFIG_DIR))?;
         let data_dir =
             self.maybe_data_dir.take().ok_or_else(|| Error::msg(MSG_MISSING_DATA_DIR))?;
-        let backend = self.backend;
+        let backend = self.maybe_backend.unwrap_or(Backend::Json);
         let key_id = self.maybe_key_id.take().ok_or_else(|| Error::msg(MSG_MISSING_KEY_ID))?;
         let mult_keys = self.mult_keys.into();
         Ok(Config { config_dir, data_dir, backend, key_id, mult_keys })
+    }
+
+    pub fn maybe_config_dir(&self) -> Option<&PathBuf> {
+        self.maybe_config_dir.as_ref()
+    }
+
+    pub fn maybe_data_dir(&self) -> Option<&PathBuf> {
+        self.maybe_data_dir.as_ref()
+    }
+
+    pub fn maybe_key_id(&self) -> Option<&KeyId> {
+        self.maybe_key_id.as_ref()
+    }
+
+    pub fn maybe_key_id_mut(&mut self) -> &mut Option<KeyId> {
+        &mut self.maybe_key_id
+    }
+
+    pub fn maybe_backend(&self) -> Option<&Backend> {
+        self.maybe_backend.as_ref()
+    }
+
+    pub fn maybe_backend_mut(&mut self) -> &mut Option<Backend> {
+        &mut self.maybe_backend
+    }
+
+    pub fn maybe_config_file(&self) -> Option<PathBuf> {
+        self.maybe_config_dir.as_ref().map(|config_dir| {
+            let mut tmp = config_dir.to_owned();
+            tmp.push("ananke.ini");
+            tmp
+        })
+    }
+
+    pub fn ini(&self) -> String {
+        match (self.maybe_backend, self.maybe_data_dir.as_ref(), self.maybe_key_id.as_ref()) {
+            (Some(backend), Some(data_dir), Some(key_id)) => {
+                format!(
+                    "\
+[data]
+backend={}
+dir={}
+[gpg]
+key_id={}
+",
+                    backend,
+                    data_dir.display(),
+                    key_id,
+                )
+            }
+            _ => String::new(),
+        }
     }
 }
 
@@ -316,7 +376,7 @@ mod tests {
             getenv: Box::new(empty_getenv),
             maybe_config_dir: None,
             maybe_data_dir: Some(PathBuf::from(data_dir)),
-            backend,
+            maybe_backend: Some(backend),
             maybe_key_id: Some(key_id.clone()),
             mult_keys: true.into(),
         };
@@ -376,7 +436,7 @@ allow_multiple_keys={}
             getenv: Box::new(&getenv),
             maybe_config_dir: None,
             maybe_data_dir: Some(PathBuf::from(data_dir)),
-            backend,
+            maybe_backend: Some(backend),
             maybe_key_id: Some(key_id),
             mult_keys,
         };

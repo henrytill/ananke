@@ -2,6 +2,7 @@ use std::{
     io::{self, BufRead, Write},
     path::PathBuf,
     process::ExitCode,
+    str::FromStr,
 };
 
 use anyhow::Error;
@@ -14,7 +15,7 @@ use crate::{
         sqlite::SqliteApplication,
     },
     config::{Backend, Config, ConfigBuilder},
-    data::{Description, Entry, EntryId, Identity, Metadata, Plaintext},
+    data::{Description, Entry, EntryId, Identity, KeyId, Metadata, Plaintext},
     gpg,
 };
 
@@ -257,9 +258,75 @@ pub fn export(path: String) -> Result<ExitCode, Error> {
 pub fn configure(list: bool) -> Result<ExitCode, Error> {
     if list {
         let config = config()?;
-        println!("{}", config.pretty_print())
+        println!("{}", config.pretty_print());
+        return Ok(ExitCode::SUCCESS);
     }
-    let key_id = gpg::suggest_key(std::env::vars)?;
-    println!("key_id: {:?}", key_id);
+
+    let mut builder = ConfigBuilder::new(std::env::var).with_defaults()?.with_env()?;
+
+    let maybe_config_file = builder.maybe_config_file();
+    match maybe_config_file {
+        Some(config_file) if config_file.exists() => {
+            println!("Configuration file exists at: {}", config_file.display());
+            println!("To view settings, run:\n  ananke configure --list");
+            return Ok(ExitCode::SUCCESS);
+        }
+        _ => {}
+    }
+
+    if builder.maybe_key_id().is_none() {
+        // Prompt for key id
+        let mut key_candidate = None;
+        while key_candidate.is_none() {
+            key_candidate = gpg::suggest_key(std::env::vars)?;
+            let key_candidate_str = if let Some(ref key_id) = key_candidate {
+                format!("[{}] ", key_id)
+            } else {
+                String::new()
+            };
+            let prompt_str = format!("Enter GPG key id: {}", key_candidate_str);
+            let key_input = prompt(prompt_str.as_str())?;
+            if !key_input.is_empty() {
+                key_candidate = Some(KeyId::from(key_input))
+            }
+        }
+        *builder.maybe_key_id_mut() = key_candidate
+    }
+
+    if builder.maybe_backend().is_none() {
+        // Prompt for backend
+        let mut backend_candidate: Option<Backend> = None;
+        let default_backend = Backend::default();
+        while backend_candidate.is_none() {
+            println!("Available backends:");
+            for backend in [Backend::Json, Backend::Sqlite] {
+                let backend_value = backend as u8;
+                if backend == default_backend {
+                    println!("  {}: {} (default)", backend_value, backend)
+                } else {
+                    println!("  {}: {}", backend_value, backend)
+                }
+            }
+            let prompt_str = format!("Enter choice: [{}] ", default_backend as u8);
+            let backend_input = prompt(prompt_str.as_str())?;
+            backend_candidate = if backend_input.is_empty() {
+                Some(default_backend)
+            } else {
+                Backend::from_str(backend_input.as_str()).ok()
+            }
+        }
+        *builder.maybe_backend_mut() = backend_candidate
+    }
+
+    for maybe_dir in [builder.maybe_config_dir(), builder.maybe_data_dir()] {
+        let dir = maybe_dir.unwrap();
+        if !dir.exists() {
+            std::fs::create_dir(dir)?
+        }
+    }
+
+    let config_file = builder.maybe_config_file().unwrap();
+    std::fs::write(config_file.as_path(), builder.ini())?;
+    println!("Configuration file written to: {}", config_file.display());
     Ok(ExitCode::SUCCESS)
 }

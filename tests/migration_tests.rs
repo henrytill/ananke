@@ -62,7 +62,7 @@ mod json {
             .args(["lookup", "foomail"])
             .envs(vars)
             .assert()
-            .stdout_eq_(file!("cli_tests/lookup.stdout"))
+            .stdout_eq(file!("cli_tests/lookup.stdout"))
             .success();
         base::check_schema(dir, 3);
         let data_file = {
@@ -86,7 +86,7 @@ mod json {
             .args(["lookup", "foomail"])
             .envs(vars)
             .assert()
-            .stderr_eq_(file!("migration_tests/migrate_to_unknown_schema_version.stderr"))
+            .stderr_eq(file!("migration_tests/migrate_to_unknown_schema_version.stderr"))
             .failure();
     }
 }
@@ -139,7 +139,7 @@ mod sqlite {
             .args(["lookup", "foomail"])
             .envs(vars)
             .assert()
-            .stdout_eq_(file!("cli_tests/lookup.stdout"))
+            .stdout_eq(file!("cli_tests/lookup.stdout"))
             .success();
         base::check_schema(dir, 3);
     }
@@ -159,7 +159,7 @@ mod sqlite {
             .args(["lookup", "foomail"])
             .envs(vars)
             .assert()
-            .stdout_eq_(file!("cli_tests/lookup.stdout"))
+            .stdout_eq(file!("cli_tests/lookup.stdout"))
             .success();
         base::check_schema(dir, 3);
     }
@@ -179,7 +179,7 @@ mod sqlite {
             .args(["lookup", "foomail"])
             .envs(vars)
             .assert()
-            .stderr_eq_(file!("migration_tests/migrate_to_unknown_schema_version.stderr"))
+            .stderr_eq(file!("migration_tests/migrate_to_unknown_schema_version.stderr"))
             .failure();
     }
 }

@@ -22,7 +22,7 @@ fn usage() {
     Command::new(cargo_bin(BIN))
         .envs(vars)
         .assert()
-        .stderr_eq_(file!("cli_tests/usage.stderr"))
+        .stderr_eq(file!("cli_tests/usage.stderr"))
         .failure();
 }
 
@@ -55,7 +55,7 @@ macro_rules! make_tests {
                     .args(["lookup", "foomail"])
                     .envs($vars(dir))
                     .assert()
-                    .stdout_eq_(file!("cli_tests/lookup.stdout"))
+                    .stdout_eq(file!("cli_tests/lookup.stdout"))
                     .success();
                 base::check_schema(dir, 3);
             }
@@ -69,7 +69,7 @@ macro_rules! make_tests {
                     .args(["lookup", "foomail", "-i", "quux"])
                     .envs($vars(dir))
                     .assert()
-                    .stdout_eq_(file!("cli_tests/lookup_single.stdout"))
+                    .stdout_eq(file!("cli_tests/lookup_single.stdout"))
                     .success();
             }
 
@@ -82,7 +82,7 @@ macro_rules! make_tests {
                     .args(["lookup", "www"])
                     .envs($vars(dir))
                     .assert()
-                    .stdout_eq_(file!("cli_tests/lookup_many.stdout"))
+                    .stdout_eq(file!("cli_tests/lookup_many.stdout"))
                     .success();
             }
 
@@ -95,7 +95,7 @@ macro_rules! make_tests {
                     .args(["lookup", "www", "-v"])
                     .envs($vars(dir))
                     .assert()
-                    .stdout_eq_(file!("cli_tests/lookup_many_verbose.stdout"))
+                    .stdout_eq(file!("cli_tests/lookup_many_verbose.stdout"))
                     .success();
             }
 
@@ -108,7 +108,7 @@ macro_rules! make_tests {
                     .args(["lookup", "paul"])
                     .envs($vars(dir))
                     .assert()
-                    .stderr_eq_(String::new())
+                    .stderr_eq(String::new())
                     .failure()
                     .code(1);
             }
@@ -128,7 +128,7 @@ macro_rules! make_tests {
                     .args(["lookup", "https://www.barphone.com"])
                     .envs($vars(dir))
                     .assert()
-                    .stdout_eq_(file!("cli_tests/modify.stdout"))
+                    .stdout_eq(file!("cli_tests/modify.stdout"))
                     .success();
             }
 
@@ -147,7 +147,7 @@ macro_rules! make_tests {
                     .args(["lookup", "https://www.barphone.com"])
                     .envs($vars(dir))
                     .assert()
-                    .stdout_eq_(file!("cli_tests/modify.stdout"))
+                    .stdout_eq(file!("cli_tests/modify.stdout"))
                     .success();
             }
 
@@ -160,7 +160,7 @@ macro_rules! make_tests {
                     .args(["modify", "-d", "paul"])
                     .envs($vars(dir))
                     .assert()
-                    .stderr_eq_(file!("cli_tests/modify_non_existent.stderr"))
+                    .stderr_eq(file!("cli_tests/modify_non_existent.stderr"))
                     .failure()
                     .code(1);
             }
@@ -174,7 +174,7 @@ macro_rules! make_tests {
                     .args(["remove", "-d", "https://www.foomail.com"])
                     .envs($vars(dir))
                     .assert()
-                    .stderr_eq_(file!("cli_tests/modify_multiple.stderr"))
+                    .stderr_eq(file!("cli_tests/modify_multiple.stderr"))
                     .failure()
                     .code(1);
             }
@@ -193,7 +193,7 @@ macro_rules! make_tests {
                     .args(["lookup", "https://www.barphone.com"])
                     .envs($vars(dir))
                     .assert()
-                    .stderr_eq_(String::new())
+                    .stderr_eq(String::new())
                     .failure()
                     .code(1);
             }
@@ -212,7 +212,7 @@ macro_rules! make_tests {
                     .args(["lookup", "https://www.barphone.com"])
                     .envs($vars(dir))
                     .assert()
-                    .stderr_eq_(String::new())
+                    .stderr_eq(String::new())
                     .failure()
                     .code(1);
             }
@@ -226,7 +226,7 @@ macro_rules! make_tests {
                     .args(["remove", "-d", "paul"])
                     .envs($vars(dir))
                     .assert()
-                    .stderr_eq_(file!("cli_tests/remove_non_existent.stderr"))
+                    .stderr_eq(file!("cli_tests/remove_non_existent.stderr"))
                     .failure()
                     .code(1);
             }
@@ -240,7 +240,7 @@ macro_rules! make_tests {
                     .args(["remove", "-d", "https://www.foomail.com"])
                     .envs($vars(dir))
                     .assert()
-                    .stderr_eq_(file!("cli_tests/remove_multiple.stderr"))
+                    .stderr_eq(file!("cli_tests/remove_multiple.stderr"))
                     .failure()
                     .code(1);
             }

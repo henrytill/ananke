@@ -25,8 +25,8 @@ mod json {
     use snapbox::{
         self,
         cmd::{cargo_bin, Command},
+        dir::DirRoot,
         file,
-        path::PathFixture,
     };
 
     use crate::{
@@ -53,7 +53,7 @@ mod json {
 
     #[test]
     fn migrate_v2_v3() {
-        let path_fixture = PathFixture::mutable_temp().unwrap();
+        let path_fixture = DirRoot::mutable_temp().unwrap();
         let dir = path_fixture.path().unwrap();
         copy_data(dir);
         super::create_schema_file(dir, 2);
@@ -62,7 +62,7 @@ mod json {
             .args(["lookup", "foomail"])
             .envs(vars)
             .assert()
-            .stdout_eq(file!("cli_tests/lookup.stdout"))
+            .stdout_eq_(file!("cli_tests/lookup.stdout"))
             .success();
         base::check_schema(dir, 3);
         let data_file = {
@@ -72,12 +72,12 @@ mod json {
             tmp
         };
         let actual = fs::read(data_file).unwrap();
-        snapbox::assert_eq(file!("migration_tests/data-schema-v3.json"), actual);
+        snapbox::assert_data_eq!(actual, file!("migration_tests/data-schema-v3.json"));
     }
 
     #[test]
     fn migrate_to_unknown_schema_version() {
-        let path_fixture = PathFixture::mutable_temp().unwrap();
+        let path_fixture = DirRoot::mutable_temp().unwrap();
         let dir = path_fixture.path().unwrap();
         copy_data(dir);
         super::create_schema_file(dir, UNKNOWN_SCHEMA_VERSION);
@@ -86,7 +86,7 @@ mod json {
             .args(["lookup", "foomail"])
             .envs(vars)
             .assert()
-            .stderr_eq(file!("migration_tests/migrate_to_unknown_schema_version.stderr"))
+            .stderr_eq_(file!("migration_tests/migrate_to_unknown_schema_version.stderr"))
             .failure();
     }
 }
@@ -97,8 +97,8 @@ mod sqlite {
     use rusqlite::Connection;
     use snapbox::{
         cmd::{cargo_bin, Command},
+        dir::DirRoot,
         file,
-        path::PathFixture,
     };
 
     use crate::{
@@ -130,7 +130,7 @@ mod sqlite {
             const SOURCE: [&str; 3] = ["tests", "migration_tests", "data-schema-v1.sql"];
             SOURCE.into_iter().collect::<std::path::PathBuf>()
         };
-        let path_fixture = PathFixture::mutable_temp().unwrap();
+        let path_fixture = DirRoot::mutable_temp().unwrap();
         let dir = path_fixture.path().unwrap();
         copy_data(dir, data_file);
         super::create_schema_file(dir, 1);
@@ -139,7 +139,7 @@ mod sqlite {
             .args(["lookup", "foomail"])
             .envs(vars)
             .assert()
-            .stdout_eq(file!("cli_tests/lookup.stdout"))
+            .stdout_eq_(file!("cli_tests/lookup.stdout"))
             .success();
         base::check_schema(dir, 3);
     }
@@ -150,7 +150,7 @@ mod sqlite {
             const SOURCE: [&str; 3] = ["tests", "migration_tests", "data-schema-v2.sql"];
             SOURCE.into_iter().collect::<std::path::PathBuf>()
         };
-        let path_fixture = PathFixture::mutable_temp().unwrap();
+        let path_fixture = DirRoot::mutable_temp().unwrap();
         let dir = path_fixture.path().unwrap();
         copy_data(dir, data_file);
         super::create_schema_file(dir, 2);
@@ -159,7 +159,7 @@ mod sqlite {
             .args(["lookup", "foomail"])
             .envs(vars)
             .assert()
-            .stdout_eq(file!("cli_tests/lookup.stdout"))
+            .stdout_eq_(file!("cli_tests/lookup.stdout"))
             .success();
         base::check_schema(dir, 3);
     }
@@ -170,7 +170,7 @@ mod sqlite {
             const SOURCE: [&str; 3] = ["tests", "migration_tests", "data-schema-v2.sql"];
             SOURCE.into_iter().collect::<std::path::PathBuf>()
         };
-        let path_fixture = PathFixture::mutable_temp().unwrap();
+        let path_fixture = DirRoot::mutable_temp().unwrap();
         let dir = path_fixture.path().unwrap();
         copy_data(dir, data_file);
         super::create_schema_file(dir, UNKNOWN_SCHEMA_VERSION);
@@ -179,7 +179,7 @@ mod sqlite {
             .args(["lookup", "foomail"])
             .envs(vars)
             .assert()
-            .stderr_eq(file!("migration_tests/migrate_to_unknown_schema_version.stderr"))
+            .stderr_eq_(file!("migration_tests/migrate_to_unknown_schema_version.stderr"))
             .failure();
     }
 }

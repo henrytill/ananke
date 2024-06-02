@@ -326,7 +326,8 @@ pub fn configure(list: bool) -> Result<ExitCode, Error> {
     }
 
     let config_file = builder.maybe_config_file().unwrap();
-    std::fs::write(config_file.as_path(), builder.ini())?;
+    let ini = builder.ini().unwrap();
+    std::fs::write(config_file.as_path(), ini)?;
     println!("Configuration file written to: {}", config_file.display());
     Ok(ExitCode::SUCCESS)
 }

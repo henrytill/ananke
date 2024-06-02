@@ -334,23 +334,21 @@ impl<'a> ConfigBuilder<'a> {
         })
     }
 
-    pub fn ini(&self) -> String {
+    pub fn ini(&self) -> Option<String> {
         match (self.maybe_backend, self.maybe_data_dir.as_ref(), self.maybe_key_id.as_ref()) {
-            (Some(backend), Some(data_dir), Some(key_id)) => {
-                format!(
-                    "\
+            (Some(backend), Some(data_dir), Some(key_id)) => Some(format!(
+                "\
 [data]
 backend={}
 dir={}
 [gpg]
 key_id={}
 ",
-                    backend,
-                    data_dir.display(),
-                    key_id,
-                )
-            }
-            _ => String::new(),
+                backend,
+                data_dir.display(),
+                key_id,
+            )),
+            _ => None,
         }
     }
 }

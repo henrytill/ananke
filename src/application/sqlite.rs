@@ -353,17 +353,17 @@ fn migrate(
     } else if schema_version == SchemaVersion::new(1) {
         let tx = connection.transaction()?;
         {
-            tx.execute_batch("ALTER TABLE entries RENAME TO entries_v1")?;
+            tx.execute_batch("ALTER TABLE entries RENAME TO entries_v0")?;
             tx.execute_batch(CREATE_TABLE)?;
             let sql = "\
 INSERT INTO entries
 (id, keyid, timestamp, description, identity, ciphertext, meta)
 SELECT id, ?1, timestamp, description, identity, ciphertext, meta
-FROM entries_v1
+FROM entries_v0
 ";
             let mut stmt = tx.prepare(sql)?;
             stmt.execute([config.key_id()])?;
-            tx.execute_batch("DROP TABLE entries_v1")?;
+            tx.execute_batch("DROP TABLE entries_v0")?;
         }
         tx.commit()?;
         migrate(connection, config, SchemaVersion::new(2))

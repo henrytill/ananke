@@ -304,7 +304,7 @@ fn make_update<'a>(
     entry: &'a Entry,
 ) -> Result<(String, NamedParams<'a>), Error> {
     let mut wheres: Vec<&str> = vec![];
-    let mut params: Vec<(&'a str, &'a dyn ToSql)> = vec![];
+    let mut params: NamedParams<'a> = vec![];
 
     match target {
         Target::EntryId(ref entry_id) => {

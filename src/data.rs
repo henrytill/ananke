@@ -5,10 +5,9 @@ use std::{
     str::FromStr,
 };
 
-use data_encoding::{DecodeError, BASE64, HEXLOWER};
+use data_encoding::{DecodeError, BASE64};
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 use serde::{Deserialize, Serialize};
-use sha1::{Digest, Sha1};
 use time::{
     format_description::well_known::{
         iso8601::{Config, EncodedConfig},
@@ -16,6 +15,7 @@ use time::{
     },
     OffsetDateTime,
 };
+use uuid::Uuid;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 pub use schema::{schema_version, SchemaVersion};
@@ -74,7 +74,6 @@ macro_rules! wrap_string {
     };
 }
 
-wrap_string!(EntryId);
 wrap_string!(KeyId);
 wrap_string!(Description);
 wrap_string!(Identity);
@@ -116,24 +115,46 @@ impl From<&str> for Plaintext {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct EntryId(Uuid);
+
+impl Default for EntryId {
+    fn default() -> Self {
+        EntryId(Uuid::new_v4())
+    }
+}
+
 impl EntryId {
-    pub fn make(
-        key_id: &KeyId,
-        timestamp: &Timestamp,
-        description: &Description,
-        maybe_identity: Option<&Identity>,
-    ) -> Result<EntryId, time::error::Format> {
-        let mut input = format!("{}{}{}", key_id, timestamp.isoformat()?, description);
-        if let Some(identity) = maybe_identity {
-            input.push_str(identity.as_str())
-        }
-        let digest = {
-            let mut hasher = Sha1::new();
-            hasher.update(input.as_bytes());
-            let bytes = hasher.finalize();
-            HEXLOWER.encode(&bytes)
-        };
-        Ok(EntryId(digest))
+    pub fn new() -> EntryId {
+        EntryId::default()
+    }
+}
+
+impl ToSql for EntryId {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        self.0.to_string().leak().to_sql()
+    }
+}
+
+impl FromSql for EntryId {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        let uuid_str = String::column_result(value)?;
+        EntryId::try_from(uuid_str).map_err(|e| FromSqlError::Other(Box::new(e)))
+    }
+}
+
+impl ToString for EntryId {
+    fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+}
+
+impl TryFrom<String> for EntryId {
+    type Error = uuid::Error;
+
+    fn try_from(value: String) -> Result<EntryId, Self::Error> {
+        let inner = Uuid::parse_str(value.as_str())?;
+        Ok(EntryId(inner))
     }
 }
 
@@ -288,12 +309,8 @@ impl Hash for Entry {
 impl Entry {
     pub fn update(&mut self) -> Result<(), time::error::Format> {
         self.timestamp = Timestamp::now();
-        self.entry_id = self.fresh_entry_id()?;
+        self.entry_id = EntryId::new();
         Ok(())
-    }
-
-    fn fresh_entry_id(&self) -> Result<EntryId, time::error::Format> {
-        EntryId::make(&self.key_id, &self.timestamp, &self.description, self.identity.as_ref())
     }
 }
 
@@ -327,14 +344,14 @@ mod tests {
         assert_eq!(expected, actual);
     }
 
-    #[test]
-    fn check_ids() {
-        let path: PathBuf = EXAMPLE_PATH.iter().collect();
-        let expected = fs::read_to_string(path).unwrap();
-        let entries: Vec<Entry> = serde_json::from_str(&expected).unwrap();
-        for entry in entries {
-            let fresh_id = entry.fresh_entry_id().unwrap();
-            assert_eq!(entry.entry_id, fresh_id);
-        }
-    }
+    // #[test]
+    // fn check_ids() {
+    //     let path: PathBuf = EXAMPLE_PATH.iter().collect();
+    //     let expected = fs::read_to_string(path).unwrap();
+    //     let entries: Vec<Entry> = serde_json::from_str(&expected).unwrap();
+    //     for entry in entries {
+    //         let fresh_id = entry.fresh_entry_id().unwrap();
+    //         assert_eq!(entry.entry_id, fresh_id);
+    //     }
+    // }
 }

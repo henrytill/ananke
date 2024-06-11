@@ -4,7 +4,7 @@ use std::{fs, num::ParseIntError, path::Path, str::FromStr};
 pub struct SchemaVersion(u64);
 
 impl SchemaVersion {
-    pub const CURRENT: SchemaVersion = SchemaVersion::new(3);
+    pub const CURRENT: SchemaVersion = SchemaVersion::new(4);
 
     pub const fn new(value: u64) -> SchemaVersion {
         SchemaVersion(value)

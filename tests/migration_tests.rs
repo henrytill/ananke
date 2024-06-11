@@ -34,12 +34,10 @@ mod json {
         UNKNOWN_SCHEMA_VERSION,
     };
 
-    fn copy_data(dir: impl AsRef<Path>) {
-        const SOURCE: [&str; 3] = ["tests", "migration_tests", "data-schema-v2.json"];
+    fn copy_data(target_dir: impl AsRef<Path>, source_file: impl AsRef<Path>) {
         const TARGET: [&str; 2] = ["db", "data.json"];
-        let data_file = SOURCE.into_iter().collect::<std::path::PathBuf>();
         let target_file = {
-            let mut tmp = dir.as_ref().to_path_buf();
+            let mut tmp = target_dir.as_ref().to_path_buf();
             tmp.push(TARGET.into_iter().collect::<std::path::PathBuf>());
             tmp
         };
@@ -48,14 +46,26 @@ mod json {
                 fs::create_dir_all(parent).unwrap();
             }
         }
-        fs::copy(data_file, target_file).unwrap();
+        fs::copy(source_file, target_file).unwrap();
+    }
+
+    fn copy_v2_data(target_dir: impl AsRef<Path>) {
+        const SOURCE: [&str; 3] = ["tests", "migration_tests", "data-schema-v2.json"];
+        let source_file = SOURCE.into_iter().collect::<std::path::PathBuf>();
+        copy_data(target_dir, source_file.as_path())
+    }
+
+    fn copy_v3_data(target_dir: impl AsRef<Path>) {
+        const SOURCE: [&str; 3] = ["tests", "migration_tests", "data-schema-v3.json"];
+        let source_file = SOURCE.into_iter().collect::<std::path::PathBuf>();
+        copy_data(target_dir, source_file.as_path())
     }
 
     #[test]
-    fn migrate_v2_v3() {
+    fn migrate_v2_v4() {
         let path_fixture = DirRoot::mutable_temp().unwrap();
         let dir = path_fixture.path().unwrap();
-        copy_data(dir);
+        copy_v2_data(dir);
         super::create_schema_file(dir, 2);
         let vars = base::json_vars(dir);
         Command::new(cargo_bin(BIN))
@@ -64,22 +74,30 @@ mod json {
             .assert()
             .stdout_eq(file!("cli_tests/lookup.stdout"))
             .success();
-        base::check_schema(dir, 3);
-        let data_file = {
-            let mut tmp = dir.to_path_buf();
-            tmp.push("db");
-            tmp.push("data.json");
-            tmp
-        };
-        let actual = fs::read(data_file).unwrap();
-        snapbox::assert_data_eq!(actual, file!("migration_tests/data-schema-v3.json"));
+        base::check_schema(dir, 4);
+    }
+
+    #[test]
+    fn migrate_v3_v4() {
+        let path_fixture = DirRoot::mutable_temp().unwrap();
+        let dir = path_fixture.path().unwrap();
+        copy_v3_data(dir);
+        super::create_schema_file(dir, 3);
+        let vars = base::json_vars(dir);
+        Command::new(cargo_bin(BIN))
+            .args(["lookup", "foomail"])
+            .envs(vars)
+            .assert()
+            .stdout_eq(file!("cli_tests/lookup.stdout"))
+            .success();
+        base::check_schema(dir, 4);
     }
 
     #[test]
     fn migrate_to_unknown_schema_version() {
         let path_fixture = DirRoot::mutable_temp().unwrap();
         let dir = path_fixture.path().unwrap();
-        copy_data(dir);
+        copy_v2_data(dir);
         super::create_schema_file(dir, UNKNOWN_SCHEMA_VERSION);
         let vars = base::json_vars(dir);
         Command::new(cargo_bin(BIN))
@@ -125,7 +143,7 @@ mod sqlite {
     }
 
     #[test]
-    fn migrate_v1_v3() {
+    fn migrate_v1_v4() {
         let data_file = {
             const SOURCE: [&str; 3] = ["tests", "migration_tests", "data-schema-v1.sql"];
             SOURCE.into_iter().collect::<std::path::PathBuf>()
@@ -141,11 +159,11 @@ mod sqlite {
             .assert()
             .stdout_eq(file!("cli_tests/lookup.stdout"))
             .success();
-        base::check_schema(dir, 3);
+        base::check_schema(dir, 4);
     }
 
     #[test]
-    fn migrate_v2_v3() {
+    fn migrate_v2_v4() {
         let data_file = {
             const SOURCE: [&str; 3] = ["tests", "migration_tests", "data-schema-v2.sql"];
             SOURCE.into_iter().collect::<std::path::PathBuf>()
@@ -161,7 +179,7 @@ mod sqlite {
             .assert()
             .stdout_eq(file!("cli_tests/lookup.stdout"))
             .success();
-        base::check_schema(dir, 3);
+        base::check_schema(dir, 4);
     }
 
     #[test]

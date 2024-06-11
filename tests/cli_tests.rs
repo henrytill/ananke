@@ -42,7 +42,7 @@ macro_rules! make_tests {
                 let path_fixture = DirRoot::mutable_temp().unwrap();
                 let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
-                base::check_schema(dir, 3);
+                base::check_schema(dir, 4);
             }
 
             #[test]
@@ -50,14 +50,14 @@ macro_rules! make_tests {
                 let path_fixture = DirRoot::mutable_temp().unwrap();
                 let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
-                base::check_schema(dir, 3);
+                base::check_schema(dir, 4);
                 Command::new(cargo_bin(BIN))
                     .args(["lookup", "foomail"])
                     .envs($vars(dir))
                     .assert()
                     .stdout_eq(file!("cli_tests/lookup.stdout"))
                     .success();
-                base::check_schema(dir, 3);
+                base::check_schema(dir, 4);
             }
 
             #[test]
@@ -138,7 +138,7 @@ macro_rules! make_tests {
                 let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
-                    .args(["modify", "-p", "-e", "39d8363eda9253a779c7719997b1a2656af19af7"])
+                    .args(["modify", "-p", "-e", "ba9d7666-f201-4d78-ae30-300ff236de7f"])
                     .envs($vars(dir))
                     .stdin("MyNewPassword")
                     .assert()
@@ -204,7 +204,7 @@ macro_rules! make_tests {
                 let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
                 Command::new(cargo_bin(BIN))
-                    .args(["remove", "-e", "39d8363eda9253a779c7719997b1a2656af19af7"])
+                    .args(["remove", "-e", "ba9d7666-f201-4d78-ae30-300ff236de7f"])
                     .envs($vars(dir))
                     .assert()
                     .success();

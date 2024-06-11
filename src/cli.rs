@@ -175,7 +175,7 @@ pub fn modify(
 
     let target = match (target_description, target_entry_id) {
         (Some(d), None) => Target::Description(Description::from(d)),
-        (None, Some(i)) => Target::EntryId(EntryId::from(i)),
+        (None, Some(i)) => Target::EntryId(EntryId::try_from(i)?),
         (Some(_), Some(_)) => panic!(),
         (None, None) => panic!(),
     };
@@ -204,7 +204,7 @@ pub fn remove(
 ) -> Result<ExitCode, Error> {
     let target = match (target_description, target_entry_id) {
         (Some(d), None) => Target::Description(Description::from(d)),
-        (None, Some(i)) => Target::EntryId(EntryId::from(i)),
+        (None, Some(i)) => Target::EntryId(EntryId::try_from(i)?),
         (Some(_), Some(_)) => panic!(),
         (None, None) => panic!(),
     };

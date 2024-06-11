@@ -7,7 +7,8 @@ use std::{
 
 use anyhow::Error;
 use serde::Serialize;
-use serde_json::{ser::PrettyFormatter, Map, Serializer, Value};
+use serde_json::{json, ser::PrettyFormatter, Map, Serializer, Value};
+use uuid::Uuid;
 
 use crate::{
     application::base::{self, Application, Target},
@@ -61,7 +62,7 @@ impl Application for JsonApplication {
     ) -> Result<(), Self::Error> {
         let timestamp = Timestamp::now();
         let key_id = self.config.key_id();
-        let entry_id = EntryId::make(key_id, &timestamp, &description, maybe_identity.as_ref())?;
+        let entry_id = EntryId::new();
         let ciphertext = gpg::encrypt(key_id, &plaintext, Self::env)?;
         let identity = maybe_identity;
         let metadata = maybe_metadata;
@@ -193,7 +194,16 @@ fn write_value(path: impl AsRef<Path>, value: Value) -> Result<(), anyhow::Error
 }
 
 fn migrate(config: &Config, schema_version: SchemaVersion) -> Result<(), Error> {
-    if schema_version == SchemaVersion::new(2) {
+    if schema_version == SchemaVersion::new(3) {
+        let json = fs::read_to_string(config.data_file())?;
+        let mut value: Value = serde_json::from_str(&json)?;
+        let arr = value.as_array_mut().ok_or_else(|| Error::msg("value is not an array"))?;
+        for value in arr {
+            let obj = value.as_object_mut().ok_or_else(|| Error::msg("value is not an object"))?;
+            obj.insert(String::from("id"), json!(Uuid::new_v4().to_string()));
+        }
+        write_value(config.data_file(), value).map_err(Into::into)
+    } else if schema_version == SchemaVersion::new(2) {
         let mappings: HashMap<String, String> = HashMap::from_iter(
             [
                 ("Timestamp", "timestamp"),
@@ -222,7 +232,8 @@ fn migrate(config: &Config, schema_version: SchemaVersion) -> Result<(), Error> 
             }
             *value = target.into();
         }
-        write_value(config.data_file(), value).map_err(Into::into)
+        write_value(config.data_file(), value)?;
+        migrate(config, SchemaVersion::new(3))
     } else if schema_version == SchemaVersion::new(1) {
         Err(Error::msg("schema version 1 not supported by JSON backend"))
     } else {
@@ -230,5 +241,60 @@ fn migrate(config: &Config, schema_version: SchemaVersion) -> Result<(), Error> 
             "no supported migration path for schema version {}",
             schema_version
         )))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{env::VarError, fs, path::PathBuf};
+
+    use anyhow::Error;
+    use tempfile::TempDir;
+
+    use crate::{
+        config::ConfigBuilder,
+        data::{KeyId, SchemaVersion},
+    };
+
+    #[test]
+    fn migrate_v3_v4() -> Result<(), Error> {
+        let tmp_dir = TempDir::with_prefix("ananke-")?;
+
+        {
+            let source = {
+                const JSON_PATH: [&str; 3] = ["example", "db", "data.json"];
+                JSON_PATH.into_iter().collect::<PathBuf>()
+            };
+
+            let dest_dir = {
+                let mut tmp = tmp_dir.path().to_owned();
+                tmp.push("db");
+                tmp
+            };
+
+            fs::create_dir_all(&dest_dir)?;
+
+            let dest = {
+                let mut tmp = dest_dir;
+                tmp.push("data.json");
+                tmp
+            };
+
+            fs::copy(source, dest)?;
+        }
+
+        let getenv = {
+            let data_dir = tmp_dir.path();
+            let key_id = KeyId::from("371C136C");
+            move |s| match s {
+                "ANANKE_DATA_DIR" => Ok(data_dir.to_string_lossy().to_string()),
+                "ANANKE_KEY_ID" => Ok(key_id.to_string()),
+                _ => Err(VarError::NotPresent),
+            }
+        };
+
+        let config = ConfigBuilder::new(getenv).with_defaults()?.with_env()?.build()?;
+
+        super::migrate(&config, SchemaVersion::new(3))
     }
 }

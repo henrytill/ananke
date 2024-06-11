@@ -2,6 +2,7 @@ use std::{convert::TryFrom, ffi::OsString, fs, path::PathBuf};
 
 use anyhow::Error;
 use rusqlite::{named_params, params_from_iter, Connection, ToSql};
+use uuid::Uuid;
 
 use crate::{
     application::base::{self, Application, Target},
@@ -75,7 +76,7 @@ impl Application for SqliteApplication {
     ) -> Result<(), Error> {
         let timestamp = Timestamp::now();
         let key_id = self.config.key_id();
-        let entry_id = EntryId::make(key_id, &timestamp, &description, maybe_identity.as_ref())?;
+        let entry_id = EntryId::new();
         let ciphertext = gpg::encrypt(key_id, &plaintext, Self::env)?;
         let identity = maybe_identity;
         let metadata = maybe_metadata;
@@ -282,7 +283,7 @@ fn make_query(target: Target, maybe_identity: Option<Identity>) -> (String, Vec<
     match target {
         Target::EntryId(entry_id) => {
             wheres.push(String::from("id = ?1"));
-            params.push(entry_id.into_inner());
+            params.push(entry_id.to_string());
         }
         Target::Description(description) => {
             wheres.push(String::from("description LIKE ?1"));
@@ -348,8 +349,28 @@ fn migrate(
     config: &Config,
     schema_version: SchemaVersion,
 ) -> Result<(), Error> {
-    if schema_version == SchemaVersion::new(2) {
+    if schema_version == SchemaVersion::new(3) {
+        let tx = connection.transaction()?;
+        let hashes: Vec<String> = {
+            let stmt = "SELECT id FROM entries";
+            let mut stmt = tx.prepare(stmt)?;
+            let mut rows = stmt.query([])?;
+            let mut tmp = Vec::new();
+            while let Some(row) = rows.next()? {
+                let (entry_id,) = TryFrom::try_from(row)?;
+                tmp.push(entry_id);
+            }
+            tmp
+        };
+        for hash in hashes {
+            let sql = "UPDATE entries SET id = :uuid WHERE id = :hash";
+            let mut stmt = tx.prepare(sql)?;
+            stmt.execute(named_params! { ":uuid": Uuid::new_v4().to_string(), ":hash": hash })?;
+        }
+        tx.commit()?;
         Ok(())
+    } else if schema_version == SchemaVersion::new(2) {
+        migrate(connection, config, SchemaVersion::new(3))
     } else if schema_version == SchemaVersion::new(1) {
         let tx = connection.transaction()?;
         {

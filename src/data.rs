@@ -313,7 +313,6 @@ impl Hash for Entry {
 impl Entry {
     pub fn update(&mut self) -> Result<(), time::error::Format> {
         self.timestamp = Timestamp::now();
-        self.entry_id = EntryId::new();
         Ok(())
     }
 }

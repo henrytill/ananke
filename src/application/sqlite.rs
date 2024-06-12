@@ -319,9 +319,6 @@ fn make_update<'a>(
     }
 
     let mut sets: Vec<&str> = vec![];
-    sets.push("id = :id");
-    params.push((":id", &entry.entry_id));
-
     sets.push("timestamp = :timestamp");
     params.push((":timestamp", &entry.timestamp));
 

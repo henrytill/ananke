@@ -133,6 +133,31 @@ macro_rules! make_tests {
             }
 
             #[test]
+            fn modify_retains_id() {
+                let path_fixture = DirRoot::mutable_temp().unwrap();
+                let dir = path_fixture.path().unwrap();
+                super::import($vars(dir));
+                Command::new(cargo_bin(BIN))
+                    .args(["lookup", "-v", "https://www.barphone.com"])
+                    .envs($vars(dir))
+                    .assert()
+                    .stdout_eq("[..] ba9d7666-f201-4d78-ae30-300ff236de7f 371C136C https://www.barphone.com quux YetAnotherSecretPassword\n")
+                    .success();
+                Command::new(cargo_bin(BIN))
+                    .args(["modify", "-p", "-d", "https://www.barphone.com"])
+                    .envs($vars(dir))
+                    .stdin("MyNewPassword")
+                    .assert()
+                    .success();
+                Command::new(cargo_bin(BIN))
+                    .args(["lookup", "-v", "https://www.barphone.com"])
+                    .envs($vars(dir))
+                    .assert()
+                    .stdout_eq("[..] ba9d7666-f201-4d78-ae30-300ff236de7f 371C136C https://www.barphone.com quux MyNewPassword\n")
+                    .success();
+            }
+
+            #[test]
             fn modify_from_entry_id() {
                 let path_fixture = DirRoot::mutable_temp().unwrap();
                 let dir = path_fixture.path().unwrap();

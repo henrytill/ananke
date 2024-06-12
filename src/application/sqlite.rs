@@ -15,7 +15,7 @@ use crate::{
 
 const CREATE_TABLE: &str = "\
 CREATE TABLE IF NOT EXISTS entries (
-    id TEXT UNIQUE NOT NULL,
+    id TEXT PRIMARY KEY NOT NULL,
     keyid TEXT NOT NULL,
     timestamp TEXT NOT NULL,
     description TEXT NOT NULL,
@@ -364,6 +364,19 @@ fn migrate(
             let mut stmt = tx.prepare(sql)?;
             let uuid = Uuid::new_v4().to_string();
             stmt.execute(named_params! { ":uuid": uuid, ":hash": hash })?;
+        }
+        {
+            tx.execute_batch("ALTER TABLE entries RENAME TO entries_v3")?;
+            tx.execute_batch(CREATE_TABLE)?;
+            let sql = "\
+INSERT INTO entries
+(id, keyid, timestamp, description, identity, ciphertext, meta)
+SELECT id, keyid, timestamp, description, identity, ciphertext, meta
+FROM entries_v3
+";
+            let mut stmt = tx.prepare(sql)?;
+            stmt.execute([])?;
+            tx.execute_batch("DROP TABLE entries_v3")?;
         }
         tx.commit()?;
         Ok(())

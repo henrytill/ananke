@@ -362,7 +362,8 @@ fn migrate(
         for hash in hashes {
             let sql = "UPDATE entries SET id = :uuid WHERE id = :hash";
             let mut stmt = tx.prepare(sql)?;
-            stmt.execute(named_params! { ":uuid": Uuid::new_v4().to_string(), ":hash": hash })?;
+            let uuid = Uuid::new_v4().to_string();
+            stmt.execute(named_params! { ":uuid": uuid, ":hash": hash })?;
         }
         tx.commit()?;
         Ok(())

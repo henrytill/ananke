@@ -252,10 +252,14 @@ impl ToSql for Ciphertext {
 
 mod base64 {
     use data_encoding::BASE64;
-    use serde::{de::Error, Deserializer, Serializer};
+    use serde::{
+        de::{Error, Visitor},
+        Deserializer, Serializer,
+    };
 
     struct Vis;
-    impl serde::de::Visitor<'_> for Vis {
+
+    impl Visitor<'_> for Vis {
         type Value = Vec<u8>;
 
         fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {

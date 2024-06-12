@@ -347,15 +347,4 @@ mod tests {
         let actual = actual.replace("\n", "\r\n");
         assert_eq!(expected, actual);
     }
-
-    // #[test]
-    // fn check_ids() {
-    //     let path: PathBuf = EXAMPLE_PATH.iter().collect();
-    //     let expected = fs::read_to_string(path).unwrap();
-    //     let entries: Vec<Entry> = serde_json::from_str(&expected).unwrap();
-    //     for entry in entries {
-    //         let fresh_id = entry.fresh_entry_id().unwrap();
-    //         assert_eq!(entry.entry_id, fresh_id);
-    //     }
-    // }
 }

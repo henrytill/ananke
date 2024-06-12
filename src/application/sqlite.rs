@@ -172,7 +172,7 @@ impl Application for SqliteApplication {
             if maybe_metadata.is_some() {
                 entry.metadata = maybe_metadata
             }
-            entry.update()?;
+            entry.update();
             entry
         };
 

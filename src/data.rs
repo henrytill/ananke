@@ -311,9 +311,8 @@ impl Hash for Entry {
 }
 
 impl Entry {
-    pub fn update(&mut self) -> Result<(), time::error::Format> {
+    pub fn update(&mut self) {
         self.timestamp = Timestamp::now();
-        Ok(())
     }
 }
 

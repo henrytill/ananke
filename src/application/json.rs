@@ -135,7 +135,7 @@ impl Application for JsonApplication {
         if maybe_metadata.is_some() {
             entry.metadata = maybe_metadata
         }
-        entry.update()?;
+        entry.update();
         self.entries.push(entry);
 
         self.write(self.config.data_file())?;

@@ -221,7 +221,7 @@ fn migrate(config: &Config, schema_version: SchemaVersion) -> Result<(), Error> 
         let mut value: Value = serde_json::from_str(&json)?;
         let arr = value.as_array_mut().ok_or_else(|| Error::msg("value is not an array"))?;
         for value in arr {
-            let obj = value.as_object_mut().ok_or_else(|| Error::msg("value is not an object"))?;
+            let obj = value.as_object().ok_or_else(|| Error::msg("value is not an object"))?;
             let mut target = Map::new();
             for (k, v) in obj.into_iter() {
                 if let Some(mapped) = mappings.get(k) {

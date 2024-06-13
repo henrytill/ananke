@@ -19,10 +19,7 @@
     }:
     let
       makeAnanke =
-        system:
-        let
-          pkgs = nixpkgs.legacyPackages.${system};
-        in
+        pkgs:
         pkgs.rustPlatform.buildRustPackage {
           name = "ananke";
           pname = "ananke";
@@ -37,8 +34,14 @@
           };
         };
     in
-    flake-utils.lib.eachDefaultSystem (system: {
-      packages.ananke = makeAnanke system;
-      packages.default = self.packages.${system}.ananke;
-    });
+    flake-utils.lib.eachDefaultSystem (
+      system:
+      let
+        pkgs = nixpkgs.legacyPackages.${system};
+      in
+      {
+        packages.ananke = makeAnanke pkgs;
+        packages.default = self.packages.${system}.ananke;
+      }
+    );
 }

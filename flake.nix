@@ -10,14 +10,25 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, ... }:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      ...
+    }:
     let
-      makeAnanke = system:
-        let pkgs = nixpkgs.legacyPackages.${system};
-        in pkgs.rustPlatform.buildRustPackage {
+      makeAnanke =
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        pkgs.rustPlatform.buildRustPackage {
           name = "ananke";
           pname = "ananke";
-          cargoLock = { lockFile = ./Cargo.lock; };
+          cargoLock = {
+            lockFile = ./Cargo.lock;
+          };
           buildInputs = with pkgs; [ sqlite ];
           nativeCheckInputs = with pkgs; [ gnupg ];
           src = builtins.path {
@@ -25,7 +36,8 @@
             name = "ananke-src";
           };
         };
-    in flake-utils.lib.eachDefaultSystem (system: {
+    in
+    flake-utils.lib.eachDefaultSystem (system: {
       packages.ananke = makeAnanke system;
       packages.default = self.packages.${system}.ananke;
     });

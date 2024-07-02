@@ -348,23 +348,6 @@ fn migrate(
 ) -> Result<(), Error> {
     if schema_version == SchemaVersion::new(3) {
         let tx = connection.transaction()?;
-        let hashes: Vec<String> = {
-            let stmt = "SELECT id FROM entries";
-            let mut stmt = tx.prepare(stmt)?;
-            let mut rows = stmt.query([])?;
-            let mut tmp = Vec::new();
-            while let Some(row) = rows.next()? {
-                let (entry_id,) = TryFrom::try_from(row)?;
-                tmp.push(entry_id);
-            }
-            tmp
-        };
-        for hash in hashes {
-            let sql = "UPDATE entries SET id = :uuid WHERE id = :hash";
-            let mut stmt = tx.prepare(sql)?;
-            let uuid = Uuid::new_v4().to_string();
-            stmt.execute(named_params! { ":uuid": uuid, ":hash": hash })?;
-        }
         {
             tx.execute_batch("ALTER TABLE entries RENAME TO entries_v3")?;
             tx.execute_batch(CREATE_TABLE)?;
@@ -376,6 +359,25 @@ FROM entries_v3
 ";
             let mut stmt = tx.prepare(sql)?;
             stmt.execute([])?;
+        }
+        {
+            let hashes: Vec<String> = {
+                let stmt = "SELECT id FROM entries";
+                let mut stmt = tx.prepare(stmt)?;
+                let mut rows = stmt.query([])?;
+                let mut tmp = Vec::new();
+                while let Some(row) = rows.next()? {
+                    let (entry_id,) = TryFrom::try_from(row)?;
+                    tmp.push(entry_id);
+                }
+                tmp
+            };
+            for hash in hashes {
+                let sql = "UPDATE entries SET id = :uuid WHERE id = :hash";
+                let mut stmt = tx.prepare(sql)?;
+                let uuid = Uuid::new_v4().to_string();
+                stmt.execute(named_params! { ":uuid": uuid, ":hash": hash })?;
+            }
             tx.execute_batch("DROP TABLE entries_v3")?;
         }
         tx.commit()?;

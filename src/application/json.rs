@@ -200,7 +200,7 @@ fn migrate(config: &Config, schema_version: SchemaVersion) -> Result<(), Error> 
         let arr = value.as_array_mut().ok_or_else(|| Error::msg("value is not an array"))?;
         for value in arr {
             let obj = value.as_object_mut().ok_or_else(|| Error::msg("value is not an object"))?;
-            obj.insert(String::from("id"), json!(Uuid::new_v4().to_string()));
+            obj.insert(String::from("id"), json!(Uuid::new_v4()));
         }
         write_value(config.data_file(), value).map_err(Into::into)
     } else if schema_version == SchemaVersion::new(2) {

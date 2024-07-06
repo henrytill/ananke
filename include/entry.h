@@ -4,18 +4,18 @@
 #include <stddef.h>
 
 struct entry {
-    char *id;
-    char *timestamp;
-    char *key_id;
-    char *description;
-    char *identity;
-    char *ciphertext;
-    char *metadata;
+  char *id;
+  char *timestamp;
+  char *key_id;
+  char *description;
+  char *identity;
+  char *ciphertext;
+  char *metadata;
 };
 
 struct entries {
-    size_t len;
-    struct entry data[];
+  size_t len;
+  struct entry data[];
 };
 
 struct entries *entries_create(size_t len);

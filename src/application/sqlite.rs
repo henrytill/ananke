@@ -291,8 +291,8 @@ fn make_query(target: Target, maybe_identity: Option<Identity>) -> (String, Vec<
         }
     }
     if let Some(identity) = maybe_identity {
-        wheres.push(String::from("identity = ?2"));
-        params.push(identity.into_inner());
+        wheres.push(String::from("identity LIKE ?2"));
+        params.push(format!("%{}%", identity.into_inner()));
     }
     sql.push_str(&wheres.join(" AND "));
     (sql, params)

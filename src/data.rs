@@ -170,6 +170,12 @@ impl Hash for Description {
     }
 }
 
+impl Identity {
+    pub fn contains(&self, pat: &str) -> bool {
+        self.0.contains(pat)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Timestamp(#[serde(with = "iso8601")] OffsetDateTime);
 

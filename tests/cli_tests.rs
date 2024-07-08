@@ -61,7 +61,7 @@ macro_rules! make_tests {
             }
 
             #[test]
-            fn lookup_single() {
+            fn lookup_identity() {
                 let path_fixture = DirRoot::mutable_temp().unwrap();
                 let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
@@ -69,7 +69,7 @@ macro_rules! make_tests {
                     .args(["lookup", "foomail", "-i", "quux"])
                     .envs($vars(dir))
                     .assert()
-                    .stdout_eq(file!("cli_tests/lookup_single.stdout"))
+                    .stdout_eq(file!("cli_tests/lookup_identity.stdout"))
                     .success();
             }
 

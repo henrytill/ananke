@@ -84,7 +84,9 @@ impl Application for JsonApplication {
         let mut ret = Vec::new();
         for entry in self.entries.iter().filter(|e| e.description.contains(description.as_str())) {
             match (maybe_identity.as_ref(), entry.identity.as_ref()) {
-                (Some(identity), Some(entry_identity)) if identity == entry_identity => {
+                (Some(identity), Some(entry_identity))
+                    if entry_identity.contains(identity.as_str()) =>
+                {
                     let plaintext = gpg::decrypt(&entry.ciphertext, Self::env)?;
                     ret.push((entry.clone(), plaintext))
                 }

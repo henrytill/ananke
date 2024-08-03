@@ -32,6 +32,8 @@
             path = ./.;
             name = "ananke-src";
           };
+          ANANKE_COMMIT_HASH = "${self.rev or self.dirtyRev}";
+          ANANKE_COMMIT_SHORT_HASH = "${self.shortRev or self.dirtyShortRev}";
         };
     in
     flake-utils.lib.eachDefaultSystem (

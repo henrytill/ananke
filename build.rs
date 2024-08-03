@@ -7,7 +7,7 @@ fn commit_info_git() {
         .arg("-1")
         .arg("--date=short")
         .arg("--format=%H %h %cd")
-        .arg("--abbrev=9")
+        .arg("--abbrev=7")
         .output()
     {
         Ok(output) if output.status.success() => output,

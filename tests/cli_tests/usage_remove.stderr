@@ -4,5 +4,5 @@ Usage: ananke[EXE] remove [OPTIONS]
 
 Options:
   -d, --description <DESCRIPTION>  URL or description
-  -e, --entry-id <ENTRY_ID>        entry_id
+  -e, --entry-id <ENTRYID>         Entry ID
   -h, --help                       Print help

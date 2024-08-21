@@ -76,8 +76,8 @@ fn command() -> Command {
         let arg_entry_id = Arg::new(ARG_ENTRY_ID)
             .short('e')
             .long("entry-id")
-            .value_name("ENTRY_ID")
-            .help("entry_id");
+            .value_name("ENTRYID")
+            .help("Entry ID");
         let arg_plaintext = Arg::new(ARG_PLAINTEXT)
             .short('p')
             .long("plaintext")
@@ -113,8 +113,8 @@ fn command() -> Command {
         let arg_entry_id = Arg::new(ARG_ENTRY_ID)
             .short('e')
             .long("entry-id")
-            .value_name("ENTRY_ID")
-            .help("entry_id");
+            .value_name("ENTRYID")
+            .help("Entry ID");
         Command::new(CMD_REMOVE)
             .about("Remove an entry")
             .arg(arg_description)

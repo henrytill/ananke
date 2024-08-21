@@ -1,0 +1,11 @@
+Modify an entry
+
+Usage: ananke[EXE] modify [OPTIONS]
+
+Options:
+  -d, --description <DESCRIPTION>  URL or description
+  -e, --entry-id <ENTRY_ID>        entry_id
+  -p, --plaintext                  prompt for plaintext
+  -i, --identity <IDENTITY>        username or email address
+  -m, --meta <METADATA>            additional metadata
+  -h, --help                       Print help

@@ -1,0 +1,11 @@
+Add an entry
+
+Usage: ananke[EXE] add [OPTIONS] [DESCRIPTION]
+
+Arguments:
+  [DESCRIPTION]  URL or description
+
+Options:
+  -i, --identity <IDENTITY>  username or email address
+  -m, --meta <METADATA>      additional metadata
+  -h, --help                 Print help

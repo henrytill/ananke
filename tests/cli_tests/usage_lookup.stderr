@@ -1,0 +1,11 @@
+Lookup an entry
+
+Usage: ananke[EXE] lookup [OPTIONS] [DESCRIPTION]
+
+Arguments:
+  [DESCRIPTION]  URL or description
+
+Options:
+  -i, --identity <IDENTITY>  username or email address
+  -v, --verbose              enable verbose output
+  -h, --help                 Print help

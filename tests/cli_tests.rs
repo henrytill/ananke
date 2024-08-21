@@ -26,6 +26,72 @@ fn usage() {
         .failure();
 }
 
+#[test]
+fn usage_add() {
+    let vars: [(OsString, OsString); 0] = [];
+    Command::new(cargo_bin(BIN))
+        .args(["add"])
+        .envs(vars)
+        .assert()
+        .stderr_eq(file!("cli_tests/usage_add.stderr"))
+        .failure();
+}
+
+#[test]
+fn usage_lookup() {
+    let vars: [(OsString, OsString); 0] = [];
+    Command::new(cargo_bin(BIN))
+        .args(["lookup"])
+        .envs(vars)
+        .assert()
+        .stderr_eq(file!("cli_tests/usage_lookup.stderr"))
+        .failure();
+}
+
+#[test]
+fn usage_modify() {
+    let vars: [(OsString, OsString); 0] = [];
+    Command::new(cargo_bin(BIN))
+        .args(["modify"])
+        .envs(vars)
+        .assert()
+        .stderr_eq(file!("cli_tests/usage_modify.stderr"))
+        .failure();
+}
+
+#[test]
+fn usage_remove() {
+    let vars: [(OsString, OsString); 0] = [];
+    Command::new(cargo_bin(BIN))
+        .args(["remove"])
+        .envs(vars)
+        .assert()
+        .stderr_eq(file!("cli_tests/usage_remove.stderr"))
+        .failure();
+}
+
+#[test]
+fn usage_import() {
+    let vars: [(OsString, OsString); 0] = [];
+    Command::new(cargo_bin(BIN))
+        .args(["import"])
+        .envs(vars)
+        .assert()
+        .stderr_eq(file!("cli_tests/usage_import.stderr"))
+        .failure();
+}
+
+#[test]
+fn usage_export() {
+    let vars: [(OsString, OsString); 0] = [];
+    Command::new(cargo_bin(BIN))
+        .args(["export"])
+        .envs(vars)
+        .assert()
+        .stderr_eq(file!("cli_tests/usage_export.stderr"))
+        .failure();
+}
+
 macro_rules! make_tests {
     ($name:ident, $vars:expr) => {
         mod $name {

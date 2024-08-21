@@ -1,0 +1,9 @@
+Export entries to JSON file
+
+Usage: ananke[EXE] export [FILE]
+
+Arguments:
+  [FILE]  file to export to
+
+Options:
+  -h, --help  Print help

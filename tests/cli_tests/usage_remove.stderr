@@ -1,0 +1,8 @@
+Remove an entry
+
+Usage: ananke[EXE] remove [OPTIONS]
+
+Options:
+  -d, --description <DESCRIPTION>  URL or description
+  -e, --entry-id <ENTRY_ID>        entry_id
+  -h, --help                       Print help

@@ -100,6 +100,39 @@ mod usage {
     }
 }
 
+mod error {
+    use std::ffi::OsString;
+
+    use snapbox::{
+        cmd::{cargo_bin, Command},
+        file,
+    };
+
+    use crate::base::BIN;
+
+    #[test]
+    fn add_without_description() {
+        let vars: [(OsString, OsString); 0] = [];
+        Command::new(cargo_bin(BIN))
+            .args(["add", "-i", "foo"])
+            .envs(vars)
+            .assert()
+            .stderr_eq(file!("cli_tests/error_add_without_description.stderr"))
+            .failure();
+    }
+
+    #[test]
+    fn lookup_without_description() {
+        let vars: [(OsString, OsString); 0] = [];
+        Command::new(cargo_bin(BIN))
+            .args(["lookup", "-v"])
+            .envs(vars)
+            .assert()
+            .stderr_eq(file!("cli_tests/error_lookup_without_description.stderr"))
+            .failure();
+    }
+}
+
 macro_rules! make_tests {
     ($name:ident, $vars:expr) => {
         mod $name {

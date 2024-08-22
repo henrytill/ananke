@@ -128,7 +128,8 @@ fn command() -> Command {
     };
 
     let import = {
-        let arg_file = Arg::new(ARG_FILE).value_name("FILE").help("file to import from");
+        let arg_file =
+            Arg::new(ARG_FILE).value_name("FILE").help("file to import from").required(true);
         Command::new(CMD_IMPORT)
             .about("Import entries from JSON file")
             .arg(arg_file)
@@ -136,7 +137,8 @@ fn command() -> Command {
     };
 
     let export = {
-        let arg_file = Arg::new(ARG_FILE).value_name("FILE").help("file to export to");
+        let arg_file =
+            Arg::new(ARG_FILE).value_name("FILE").help("file to export to").required(true);
         Command::new(CMD_EXPORT)
             .about("Export entries to JSON file")
             .arg(arg_file)

@@ -1,9 +1,9 @@
 Import entries from JSON file
 
-Usage: ananke[EXE] import [FILE]
+Usage: ananke[EXE] import <FILE>
 
 Arguments:
-  [FILE]  file to import from
+  <FILE>  file to import from
 
 Options:
   -h, --help  Print help

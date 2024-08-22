@@ -1,11 +1,8 @@
 mod base;
 
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
 
-use snapbox::{
-    cmd::{cargo_bin, Command},
-    file,
-};
+use snapbox::cmd::{cargo_bin, Command};
 
 use base::{BIN, EXAMPLE_DIR};
 
@@ -16,80 +13,91 @@ fn import(vars: impl IntoIterator<Item = (impl AsRef<OsStr>, impl AsRef<OsStr>)>
     Command::new(cargo_bin(BIN)).args(["import", data_file_str]).envs(vars).assert().success();
 }
 
-#[test]
-fn usage() {
-    let vars: [(OsString, OsString); 0] = [];
-    Command::new(cargo_bin(BIN))
-        .envs(vars)
-        .assert()
-        .stderr_eq(file!("cli_tests/usage.stderr"))
-        .failure();
-}
+mod usage {
+    use std::ffi::OsString;
 
-#[test]
-fn usage_add() {
-    let vars: [(OsString, OsString); 0] = [];
-    Command::new(cargo_bin(BIN))
-        .args(["add"])
-        .envs(vars)
-        .assert()
-        .stderr_eq(file!("cli_tests/usage_add.stderr"))
-        .failure();
-}
+    use snapbox::{
+        cmd::{cargo_bin, Command},
+        file,
+    };
 
-#[test]
-fn usage_lookup() {
-    let vars: [(OsString, OsString); 0] = [];
-    Command::new(cargo_bin(BIN))
-        .args(["lookup"])
-        .envs(vars)
-        .assert()
-        .stderr_eq(file!("cli_tests/usage_lookup.stderr"))
-        .failure();
-}
+    use crate::base::BIN;
 
-#[test]
-fn usage_modify() {
-    let vars: [(OsString, OsString); 0] = [];
-    Command::new(cargo_bin(BIN))
-        .args(["modify"])
-        .envs(vars)
-        .assert()
-        .stderr_eq(file!("cli_tests/usage_modify.stderr"))
-        .failure();
-}
+    #[test]
+    fn usage() {
+        let vars: [(OsString, OsString); 0] = [];
+        Command::new(cargo_bin(BIN))
+            .envs(vars)
+            .assert()
+            .stderr_eq(file!("cli_tests/usage.stderr"))
+            .failure();
+    }
 
-#[test]
-fn usage_remove() {
-    let vars: [(OsString, OsString); 0] = [];
-    Command::new(cargo_bin(BIN))
-        .args(["remove"])
-        .envs(vars)
-        .assert()
-        .stderr_eq(file!("cli_tests/usage_remove.stderr"))
-        .failure();
-}
+    #[test]
+    fn add() {
+        let vars: [(OsString, OsString); 0] = [];
+        Command::new(cargo_bin(BIN))
+            .args(["add"])
+            .envs(vars)
+            .assert()
+            .stderr_eq(file!("cli_tests/usage_add.stderr"))
+            .failure();
+    }
 
-#[test]
-fn usage_import() {
-    let vars: [(OsString, OsString); 0] = [];
-    Command::new(cargo_bin(BIN))
-        .args(["import"])
-        .envs(vars)
-        .assert()
-        .stderr_eq(file!("cli_tests/usage_import.stderr"))
-        .failure();
-}
+    #[test]
+    fn lookup() {
+        let vars: [(OsString, OsString); 0] = [];
+        Command::new(cargo_bin(BIN))
+            .args(["lookup"])
+            .envs(vars)
+            .assert()
+            .stderr_eq(file!("cli_tests/usage_lookup.stderr"))
+            .failure();
+    }
 
-#[test]
-fn usage_export() {
-    let vars: [(OsString, OsString); 0] = [];
-    Command::new(cargo_bin(BIN))
-        .args(["export"])
-        .envs(vars)
-        .assert()
-        .stderr_eq(file!("cli_tests/usage_export.stderr"))
-        .failure();
+    #[test]
+    fn modify() {
+        let vars: [(OsString, OsString); 0] = [];
+        Command::new(cargo_bin(BIN))
+            .args(["modify"])
+            .envs(vars)
+            .assert()
+            .stderr_eq(file!("cli_tests/usage_modify.stderr"))
+            .failure();
+    }
+
+    #[test]
+    fn remove() {
+        let vars: [(OsString, OsString); 0] = [];
+        Command::new(cargo_bin(BIN))
+            .args(["remove"])
+            .envs(vars)
+            .assert()
+            .stderr_eq(file!("cli_tests/usage_remove.stderr"))
+            .failure();
+    }
+
+    #[test]
+    fn import() {
+        let vars: [(OsString, OsString); 0] = [];
+        Command::new(cargo_bin(BIN))
+            .args(["import"])
+            .envs(vars)
+            .assert()
+            .stderr_eq(file!("cli_tests/usage_import.stderr"))
+            .failure();
+    }
+
+    #[test]
+    fn export() {
+        let vars: [(OsString, OsString); 0] = [];
+        Command::new(cargo_bin(BIN))
+            .args(["export"])
+            .envs(vars)
+            .assert()
+            .stderr_eq(file!("cli_tests/usage_export.stderr"))
+            .failure();
+    }
 }
 
 macro_rules! make_tests {

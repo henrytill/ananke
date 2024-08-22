@@ -26,8 +26,10 @@ fn command() -> Command {
     let version = version::version_info().to_string();
 
     let add = {
-        let arg_description =
-            Arg::new(ARG_DESCRIPTION).value_name("DESCRIPTION").help("URL or description");
+        let arg_description = Arg::new(ARG_DESCRIPTION)
+            .value_name("DESCRIPTION")
+            .help("URL or description")
+            .required(true);
         let arg_identity = Arg::new(ARG_IDENTITY)
             .short('i')
             .long("identity")
@@ -47,8 +49,10 @@ fn command() -> Command {
     };
 
     let lookup = {
-        let arg_description =
-            Arg::new(ARG_DESCRIPTION).value_name("DESCRIPTION").help("URL or description");
+        let arg_description = Arg::new(ARG_DESCRIPTION)
+            .value_name("DESCRIPTION")
+            .help("URL or description")
+            .required(true);
         let arg_identity = Arg::new(ARG_IDENTITY)
             .short('i')
             .long("identity")

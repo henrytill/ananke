@@ -1,9 +1,9 @@
 Add an entry
 
-Usage: ananke[EXE] add [OPTIONS] [DESCRIPTION]
+Usage: ananke[EXE] add [OPTIONS] <DESCRIPTION>
 
 Arguments:
-  [DESCRIPTION]  URL or description
+  <DESCRIPTION>  URL or description
 
 Options:
   -i, --identity <IDENTITY>  username or email address

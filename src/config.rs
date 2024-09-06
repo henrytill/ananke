@@ -21,7 +21,7 @@ pub enum Backend {
 impl TryFrom<u8> for Backend {
     type Error = ();
 
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
+    fn try_from(value: u8) -> Result<Backend, Self::Error> {
         match value {
             0 => Ok(Backend::Json),
             1 => Ok(Backend::Sqlite),
@@ -128,7 +128,7 @@ impl From<bool> for Flag {
 impl FromStr for Flag {
     type Err = Infallible;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Flag, Self::Err> {
         match s {
             "true" | "t" | "yes" | "y" | "1" => Ok(Flag(true)),
             _ => Ok(Flag(false)),

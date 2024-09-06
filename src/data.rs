@@ -119,7 +119,7 @@ impl From<&str> for Plaintext {
 pub struct EntryId(Uuid);
 
 impl Default for EntryId {
-    fn default() -> Self {
+    fn default() -> EntryId {
         EntryId(Uuid::new_v4())
     }
 }
@@ -137,7 +137,7 @@ impl ToSql for EntryId {
 }
 
 impl FromSql for EntryId {
-    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<EntryId> {
         let uuid_str = String::column_result(value)?;
         EntryId::try_from(uuid_str).map_err(|e| FromSqlError::Other(Box::new(e)))
     }
@@ -229,7 +229,7 @@ impl AsRef<[u8]> for Ciphertext {
 impl FromStr for Ciphertext {
     type Err = DecodeError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Ciphertext, Self::Err> {
         let decoded = BASE64.decode(s.as_bytes())?;
         Ok(Ciphertext(decoded))
     }

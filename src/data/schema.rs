@@ -14,7 +14,7 @@ impl SchemaVersion {
 impl FromStr for SchemaVersion {
     type Err = ParseIntError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<SchemaVersion, Self::Err> {
         u64::from_str(s).map(SchemaVersion::new)
     }
 }
@@ -26,7 +26,7 @@ impl std::fmt::Display for SchemaVersion {
 }
 
 impl From<u64> for SchemaVersion {
-    fn from(value: u64) -> Self {
+    fn from(value: u64) -> SchemaVersion {
         SchemaVersion::new(value)
     }
 }

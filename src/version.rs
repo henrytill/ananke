@@ -29,12 +29,15 @@ macro_rules! option_env_str {
     };
 }
 
+fn commit_info() -> Option<CommitInfo> {
+    let short_commit_hash = option_env_str!("ANANKE_COMMIT_SHORT_HASH")?;
+    let commit_hash = option_env_str!("ANANKE_COMMIT_HASH")?;
+    let maybe_commit_date = option_env_str!("ANANKE_COMMIT_DATE");
+    Some(CommitInfo { short_commit_hash, commit_hash, maybe_commit_date })
+}
+
 pub fn version_info() -> VersionInfo {
     let version = env!("CARGO_PKG_VERSION").to_string();
-    let commit_info = option_env_str!("ANANKE_COMMIT_HASH").map(|commit_hash| {
-        let short_commit_hash = option_env_str!("ANANKE_COMMIT_SHORT_HASH").unwrap();
-        let maybe_commit_date = option_env_str!("ANANKE_COMMIT_DATE");
-        CommitInfo { short_commit_hash, commit_hash, maybe_commit_date }
-    });
+    let commit_info = commit_info();
     VersionInfo { version, commit_info }
 }

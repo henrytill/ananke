@@ -1,6 +1,6 @@
 Remove an entry
 
-Usage: ananke[EXE] remove [OPTIONS]
+Usage: ananke[EXE] remove <--description <DESCRIPTION>|--entry-id <ENTRYID>>
 
 Options:
   -d, --description <DESCRIPTION>  URL or description

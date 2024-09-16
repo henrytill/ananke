@@ -1,6 +1,6 @@
 Modify an entry
 
-Usage: ananke[EXE] modify [OPTIONS]
+Usage: ananke[EXE] modify [OPTIONS] <--description <DESCRIPTION>|--entry-id <ENTRYID>>
 
 Options:
   -d, --description <DESCRIPTION>  URL or description

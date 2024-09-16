@@ -1,211 +1,130 @@
 use std::process::ExitCode;
 
 use anyhow::Result;
-use clap::{Arg, ArgGroup, Command};
+use clap::{Args, Parser, Subcommand};
 
 use ananke::{cli, version};
 
-const ARG_DESCRIPTION: &str = "description";
-const ARG_IDENTITY: &str = "identity";
-const ARG_ENTRY_ID: &str = "entry-id";
-const ARG_PLAINTEXT: &str = "plaintext";
-const ARG_METADATA: &str = "metadata";
-const ARG_VERBOSE: &str = "verbose";
-const ARG_FILE: &str = "file";
-const ARG_LIST: &str = "list";
+/// A password manager
+#[derive(Parser)]
+#[command(name = "ananke", version = version::version_info().to_string())]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
 
-const CMD_ADD: &str = "add";
-const CMD_LOOKUP: &str = "lookup";
-const CMD_MODIFY: &str = "modify";
-const CMD_REMOVE: &str = "remove";
-const CMD_IMPORT: &str = "import";
-const CMD_EXPORT: &str = "export";
-const CMD_CONFIGURE: &str = "configure";
+#[derive(Subcommand)]
+enum Commands {
+    /// Add an entry
+    #[command(arg_required_else_help = true)]
+    Add {
+        /// URL or description
+        #[arg(required = true)]
+        description: String,
+        /// username or email address
+        #[arg(short, long)]
+        identity: Option<String>,
+        /// additional metadata
+        #[arg(short, long, value_name = "METADATA")]
+        meta: Option<String>,
+    },
+    /// Lookup an entry
+    #[command(arg_required_else_help = true)]
+    Lookup {
+        /// URL or description
+        #[arg(required = true)]
+        description: String,
+        /// username or email address
+        #[arg(short, long)]
+        identity: Option<String>,
+        /// enable verbose output
+        #[arg(short, long)]
+        verbose: bool,
+    },
+    /// Modify an entry
+    #[command(arg_required_else_help = true)]
+    Modify {
+        #[command(flatten)]
+        target: ModifyTarget,
+        /// prompt for plaintext
+        #[arg(short, long)]
+        plaintext: bool,
+        /// username or email address
+        #[arg(short, long)]
+        identity: Option<String>,
+        /// additional metadata
+        #[arg(short, long, value_name = "METADATA")]
+        meta: Option<String>,
+    },
+    /// Remove an entry
+    #[command(arg_required_else_help = true)]
+    Remove {
+        #[command(flatten)]
+        target: RemoveTarget,
+    },
+    /// Import entries from JSON file
+    #[command(arg_required_else_help = true)]
+    Import {
+        /// file to import from
+        #[arg(required = true)]
+        file: String,
+    },
+    /// Export entries to JSON file
+    #[command(arg_required_else_help = true)]
+    Export {
+        /// file to export to
+        #[arg(required = true)]
+        file: String,
+    },
+    /// Create, modify, and list configuration
+    Configure {
+        /// List the configuration
+        #[arg(short, long)]
+        list: bool,
+    },
+}
 
-fn command() -> Command {
-    let version = version::version_info().to_string();
+#[derive(Args)]
+#[group(required = true, multiple = false)]
+struct ModifyTarget {
+    /// URL or description
+    #[arg(short, long)]
+    description: Option<String>,
+    /// Entry ID
+    #[arg(short, long, value_name = "ENTRYID")]
+    entry_id: Option<String>,
+}
 
-    let add = {
-        let arg_description = Arg::new(ARG_DESCRIPTION)
-            .value_name("DESCRIPTION")
-            .help("URL or description")
-            .required(true);
-        let arg_identity = Arg::new(ARG_IDENTITY)
-            .short('i')
-            .long("identity")
-            .value_name("IDENTITY")
-            .help("username or email address");
-        let arg_meta = Arg::new(ARG_METADATA)
-            .short('m')
-            .long("meta")
-            .value_name("METADATA")
-            .help("additional metadata");
-        Command::new(CMD_ADD)
-            .about("Add an entry")
-            .arg(arg_description)
-            .arg(arg_identity)
-            .arg(arg_meta)
-            .arg_required_else_help(true)
-    };
-
-    let lookup = {
-        let arg_description = Arg::new(ARG_DESCRIPTION)
-            .value_name("DESCRIPTION")
-            .help("URL or description")
-            .required(true);
-        let arg_identity = Arg::new(ARG_IDENTITY)
-            .short('i')
-            .long("identity")
-            .value_name("IDENTITY")
-            .help("username or email address");
-        let arg_verbose = Arg::new(ARG_VERBOSE)
-            .short('v')
-            .long("verbose")
-            .num_args(0)
-            .help("enable verbose output");
-        Command::new(CMD_LOOKUP)
-            .about("Lookup an entry")
-            .arg(arg_description)
-            .arg(arg_identity)
-            .arg(arg_verbose)
-            .arg_required_else_help(true)
-    };
-
-    let modify = {
-        let arg_description = Arg::new(ARG_DESCRIPTION)
-            .short('d')
-            .long("description")
-            .value_name("DESCRIPTION")
-            .help("URL or description");
-        let arg_entry_id = Arg::new(ARG_ENTRY_ID)
-            .short('e')
-            .long("entry-id")
-            .value_name("ENTRYID")
-            .help("Entry ID");
-        let arg_plaintext = Arg::new(ARG_PLAINTEXT)
-            .short('p')
-            .long("plaintext")
-            .num_args(0)
-            .help("prompt for plaintext");
-        let arg_identity = Arg::new(ARG_IDENTITY)
-            .short('i')
-            .long("identity")
-            .value_name("IDENTITY")
-            .help("username or email address");
-        let arg_meta = Arg::new(ARG_METADATA)
-            .short('m')
-            .long("meta")
-            .value_name("METADATA")
-            .help("additional metadata");
-        Command::new(CMD_MODIFY)
-            .about("Modify an entry")
-            .arg(arg_description)
-            .arg(arg_entry_id)
-            .arg(arg_plaintext)
-            .arg(arg_identity)
-            .arg(arg_meta)
-            .group(ArgGroup::new("modify").args(["description", "entry-id"]))
-            .arg_required_else_help(true)
-    };
-
-    let remove = {
-        let arg_description = Arg::new(ARG_DESCRIPTION)
-            .short('d')
-            .long("description")
-            .value_name("DESCRIPTION")
-            .help("URL or description");
-        let arg_entry_id = Arg::new(ARG_ENTRY_ID)
-            .short('e')
-            .long("entry-id")
-            .value_name("ENTRYID")
-            .help("Entry ID");
-        Command::new(CMD_REMOVE)
-            .about("Remove an entry")
-            .arg(arg_description)
-            .arg(arg_entry_id)
-            .group(ArgGroup::new("remove").args(["description", "entry-id"]))
-            .arg_required_else_help(true)
-    };
-
-    let import = {
-        let arg_file =
-            Arg::new(ARG_FILE).value_name("FILE").help("file to import from").required(true);
-        Command::new(CMD_IMPORT)
-            .about("Import entries from JSON file")
-            .arg(arg_file)
-            .arg_required_else_help(true)
-    };
-
-    let export = {
-        let arg_file =
-            Arg::new(ARG_FILE).value_name("FILE").help("file to export to").required(true);
-        Command::new(CMD_EXPORT)
-            .about("Export entries to JSON file")
-            .arg(arg_file)
-            .arg_required_else_help(true)
-    };
-
-    let configure = {
-        let arg_list =
-            Arg::new(ARG_LIST).short('l').long("list").num_args(0).help("List the configuration");
-        Command::new(CMD_CONFIGURE).about("Create, modify, and list configuration").arg(arg_list)
-    };
-
-    Command::new("ananke")
-        .about("A password manager")
-        .version(version)
-        .subcommand_required(true)
-        .subcommand(add)
-        .subcommand(lookup)
-        .subcommand(modify)
-        .subcommand(remove)
-        .subcommand(import)
-        .subcommand(export)
-        .subcommand(configure)
-        .arg_required_else_help(true)
+#[derive(Args)]
+#[group(required = true, multiple = false)]
+struct RemoveTarget {
+    /// URL or description
+    #[arg(short, long)]
+    description: Option<String>,
+    /// Entry ID
+    #[arg(short, long, value_name = "ENTRYID")]
+    entry_id: Option<String>,
 }
 
 fn main() -> Result<ExitCode> {
-    let matches = command().get_matches();
-    match matches.subcommand() {
-        Some((CMD_ADD, sub_matches)) => {
-            let description = sub_matches.get_one::<String>(ARG_DESCRIPTION).cloned().unwrap();
-            let identity = sub_matches.get_one::<String>(ARG_IDENTITY).cloned();
-            let metadata = sub_matches.get_one::<String>(ARG_METADATA).cloned();
-            cli::add(description, identity, metadata)
-        }
-        Some((CMD_LOOKUP, sub_matches)) => {
-            let description = sub_matches.get_one::<String>(ARG_DESCRIPTION).cloned().unwrap();
-            let identity = sub_matches.get_one::<String>(ARG_IDENTITY).cloned();
-            let verbose = sub_matches.get_one::<bool>(ARG_VERBOSE).copied().unwrap_or_default();
+    let cli = Cli::parse();
+
+    match cli.command {
+        Commands::Add { description, identity, meta } => cli::add(description, identity, meta),
+        Commands::Lookup { description, identity, verbose } => {
             cli::lookup(description, identity, verbose)
         }
-        Some((CMD_MODIFY, sub_matches)) => {
-            let description = sub_matches.get_one::<String>(ARG_DESCRIPTION).cloned();
-            let entry_id = sub_matches.get_one::<String>(ARG_ENTRY_ID).cloned();
-            let plaintext = sub_matches.get_one::<bool>(ARG_PLAINTEXT).copied().unwrap_or_default();
-            let identity = sub_matches.get_one::<String>(ARG_IDENTITY).cloned();
-            let metadata = sub_matches.get_one::<String>(ARG_METADATA).cloned();
-            cli::modify(description, entry_id, plaintext, None, identity, metadata)
-        }
-        Some((CMD_REMOVE, sub_matches)) => {
-            let description = sub_matches.get_one::<String>(ARG_DESCRIPTION).cloned();
-            let entry_id = sub_matches.get_one::<String>(ARG_ENTRY_ID).cloned();
+        Commands::Modify {
+            target: ModifyTarget { description, entry_id },
+            plaintext,
+            identity,
+            meta,
+        } => cli::modify(description, entry_id, plaintext, None, identity, meta),
+        Commands::Remove { target: RemoveTarget { description, entry_id } } => {
             cli::remove(description, entry_id)
         }
-        Some((CMD_IMPORT, sub_matches)) => {
-            let file = sub_matches.get_one::<String>(ARG_FILE).cloned().unwrap();
-            cli::import(file)
-        }
-        Some((CMD_EXPORT, sub_matches)) => {
-            let file = sub_matches.get_one::<String>(ARG_FILE).cloned().unwrap();
-            cli::export(file)
-        }
-        Some((CMD_CONFIGURE, sub_matches)) => {
-            let list = sub_matches.get_one::<bool>(ARG_LIST).copied().unwrap_or_default();
-            cli::configure(list)
-        }
-        Some((&_, _)) => panic!(),
-        None => panic!(),
+        Commands::Import { file } => cli::import(file),
+        Commands::Export { file } => cli::export(file),
+        Commands::Configure { list } => cli::configure(list),
     }
 }

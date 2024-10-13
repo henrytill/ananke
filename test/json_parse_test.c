@@ -25,7 +25,7 @@ enum {
 #define MSG_WRONG_TYPE    "wrong type for key: "
 
 #ifdef PRINT
-#define PADDING "\t"
+#    define PADDING "\t"
 static void print_entry(struct entry *e)
 {
     printf("id=%s\n", e->id);

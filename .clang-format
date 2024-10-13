@@ -8,8 +8,8 @@ AllowShortBlocksOnASingleLine: Always
 AllowShortCaseLabelsOnASingleLine: true
 AllowShortEnumsOnASingleLine: true
 AllowShortFunctionsOnASingleLine: true
-AllowShortIfStatementsOnASingleLine: true
-AllowShortLoopsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
 BasedOnStyle: LLVM
 BreakBeforeBinaryOperators: NonAssignment
 BreakBeforeBraces: WebKit
@@ -18,7 +18,10 @@ ColumnLimit: 0
 ContinuationIndentWidth: 4
 DerivePointerAlignment: false
 IndentCaseLabels: false
+IndentCaseBlocks: true
+IndentPPDirectives: AfterHash
 IndentWidth: 4
+ObjCBlockIndentWidth: 4
 PointerAlignment: Right
 ReflowComments: true
 SortIncludes: true

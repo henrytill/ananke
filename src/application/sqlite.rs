@@ -251,9 +251,9 @@ impl Application for SqliteApplication {
     }
 
     fn export(&self, path: PathBuf) -> Result<(), Error> {
-        let stmt =
+        let sql =
             "SELECT id, keyid, timestamp, description, identity, ciphertext, meta FROM entries";
-        let mut stmt = self.connection.prepare(stmt)?;
+        let mut stmt = self.connection.prepare(sql)?;
         let mut rows = stmt.query([])?;
         let mut entries = Vec::new();
         while let Some(row) = rows.next()? {
@@ -362,8 +362,8 @@ FROM entries_v3
         }
         {
             let hashes: Vec<String> = {
-                let stmt = "SELECT id FROM entries";
-                let mut stmt = tx.prepare(stmt)?;
+                let sql = "SELECT id FROM entries";
+                let mut stmt = tx.prepare(sql)?;
                 let mut rows = stmt.query([])?;
                 let mut tmp = Vec::new();
                 while let Some(row) = rows.next()? {

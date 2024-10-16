@@ -47,8 +47,8 @@ where
         return Err(Error::from(io::Error::other(format!("gpg exited with status {}", status))));
     }
 
-    let join_result = stdout_handle.join().map_err(|_| Error::msg(MSG_JOIN))?;
-    let buf = join_result?;
+    let buf_or_error = stdout_handle.join().map_err(|_| Error::msg(MSG_JOIN))?;
+    let buf = buf_or_error?;
     Ok(Ciphertext::new(buf))
 }
 
@@ -86,8 +86,8 @@ where
         return Err(Error::from(io::Error::other(format!("gpg exited with status {}", status))));
     }
 
-    let join_result = stdout_handle.join().map_err(|_| Error::msg(MSG_JOIN))?;
-    let buf = join_result?;
+    let buf_or_error = stdout_handle.join().map_err(|_| Error::msg(MSG_JOIN))?;
+    let buf = buf_or_error?;
     let txt = String::from_utf8(buf)?;
     Ok(Plaintext::new(txt))
 }

@@ -16,6 +16,7 @@ pub enum Backend {
     #[default]
     Json = 0,
     Sqlite = 1,
+    Text = 2,
 }
 
 impl TryFrom<u8> for Backend {
@@ -25,6 +26,7 @@ impl TryFrom<u8> for Backend {
         match value {
             0 => Ok(Backend::Json),
             1 => Ok(Backend::Sqlite),
+            2 => Ok(Backend::Text),
             _ => Err(()),
         }
     }
@@ -37,6 +39,7 @@ impl FromStr for Backend {
         match s {
             "sqlite" | "SQLITE" | "Sqlite" | "SQLite" => Ok(Backend::Sqlite),
             "json" | "JSON" | "Json" => Ok(Backend::Json),
+            "text" | "TEXT" | "Text" => Ok(Backend::Text),
             _ => Err(()),
         }
     }
@@ -47,6 +50,7 @@ impl std::fmt::Display for Backend {
         let str = match self {
             Backend::Json => "json",
             Backend::Sqlite => "sqlite",
+            Backend::Text => "text",
         };
         write!(f, "{}", str)
     }
@@ -72,7 +76,7 @@ impl Config {
         &self.key_id
     }
 
-    fn db_dir(&self) -> PathBuf {
+    pub fn db_dir(&self) -> PathBuf {
         let mut ret = self.data_dir.to_owned();
         ret.push("db");
         ret
@@ -84,11 +88,12 @@ impl Config {
         ret
     }
 
-    pub fn data_file(&self) -> PathBuf {
+    pub fn db(&self) -> PathBuf {
         let mut ret = self.db_dir().to_owned();
         match self.backend {
             Backend::Json => ret.push("data.json"),
             Backend::Sqlite => ret.push("db.sqlite"),
+            Backend::Text => ret.push("db.asc"),
         }
         ret
     }

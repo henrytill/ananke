@@ -340,6 +340,49 @@ impl Entry {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SecureIndexElement {
+    pub description: Description,
+    pub key_id: KeyId,
+    pub entry_id: EntryId,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
+#[serde(rename_all = "camelCase")]
+pub struct SecureEntry {
+    pub timestamp: Timestamp,
+    #[serde(rename = "id")]
+    pub entry_id: EntryId,
+    pub key_id: KeyId,
+    pub description: Description,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identity: Option<Identity>,
+    pub plaintext: Plaintext,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "meta")]
+    pub metadata: Option<Metadata>,
+}
+
+impl PartialEq for SecureEntry {
+    fn eq(&self, other: &Self) -> bool {
+        self.description == other.description
+    }
+}
+
+impl Eq for SecureEntry {}
+
+impl Hash for SecureEntry {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.description.0.hash(state)
+    }
+}
+
+impl SecureEntry {
+    pub fn update(&mut self) {
+        self.timestamp = Timestamp::now();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{fs, path::PathBuf};

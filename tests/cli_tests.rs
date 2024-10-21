@@ -382,3 +382,4 @@ macro_rules! make_tests {
 
 make_tests!(json, base::json_vars);
 make_tests!(sqlite, base::sqlite_vars);
+make_tests!(text, base::text_vars);

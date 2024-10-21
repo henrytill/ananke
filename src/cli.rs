@@ -13,9 +13,10 @@ use crate::{
         base::{Application, Target},
         json::JsonApplication,
         sqlite::SqliteApplication,
+        text::TextApplication,
     },
     config::{Backend, Config, ConfigBuilder},
-    data::{Description, Entry, EntryId, Identity, KeyId, Metadata, Plaintext},
+    data::{Description, Entry, EntryId, Identity, KeyId, Metadata, Plaintext, SecureEntry},
     gpg,
 };
 
@@ -105,6 +106,62 @@ fn format_results(results: &[(Entry, Plaintext)], verbose: bool) -> Result<Strin
     Ok(ret)
 }
 
+fn format_brief_secure(entry: &SecureEntry) -> String {
+    let description = entry.description.as_str();
+    let identity = entry.identity.as_ref().map(Identity::as_str).unwrap_or_else(|| "<none>");
+    let plaintext = entry.plaintext.as_str();
+    format!("{} {} {}", description, identity, plaintext)
+}
+
+fn format_verbose_secure(entry: &SecureEntry) -> Result<String, Error> {
+    let mut elements = vec![
+        entry.timestamp.isoformat()?,
+        entry.entry_id.to_string(),
+        entry.key_id.to_string(),
+        entry.description.to_string(),
+    ];
+
+    if let Some(ref identity) = entry.identity {
+        elements.push(identity.to_string())
+    }
+
+    elements.push(entry.plaintext.to_string());
+
+    if let Some(ref metadata) = entry.metadata {
+        elements.push(format!("\"{}\"", metadata))
+    }
+
+    let ret = elements.join(" ");
+    elements.zeroize();
+    Ok(ret)
+}
+
+fn format_results_secure(results: &[SecureEntry], verbose: bool) -> Result<String, Error> {
+    if results.len() == 1 {
+        let secure_entry = &results[0];
+        if verbose {
+            return format_verbose_secure(secure_entry);
+        } else {
+            return Ok(secure_entry.plaintext.to_string());
+        }
+    }
+
+    let mut formatted_results = Vec::new();
+
+    for secure_entry in results {
+        let formatted = if verbose {
+            format_verbose_secure(secure_entry)?
+        } else {
+            format_brief_secure(secure_entry)
+        };
+        formatted_results.push(formatted);
+    }
+
+    let ret = formatted_results.join("\n");
+    formatted_results.zeroize();
+    Ok(ret)
+}
+
 pub fn add(
     description: String,
     maybe_identity: Option<String>,
@@ -124,6 +181,10 @@ pub fn add(
         }
         Backend::Sqlite => {
             let mut app = SqliteApplication::new(config)?;
+            app.add(description, plaintext, maybe_identity, maybe_metadata)?;
+        }
+        Backend::Text => {
+            let mut app = TextApplication::new(config)?;
             app.add(description, plaintext, maybe_identity, maybe_metadata)?;
         }
     }
@@ -157,6 +218,16 @@ pub fn lookup(
                 return Ok(ExitCode::FAILURE);
             }
             let mut output = format_results(&results, verbose)?;
+            println!("{}", output);
+            output.zeroize();
+        }
+        Backend::Text => {
+            let app = TextApplication::new(config)?;
+            let results = app.lookup(description, maybe_identity)?;
+            if results.is_empty() {
+                return Ok(ExitCode::FAILURE);
+            }
+            let mut output = format_results_secure(&results, verbose)?;
             println!("{}", output);
             output.zeroize();
         }
@@ -200,6 +271,10 @@ pub fn modify(
             let mut app = SqliteApplication::new(config)?;
             app.modify(target, maybe_description, maybe_plaintext, maybe_identity, maybe_metadata)?;
         }
+        Backend::Text => {
+            let mut app = TextApplication::new(config)?;
+            app.modify(target, maybe_description, maybe_plaintext, maybe_identity, maybe_metadata)?;
+        }
     }
     Ok(ExitCode::SUCCESS)
 }
@@ -225,6 +300,10 @@ pub fn remove(
             let mut app = SqliteApplication::new(config)?;
             app.remove(target)?;
         }
+        Backend::Text => {
+            let mut app = TextApplication::new(config)?;
+            app.remove(target)?;
+        }
     }
     Ok(ExitCode::SUCCESS)
 }
@@ -241,6 +320,10 @@ pub fn import(path: String) -> Result<ExitCode, Error> {
             let mut app = SqliteApplication::new(config)?;
             app.import(path)?;
         }
+        Backend::Text => {
+            let mut app = TextApplication::new(config)?;
+            app.import(path)?;
+        }
     }
     Ok(ExitCode::SUCCESS)
 }
@@ -255,6 +338,10 @@ pub fn export(path: String) -> Result<ExitCode, Error> {
         }
         Backend::Sqlite => {
             let app = SqliteApplication::new(config)?;
+            app.export(path)?;
+        }
+        Backend::Text => {
+            let app = TextApplication::new(config)?;
             app.export(path)?;
         }
     }

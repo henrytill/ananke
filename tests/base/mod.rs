@@ -34,6 +34,19 @@ pub fn sqlite_vars(
     ]
 }
 
+#[allow(unused)]
+pub fn text_vars(
+    data_dir: impl Into<OsString>,
+) -> impl IntoIterator<Item = (OsString, OsString)> + Clone {
+    let gnupg_home = GNUPGHOME.iter().collect::<PathBuf>();
+    [
+        (OsString::from("GNUPGHOME"), gnupg_home.into_os_string()),
+        (OsString::from("ANANKE_BACKEND"), OsString::from("text")),
+        (OsString::from("ANANKE_KEY_ID"), OsString::from("371C136C")),
+        (OsString::from("ANANKE_DATA_DIR"), data_dir.into()),
+    ]
+}
+
 pub fn check_schema(dir: impl AsRef<Path>, version: u64) {
     const SCHEMA_PATH: [&str; 2] = ["db", "schema"];
     let schema_path = {

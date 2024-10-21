@@ -11,7 +11,7 @@ use serde_json::{json, ser::PrettyFormatter, Map, Serializer, Value};
 use uuid::Uuid;
 
 use crate::{
-    application::base::{self, Application, Target},
+    application::base::{self, Application, Matcher, Target},
     config::Config,
     data::{
         self, Description, Entry, EntryId, Identity, Metadata, Plaintext, SchemaVersion, Timestamp,
@@ -35,8 +35,7 @@ impl JsonApplication {
             migrate(&config, schema_version)?;
             fs::write(config.schema_file(), SchemaVersion::CURRENT.to_string())?;
         }
-        let entries =
-            if config.data_file().exists() { base::read(config.data_file())? } else { Vec::new() };
+        let entries = if config.db().exists() { base::read(config.db())? } else { Vec::new() };
         Ok(JsonApplication { config, entries })
     }
 
@@ -74,7 +73,7 @@ impl Application for JsonApplication {
             Entry { timestamp, entry_id, key_id, description, identity, ciphertext, metadata }
         };
         self.entries.push(entry);
-        self.write(self.config.data_file())?;
+        self.write(self.config.db())?;
         Ok(())
     }
 
@@ -112,7 +111,7 @@ impl Application for JsonApplication {
             .entries
             .iter()
             .enumerate()
-            .filter(|(_i, entry)| target.matches(entry))
+            .filter(|(_i, entry)| target.matches(*entry))
             .map(|(i, _entry)| i)
             .collect();
 
@@ -140,7 +139,7 @@ impl Application for JsonApplication {
         entry.update();
         self.entries.push(entry);
 
-        self.write(self.config.data_file())?;
+        self.write(self.config.db())?;
         Ok(())
     }
 
@@ -149,7 +148,7 @@ impl Application for JsonApplication {
             .entries
             .iter()
             .enumerate()
-            .filter(|(_i, entry)| target.matches(entry))
+            .filter(|(_i, entry)| target.matches(*entry))
             .map(|(i, _entry)| i)
             .collect();
 
@@ -163,14 +162,14 @@ impl Application for JsonApplication {
 
         self.entries.remove(is[0]);
 
-        self.write(self.config.data_file())?;
+        self.write(self.config.db())?;
         Ok(())
     }
 
     fn import(&mut self, path: PathBuf) -> Result<(), Self::Error> {
         let entries: Vec<Entry> = base::read(path)?;
         self.entries.extend(entries);
-        self.write(self.config.data_file())?;
+        self.write(self.config.db())?;
         Ok(())
     }
 
@@ -197,14 +196,14 @@ fn write_value(path: impl AsRef<Path>, value: Value) -> Result<(), anyhow::Error
 
 fn migrate(config: &Config, schema_version: SchemaVersion) -> Result<(), Error> {
     if schema_version == SchemaVersion::new(3) {
-        let json = fs::read_to_string(config.data_file())?;
+        let json = fs::read_to_string(config.db())?;
         let mut value: Value = serde_json::from_str(&json)?;
         let arr = value.as_array_mut().ok_or_else(|| Error::msg("value is not an array"))?;
         for value in arr {
             let obj = value.as_object_mut().ok_or_else(|| Error::msg("value is not an object"))?;
             obj.insert(String::from("id"), json!(Uuid::new_v4()));
         }
-        write_value(config.data_file(), value).map_err(Into::into)
+        write_value(config.db(), value).map_err(Into::into)
     } else if schema_version == SchemaVersion::new(2) {
         let mappings: HashMap<String, String> = HashMap::from_iter(
             [
@@ -219,7 +218,7 @@ fn migrate(config: &Config, schema_version: SchemaVersion) -> Result<(), Error> 
             .into_iter()
             .map(|(k, v)| (String::from(k), String::from(v))),
         );
-        let json = fs::read_to_string(config.data_file())?;
+        let json = fs::read_to_string(config.db())?;
         let mut value: Value = serde_json::from_str(&json)?;
         let arr = value.as_array_mut().ok_or_else(|| Error::msg("value is not an array"))?;
         for value in arr {
@@ -234,7 +233,7 @@ fn migrate(config: &Config, schema_version: SchemaVersion) -> Result<(), Error> 
             }
             *value = target.into();
         }
-        write_value(config.data_file(), value)?;
+        write_value(config.db(), value)?;
         migrate(config, SchemaVersion::new(3))
     } else if schema_version == SchemaVersion::new(1) {
         Err(Error::msg("schema version 1 not supported by JSON backend"))

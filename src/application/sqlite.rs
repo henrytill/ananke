@@ -43,12 +43,12 @@ impl SqliteApplication {
 
     pub fn new(config: Config) -> Result<SqliteApplication, Error> {
         assert_eq!(config.backend(), Backend::Sqlite);
-        if let Some(parent) = config.data_file().parent() {
+        if let Some(parent) = config.db().parent() {
             if !parent.exists() {
                 fs::create_dir_all(parent)?;
             }
         }
-        let mut connection = rusqlite::Connection::open(config.data_file())?;
+        let mut connection = rusqlite::Connection::open(config.db())?;
         let schema_version = data::schema_version(config.schema_file())?;
         if schema_version != SchemaVersion::CURRENT {
             migrate(&mut connection, &config, schema_version)?;

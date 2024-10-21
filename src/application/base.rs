@@ -6,7 +6,11 @@ use std::{
 use serde::Serialize;
 use serde_json::ser::{PrettyFormatter, Serializer};
 
-use crate::data::{Description, Entry, EntryId, Identity, Metadata, Plaintext};
+use crate::data::{Description, Entry, EntryId, Identity, Metadata, Plaintext, SecureIndexElement};
+
+pub trait Matcher<A> {
+    fn matches(&self, candidate: A) -> bool;
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Target {
@@ -14,11 +18,20 @@ pub enum Target {
     Description(Description),
 }
 
-impl Target {
-    pub fn matches(&self, entry: &Entry) -> bool {
+impl Matcher<&Entry> for Target {
+    fn matches(&self, candidate: &Entry) -> bool {
         match self {
-            Target::EntryId(entry_id) => *entry_id == entry.entry_id,
-            Target::Description(description) => *description == entry.description,
+            Target::EntryId(entry_id) => *entry_id == candidate.entry_id,
+            Target::Description(description) => *description == candidate.description,
+        }
+    }
+}
+
+impl Matcher<&SecureIndexElement> for Target {
+    fn matches(&self, candidate: &SecureIndexElement) -> bool {
+        match self {
+            Target::EntryId(entry_id) => *entry_id == candidate.entry_id,
+            Target::Description(description) => *description == candidate.description,
         }
     }
 }

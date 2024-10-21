@@ -54,6 +54,13 @@ macro_rules! wrap_string {
             }
         }
 
+        impl AsRef<str> for $name {
+            #[inline]
+            fn as_ref(&self) -> &str {
+                self.0.as_ref()
+            }
+        }
+
         impl From<&str> for $name {
             fn from(name: &str) -> Self {
                 Self(name.to_string())
@@ -159,8 +166,8 @@ impl TryFrom<String> for EntryId {
 }
 
 impl Description {
-    pub fn contains(&self, pat: &str) -> bool {
-        self.0.contains(pat)
+    pub fn contains(&self, pat: impl AsRef<str>) -> bool {
+        self.0.contains(pat.as_ref())
     }
 }
 
@@ -171,8 +178,8 @@ impl Hash for Description {
 }
 
 impl Identity {
-    pub fn contains(&self, pat: &str) -> bool {
-        self.0.contains(pat)
+    pub fn contains(&self, pat: impl AsRef<str>) -> bool {
+        self.0.contains(pat.as_ref())
     }
 }
 

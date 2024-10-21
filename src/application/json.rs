@@ -53,6 +53,8 @@ impl JsonApplication {
 impl Application for JsonApplication {
     type Error = Error;
 
+    type Record = (Entry, Plaintext);
+
     fn add(
         &mut self,
         description: Description,
@@ -80,7 +82,7 @@ impl Application for JsonApplication {
         &self,
         description: Description,
         maybe_identity: Option<Identity>,
-    ) -> Result<Vec<(Entry, Plaintext)>, Self::Error> {
+    ) -> Result<Vec<Self::Record>, Self::Error> {
         let mut ret = Vec::new();
         for entry in self.entries.iter().filter(|e| e.description.contains(description.as_str())) {
             match (maybe_identity.as_ref(), entry.identity.as_ref()) {

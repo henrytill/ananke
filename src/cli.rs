@@ -139,22 +139,28 @@ pub fn lookup(
     let maybe_identity = maybe_identity.map(Identity::from);
 
     let config = config()?;
-    let results = match config.backend() {
+    match config.backend() {
         Backend::Json => {
             let app = JsonApplication::new(config)?;
-            app.lookup(description, maybe_identity)?
+            let results = app.lookup(description, maybe_identity)?;
+            if results.is_empty() {
+                return Ok(ExitCode::FAILURE);
+            }
+            let mut output = format_results(&results, verbose)?;
+            println!("{}", output);
+            output.zeroize();
         }
         Backend::Sqlite => {
             let app = SqliteApplication::new(config)?;
-            app.lookup(description, maybe_identity)?
+            let results = app.lookup(description, maybe_identity)?;
+            if results.is_empty() {
+                return Ok(ExitCode::FAILURE);
+            }
+            let mut output = format_results(&results, verbose)?;
+            println!("{}", output);
+            output.zeroize();
         }
     };
-    if results.is_empty() {
-        return Ok(ExitCode::FAILURE);
-    }
-    let mut output = format_results(&results, verbose)?;
-    println!("{}", output);
-    output.zeroize();
     Ok(ExitCode::SUCCESS)
 }
 

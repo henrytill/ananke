@@ -67,6 +67,8 @@ impl SqliteApplication {
 impl Application for SqliteApplication {
     type Error = Error;
 
+    type Record = (Entry, Plaintext);
+
     fn add(
         &mut self,
         description: Description,
@@ -99,7 +101,7 @@ impl Application for SqliteApplication {
         &self,
         description: Description,
         maybe_identity: Option<Identity>,
-    ) -> Result<Vec<(Entry, Plaintext)>, Error> {
+    ) -> Result<Vec<Self::Record>, Error> {
         let (stmt, params) = make_query(Target::Description(description), maybe_identity);
         let mut stmt = self.connection.prepare(&stmt)?;
         let mut rows = stmt.query(params_from_iter(params))?;

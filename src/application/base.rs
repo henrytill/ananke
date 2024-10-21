@@ -29,6 +29,8 @@ impl Target {
 pub trait Application {
     type Error;
 
+    type Record;
+
     fn add(
         &mut self,
         description: Description,
@@ -41,7 +43,7 @@ pub trait Application {
         &self,
         description: Description,
         maybe_identity: Option<Identity>,
-    ) -> Result<Vec<(Entry, Plaintext)>, Self::Error>;
+    ) -> Result<Vec<Self::Record>, Self::Error>;
 
     fn modify(
         &mut self,

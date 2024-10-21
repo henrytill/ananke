@@ -13,20 +13,9 @@ const MSG_TAKE_STDOUT: &str = "missing stdout";
 const MSG_TAKE_STDIN: &str = "missing stdin";
 const MSG_JOIN: &str = "join thread failed";
 
-pub fn encrypt<F, I, K, V>(key_id: &KeyId, plaintext: &Plaintext, f: F) -> Result<Ciphertext, Error>
-where
-    F: Fn() -> I,
-    I: IntoIterator<Item = (K, V)>,
-    K: AsRef<OsStr>,
-    V: AsRef<OsStr>,
-{
-    let mut child = Command::new("gpg")
-        .args(["--batch", "-q", "-e", "-r", key_id.as_str()])
-        .envs(f())
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()?;
+fn write_stdin(mut cmd: Command, buf: &[u8]) -> Result<Vec<u8>, Error> {
+    let mut child =
+        cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn()?;
 
     let stdout_handle: JoinHandle<Result<Vec<u8>, io::Error>> = {
         let mut stdout = child.stdout.take().ok_or_else(|| Error::msg(MSG_TAKE_STDOUT))?;
@@ -39,7 +28,7 @@ where
 
     {
         let mut stdin = child.stdin.take().ok_or_else(|| Error::msg(MSG_TAKE_STDIN))?;
-        stdin.write_all(plaintext.as_bytes())?;
+        stdin.write_all(buf)?;
     }
 
     let status = child.wait()?;
@@ -49,45 +38,42 @@ where
 
     let buf_or_error = stdout_handle.join().map_err(|_| Error::msg(MSG_JOIN))?;
     let buf = buf_or_error?;
+    Ok(buf)
+}
+
+pub fn encrypt<F, I, K, V>(
+    key_id: &KeyId,
+    plaintext: &Plaintext,
+    vars: F,
+) -> Result<Ciphertext, Error>
+where
+    F: Fn() -> I,
+    I: IntoIterator<Item = (K, V)>,
+    K: AsRef<OsStr>,
+    V: AsRef<OsStr>,
+{
+    let cmd = {
+        let mut tmp = Command::new("gpg");
+        tmp.args(["--batch", "-q", "-e", "-r", key_id.as_str()]).envs(vars());
+        tmp
+    };
+    let buf = write_stdin(cmd, plaintext.as_bytes())?;
     Ok(Ciphertext::new(buf))
 }
 
-pub fn decrypt<F, I, K, V>(ciphertext: &Ciphertext, f: F) -> Result<Plaintext, Error>
+pub fn decrypt<F, I, K, V>(ciphertext: &Ciphertext, vars: F) -> Result<Plaintext, Error>
 where
     F: Fn() -> I,
     I: IntoIterator<Item = (K, V)>,
     K: AsRef<OsStr>,
     V: AsRef<OsStr>,
 {
-    let mut child = Command::new("gpg")
-        .args(["--batch", "-q", "-d"])
-        .envs(f())
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()?;
-
-    let stdout_handle: JoinHandle<Result<Vec<u8>, io::Error>> = {
-        let mut stdout = child.stdout.take().ok_or_else(|| Error::msg(MSG_TAKE_STDOUT))?;
-        std::thread::spawn(move || {
-            let mut buf = Vec::new();
-            let _len = stdout.read_to_end(&mut buf)?;
-            Ok(buf)
-        })
+    let cmd = {
+        let mut tmp = Command::new("gpg");
+        tmp.args(["--batch", "-q", "-d"]).envs(vars());
+        tmp
     };
-
-    {
-        let mut stdin = child.stdin.take().ok_or_else(|| Error::msg(MSG_TAKE_STDIN))?;
-        stdin.write_all(ciphertext.as_ref())?;
-    }
-
-    let status = child.wait()?;
-    if !status.success() {
-        return Err(Error::from(io::Error::other(format!("gpg exited with status {}", status))));
-    }
-
-    let buf_or_error = stdout_handle.join().map_err(|_| Error::msg(MSG_JOIN))?;
-    let buf = buf_or_error?;
+    let buf = write_stdin(cmd, ciphertext.as_ref())?;
     let txt = String::from_utf8(buf)?;
     Ok(Plaintext::new(txt))
 }

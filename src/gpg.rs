@@ -14,6 +14,8 @@ const MSG_TAKE_STDIN: &str = "missing stdin";
 const MSG_JOIN: &str = "join thread failed";
 
 fn write_stdin(mut cmd: Command, buf: &[u8]) -> Result<Vec<u8>, Error> {
+    let program = cmd.get_program().to_os_string(); // for error messages
+
     let mut child =
         cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn()?;
 
@@ -33,7 +35,8 @@ fn write_stdin(mut cmd: Command, buf: &[u8]) -> Result<Vec<u8>, Error> {
 
     let status = child.wait()?;
     if !status.success() {
-        return Err(Error::from(io::Error::other(format!("gpg exited with status {}", status))));
+        let msg = format!("{} exited with status {}", program.to_string_lossy(), status);
+        return Err(Error::from(io::Error::other(msg)));
     }
 
     let buf_or_error = stdout_handle.join().map_err(|_| Error::msg(MSG_JOIN))?;

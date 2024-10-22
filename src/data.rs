@@ -16,7 +16,7 @@ use time::{
     OffsetDateTime,
 };
 use uuid::Uuid;
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::{DefaultIsZeroes, Zeroize, ZeroizeOnDrop};
 
 pub use schema::{schema_version, SchemaVersion};
 
@@ -24,7 +24,7 @@ pub use schema::{schema_version, SchemaVersion};
 macro_rules! wrap_string {
     ($name:ident) => {
         /// A newtype that wraps a [`String`].
-        #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+        #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
         pub struct $name(String);
 
         #[allow(dead_code)]
@@ -35,10 +35,6 @@ macro_rules! wrap_string {
 
             pub fn as_str(&self) -> &str {
                 self.0.as_str()
-            }
-
-            pub fn into_inner(self) -> String {
-                self.0
             }
         }
 
@@ -122,18 +118,20 @@ impl From<&str> for Plaintext {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct EntryId(Uuid);
 
 impl Default for EntryId {
     fn default() -> EntryId {
-        EntryId(Uuid::new_v4())
+        EntryId(Uuid::nil())
     }
 }
 
+impl DefaultIsZeroes for EntryId {}
+
 impl EntryId {
     pub fn new() -> EntryId {
-        EntryId::default()
+        EntryId(Uuid::new_v4())
     }
 }
 
@@ -183,7 +181,7 @@ impl Identity {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct Timestamp(#[serde(with = "iso8601")] OffsetDateTime);
 
 impl Timestamp {
@@ -195,6 +193,14 @@ impl Timestamp {
         self.0.format(&Iso8601::DEFAULT)
     }
 }
+
+impl Default for Timestamp {
+    fn default() -> Self {
+        Timestamp(OffsetDateTime::UNIX_EPOCH)
+    }
+}
+
+impl DefaultIsZeroes for Timestamp {}
 
 impl FromSql for Timestamp {
     fn column_result(value: ValueRef<'_>) -> FromSqlResult<Timestamp> {
@@ -218,7 +224,7 @@ const FORMAT_CONFIG: EncodedConfig = Config::DEFAULT.set_year_is_six_digits(fals
 const FORMAT: Iso8601<FORMAT_CONFIG> = Iso8601::<FORMAT_CONFIG>;
 time::serde::format_description!(iso8601, OffsetDateTime, FORMAT);
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct Ciphertext(#[serde(with = "base64")] Vec<u8>);
 
 impl Ciphertext {

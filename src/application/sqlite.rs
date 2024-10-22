@@ -287,12 +287,12 @@ fn make_query(target: Target, maybe_identity: Option<Identity>) -> (String, Vec<
         }
         Target::Description(description) => {
             wheres.push(String::from("description LIKE ?1"));
-            params.push(format!("%{}%", description.into_inner()));
+            params.push(format!("%{}%", description.as_str()));
         }
     }
     if let Some(identity) = maybe_identity {
         wheres.push(String::from("identity LIKE ?2"));
-        params.push(format!("%{}%", identity.into_inner()));
+        params.push(format!("%{}%", identity.as_str()));
     }
     sql.push_str(&wheres.join(" AND "));
     (sql, params)

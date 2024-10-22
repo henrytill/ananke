@@ -79,7 +79,7 @@ impl Application for SqliteApplication {
         let timestamp = Timestamp::now();
         let key_id = self.config.key_id();
         let entry_id = EntryId::new();
-        let ciphertext = gpg::encrypt(key_id, &plaintext, Self::env)?;
+        let ciphertext = gpg::binary::encrypt(key_id, &plaintext, Self::env)?;
         let identity = maybe_identity;
         let metadata = maybe_metadata;
 
@@ -109,7 +109,7 @@ impl Application for SqliteApplication {
         while let Some(row) = rows.next()? {
             let (entry_id, key_id, timestamp, description, identity, ciphertext, metadata) =
                 TryFrom::try_from(row)?;
-            let plaintext = gpg::decrypt(&ciphertext, Self::env)?;
+            let plaintext = gpg::binary::decrypt(&ciphertext, Self::env)?;
             results.push((
                 Entry { timestamp, entry_id, key_id, description, identity, ciphertext, metadata },
                 plaintext,
@@ -165,7 +165,7 @@ impl Application for SqliteApplication {
                 entry.description = description
             }
             if let Some(plaintext) = maybe_plaintext {
-                let ciphertext = gpg::encrypt(self.config.key_id(), &plaintext, Self::env)?;
+                let ciphertext = gpg::binary::encrypt(self.config.key_id(), &plaintext, Self::env)?;
                 entry.ciphertext = ciphertext
             }
             if maybe_identity.is_some() {

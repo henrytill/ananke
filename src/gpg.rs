@@ -89,6 +89,52 @@ pub mod binary {
     }
 }
 
+pub mod text {
+    use std::{ffi::OsStr, process::Command};
+
+    use anyhow::Error;
+
+    use crate::data::{ArmoredCiphertext, KeyId, Plaintext};
+
+    pub fn encrypt<F, I, K, V>(
+        key_id: &KeyId,
+        plaintext: &Plaintext,
+        vars: F,
+    ) -> Result<ArmoredCiphertext, Error>
+    where
+        F: Fn() -> I,
+        I: IntoIterator<Item = (K, V)>,
+        K: AsRef<OsStr>,
+        V: AsRef<OsStr>,
+    {
+        let cmd = {
+            let mut tmp = Command::new("gpg");
+            tmp.args(["--batch", "--armor", "-q", "-e", "-r", key_id.as_str()]).envs(vars());
+            tmp
+        };
+        let buf = super::write_stdin(cmd, plaintext.as_bytes())?;
+        let txt = String::from_utf8(buf)?;
+        Ok(ArmoredCiphertext::new(txt))
+    }
+
+    pub fn decrypt<F, I, K, V>(ciphertext: &ArmoredCiphertext, vars: F) -> Result<Plaintext, Error>
+    where
+        F: Fn() -> I,
+        I: IntoIterator<Item = (K, V)>,
+        K: AsRef<OsStr>,
+        V: AsRef<OsStr>,
+    {
+        let cmd = {
+            let mut tmp = Command::new("gpg");
+            tmp.args(["--batch", "-q", "-d"]).envs(vars());
+            tmp
+        };
+        let buf = super::write_stdin(cmd, ciphertext.as_bytes())?;
+        let txt = String::from_utf8(buf)?;
+        Ok(Plaintext::new(txt))
+    }
+}
+
 pub fn suggest_key<F, I, K, V>(f: F) -> Result<Option<KeyId>, Error>
 where
     F: Fn() -> I,
@@ -207,6 +253,15 @@ mod tests {
     }
 
     #[test]
+    fn roundtrip_text() {
+        let key_id = KeyId::from("371C136C");
+        let plaintext = Plaintext::from("Hello, world!");
+        let encrypted = super::text::encrypt(&key_id, &plaintext, vars).unwrap();
+        let decrypted = super::text::decrypt(&encrypted, vars).unwrap();
+        assert_eq!(plaintext, decrypted);
+    }
+
+    #[test]
     #[ignore]
     fn roundtrip_binary_large() {
         let random = {
@@ -222,6 +277,25 @@ mod tests {
         let plaintext = Plaintext::from(random);
         let encrypted = super::binary::encrypt(&key_id, &plaintext, vars).unwrap();
         let decrypted = super::binary::decrypt(&encrypted, vars).unwrap();
+        assert_eq!(plaintext, decrypted);
+    }
+
+    #[test]
+    #[ignore]
+    fn roundtrip_text_large() {
+        let random = {
+            let mut rng = rand::thread_rng();
+            let mut data = Vec::with_capacity(RANDOM_LEN);
+            for _ in 0..(RANDOM_LEN / 8) {
+                let random_bytes: [u8; 8] = rng.gen();
+                data.extend_from_slice(&random_bytes);
+            }
+            String::from_utf8_lossy(&data).to_string()
+        };
+        let key_id = KeyId::from("371C136C");
+        let plaintext = Plaintext::from(random);
+        let encrypted = super::text::encrypt(&key_id, &plaintext, vars).unwrap();
+        let decrypted = super::text::decrypt(&encrypted, vars).unwrap();
         assert_eq!(plaintext, decrypted);
     }
 

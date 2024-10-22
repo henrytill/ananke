@@ -36,6 +36,10 @@ macro_rules! wrap_string {
             pub fn as_str(&self) -> &str {
                 self.0.as_str()
             }
+
+            pub fn as_bytes(&self) -> &[u8] {
+                self.0.as_bytes()
+            }
         }
 
         impl From<String> for $name {
@@ -81,6 +85,7 @@ wrap_string!(KeyId);
 wrap_string!(Description);
 wrap_string!(Identity);
 wrap_string!(Metadata);
+wrap_string!(ArmoredCiphertext);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct Plaintext(String);

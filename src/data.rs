@@ -343,9 +343,9 @@ impl Entry {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SecureIndexElement {
-    pub description: Description,
-    pub key_id: KeyId,
     pub entry_id: EntryId,
+    pub key_id: KeyId,
+    pub description: Description,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]

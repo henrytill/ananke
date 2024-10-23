@@ -93,7 +93,7 @@ impl Config {
         match self.backend {
             Backend::Json => ret.push("data.json"),
             Backend::Sqlite => ret.push("db.sqlite"),
-            Backend::Text => ret.push("db.asc"),
+            Backend::Text => ret.push("index.asc"),
         }
         ret
     }

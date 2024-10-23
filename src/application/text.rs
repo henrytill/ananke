@@ -209,9 +209,9 @@ impl Application for TextApplication {
             let timestamp = entry.timestamp;
             let entry_id = entry.entry_id;
             let key_id = self.config.key_id().clone();
-            let description = entry.description;
-            let identity = entry.identity;
-            let metadata = entry.metadata;
+            let description = entry.description.clone();
+            let identity = entry.identity.clone();
+            let metadata = entry.metadata.clone();
             let plaintext = gpg::binary::decrypt(&entry.ciphertext, Self::env)?;
             let secure_entry = {
                 let key_id = key_id.clone();

@@ -56,10 +56,7 @@ impl TextApplication {
 
     fn entry(&self, entry_id: EntryId) -> Result<SecureEntry, Error> {
         let path = self.entry_path(entry_id);
-        let blob = fs::read_to_string(path)?;
-        let armored = ArmoredCiphertext::from(blob);
-        let json = gpg::text::decrypt(&armored, Self::env)?;
-        serde_json::from_str(json.as_str()).map_err(Into::into)
+        read(path, Self::env)
     }
 
     fn write_entry(&self, entry: SecureEntry) -> Result<(), Error> {

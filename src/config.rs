@@ -77,19 +77,19 @@ impl Config {
     }
 
     pub fn db_dir(&self) -> PathBuf {
-        let mut ret = self.data_dir.to_owned();
+        let mut ret = self.data_dir.clone();
         ret.push("db");
         ret
     }
 
     pub fn schema_file(&self) -> PathBuf {
-        let mut ret = self.db_dir().to_owned();
+        let mut ret = self.db_dir().clone();
         ret.push("schema");
         ret
     }
 
     pub fn db(&self) -> PathBuf {
-        let mut ret = self.db_dir().to_owned();
+        let mut ret = self.db_dir().clone();
         match self.backend {
             Backend::Json => ret.push("data.json"),
             Backend::Sqlite => ret.push("db.sqlite"),
@@ -243,7 +243,7 @@ impl<'a> ConfigBuilder<'a> {
     pub fn with_ini(mut self, maybe_input: Option<String>) -> Result<ConfigBuilder<'a>, Error> {
         let input = if let Some(input) = maybe_input {
             input
-        } else if let Some(mut path) = self.maybe_config_dir.to_owned() {
+        } else if let Some(mut path) = self.maybe_config_dir.clone() {
             path.push(Self::CONFIG_FILE);
             if path.exists() {
                 fs::read_to_string(path)?
@@ -333,7 +333,7 @@ impl<'a> ConfigBuilder<'a> {
 
     pub fn maybe_config_file(&self) -> Option<PathBuf> {
         self.maybe_config_dir.as_ref().map(|config_dir| {
-            let mut tmp = config_dir.to_owned();
+            let mut tmp = config_dir.clone();
             tmp.push("ananke.ini");
             tmp
         })

@@ -226,9 +226,9 @@ fn migrate(config: &Config, schema_version: SchemaVersion) -> Result<(), Error> 
             let mut target = Map::new();
             for (k, v) in obj.into_iter() {
                 if let Some(mapped) = mappings.get(k) {
-                    target.insert(mapped.to_owned(), v.to_owned());
+                    target.insert(mapped.clone(), v.clone());
                 } else {
-                    target.insert(k.to_owned(), v.to_owned());
+                    target.insert(k.clone(), v.clone());
                 }
             }
             *value = target.into();

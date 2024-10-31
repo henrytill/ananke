@@ -26,7 +26,7 @@ impl TextApplication {
     const ENV: [(OsString, OsString); 0] = [];
     const MSG_NO_ENTRIES: &'static str = "no entries match this target";
     const MSG_MULTIPLE_ENTRIES: &'static str = "multiple entries match this target";
-    const OBJECTS_DIR: &str = "objects";
+    const OBJECTS_DIR: &'static str = "objects";
     const MINIMUM_SUPPORTED_SCHEMA_VERSION: SchemaVersion = SchemaVersion::new(4);
 
     pub fn new(config: Config) -> Result<TextApplication, Error> {

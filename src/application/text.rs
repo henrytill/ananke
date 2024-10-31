@@ -96,14 +96,14 @@ impl Application for TextApplication {
         maybe_identity: Option<Identity>,
         maybe_metadata: Option<Metadata>,
     ) -> Result<(), Self::Error> {
-        let timestamp = Timestamp::now();
         let key_id = self.config.key_id().clone();
         let entry_id = EntryId::new();
-        let identity = maybe_identity;
-        let metadata = maybe_metadata;
         let entry = {
+            let timestamp = Timestamp::now();
             let key_id = key_id.clone();
             let description = description.clone();
+            let identity = maybe_identity;
+            let metadata = maybe_metadata;
             SecureEntry { timestamp, entry_id, key_id, description, identity, plaintext, metadata }
         };
         let elem = SecureIndexElement { description, key_id, entry_id };
@@ -159,8 +159,8 @@ impl Application for TextApplication {
         let mut elem = self.elems.remove(i);
         let mut entry: SecureEntry = self.entry(elem.entry_id)?;
         if let Some(description) = maybe_description {
-            elem.description = description.clone();
-            entry.description = description
+            entry.description = description.clone();
+            elem.description = description;
         }
         if let Some(plaintext) = maybe_plaintext {
             entry.plaintext = plaintext
@@ -203,16 +203,15 @@ impl Application for TextApplication {
     fn import(&mut self, path: PathBuf) -> Result<(), Self::Error> {
         let entries: Vec<Entry> = base::read(path)?;
         for entry in entries {
-            let timestamp = entry.timestamp;
-            let entry_id = entry.entry_id;
             let key_id = self.config.key_id().clone();
-            let description = entry.description.clone();
-            let identity = entry.identity.clone();
-            let metadata = entry.metadata.clone();
-            let plaintext = gpg::binary::decrypt(&entry.ciphertext, Self::env)?;
+            let entry_id = entry.entry_id;
             let secure_entry = {
+                let timestamp = entry.timestamp;
                 let key_id = key_id.clone();
-                let description = description.clone();
+                let description = entry.description.clone();
+                let identity = entry.identity.clone();
+                let metadata = entry.metadata.clone();
+                let plaintext = gpg::binary::decrypt(&entry.ciphertext, Self::env)?;
                 SecureEntry {
                     timestamp,
                     entry_id,
@@ -223,7 +222,10 @@ impl Application for TextApplication {
                     metadata,
                 }
             };
-            let elem = SecureIndexElement { description, key_id, entry_id };
+            let elem = {
+                let description = entry.description.clone();
+                SecureIndexElement { description, key_id, entry_id }
+            };
             self.write_entry(secure_entry)?;
             self.elems.push(elem);
         }

@@ -13,7 +13,7 @@ const MSG_TAKE_STDOUT: &str = "missing stdout";
 const MSG_TAKE_STDIN: &str = "missing stdin";
 const MSG_JOIN: &str = "join thread failed";
 
-fn write_stdin(mut cmd: Command, buf: &[u8]) -> Result<Vec<u8>, Error> {
+fn run(mut cmd: Command, buf: &[u8]) -> Result<Vec<u8>, Error> {
     let program = cmd.get_program().to_os_string(); // for error messages
 
     let mut child =
@@ -67,7 +67,7 @@ pub mod binary {
             tmp.args(["--batch", "-q", "-e", "-r", key_id.as_str()]).envs(vars());
             tmp
         };
-        let buf = super::write_stdin(cmd, plaintext.as_bytes())?;
+        let buf = super::run(cmd, plaintext.as_bytes())?;
         Ok(Ciphertext::new(buf))
     }
 
@@ -83,7 +83,7 @@ pub mod binary {
             tmp.args(["--batch", "-q", "-d"]).envs(vars());
             tmp
         };
-        let buf = super::write_stdin(cmd, ciphertext.as_ref())?;
+        let buf = super::run(cmd, ciphertext.as_ref())?;
         let txt = String::from_utf8(buf)?;
         Ok(Plaintext::new(txt))
     }
@@ -112,7 +112,7 @@ pub mod text {
             tmp.args(["--batch", "--armor", "-q", "-e", "-r", key_id.as_str()]).envs(vars());
             tmp
         };
-        let buf = super::write_stdin(cmd, plaintext.as_bytes())?;
+        let buf = super::run(cmd, plaintext.as_bytes())?;
         let txt = String::from_utf8(buf)?;
         Ok(ArmoredCiphertext::new(txt))
     }
@@ -129,7 +129,7 @@ pub mod text {
             tmp.args(["--batch", "-q", "-d"]).envs(vars());
             tmp
         };
-        let buf = super::write_stdin(cmd, ciphertext.as_bytes())?;
+        let buf = super::run(cmd, ciphertext.as_bytes())?;
         let txt = String::from_utf8(buf)?;
         Ok(Plaintext::new(txt))
     }

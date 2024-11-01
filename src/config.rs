@@ -36,10 +36,10 @@ impl FromStr for Backend {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Backend, Self::Err> {
-        match s {
-            "sqlite" | "SQLITE" | "Sqlite" | "SQLite" => Ok(Backend::Sqlite),
-            "json" | "JSON" | "Json" => Ok(Backend::Json),
-            "text" | "TEXT" | "Text" => Ok(Backend::Text),
+        match s.to_lowercase().as_str() {
+            "sqlite" => Ok(Backend::Sqlite),
+            "json" => Ok(Backend::Json),
+            "text" => Ok(Backend::Text),
             _ => Err(()),
         }
     }

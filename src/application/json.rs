@@ -11,7 +11,7 @@ use serde_json::{json, ser::PrettyFormatter, Map, Serializer, Value};
 use uuid::Uuid;
 
 use crate::{
-    application::base::{self, Application, Matcher, Target},
+    application::base::{Application, Matcher, Target},
     config::Config,
     data::{
         self, Description, Entry, EntryId, Identity, Metadata, Plaintext, SchemaVersion, Timestamp,
@@ -35,13 +35,13 @@ impl JsonApplication {
             migrate(&config, schema_version)?;
             fs::write(config.schema_file(), SchemaVersion::CURRENT.to_string())?;
         }
-        let entries = if config.db().exists() { base::read(config.db())? } else { Vec::new() };
+        let entries = if config.db().exists() { read(config.db())? } else { Vec::new() };
         Ok(JsonApplication { config, entries })
     }
 
     fn write(&self, path: PathBuf) -> Result<(), Error> {
         let entries: &[Entry] = self.entries.as_slice();
-        base::write(path, entries)
+        write(path, entries)
     }
 
     fn env() -> impl Iterator<Item = (OsString, OsString)> {
@@ -167,7 +167,7 @@ impl Application for JsonApplication {
     }
 
     fn import(&mut self, path: PathBuf) -> Result<(), Self::Error> {
-        let entries: Vec<Entry> = base::read(path)?;
+        let entries: Vec<Entry> = read(path)?;
         self.entries.extend(entries);
         self.write(self.config.db())?;
         Ok(())
@@ -177,6 +177,26 @@ impl Application for JsonApplication {
         self.write(path)?;
         Ok(())
     }
+}
+
+pub fn read(path: impl AsRef<Path>) -> Result<Vec<Entry>, anyhow::Error> {
+    let json = fs::read_to_string(path)?;
+    serde_json::from_str(&json).map_err(Into::into)
+}
+
+pub fn write(path: impl AsRef<Path>, entries: &[Entry]) -> Result<(), anyhow::Error> {
+    let mut buf = Vec::new();
+    let formatter = PrettyFormatter::with_indent(b"    ");
+    let mut ser = Serializer::with_formatter(&mut buf, formatter);
+    entries.serialize(&mut ser)?;
+    let mut ret = String::from_utf8(buf)?;
+    ret.push('\n');
+    if let Some(parent) = path.as_ref().parent() {
+        if !parent.exists() {
+            fs::create_dir_all(parent)?;
+        }
+    }
+    fs::write(path, ret).map_err(Into::into)
 }
 
 fn write_value(path: impl AsRef<Path>, value: Value) -> Result<(), anyhow::Error> {

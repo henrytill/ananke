@@ -5,7 +5,10 @@ use rusqlite::{named_params, params_from_iter, Connection, ToSql};
 use uuid::Uuid;
 
 use crate::{
-    application::base::{self, Application, Target},
+    application::{
+        base::{Application, Target},
+        json,
+    },
     config::{Backend, Config},
     data::{
         self, Description, Entry, EntryId, Identity, Metadata, Plaintext, SchemaVersion, Timestamp,
@@ -232,7 +235,7 @@ impl Application for SqliteApplication {
     }
 
     fn import(&mut self, path: PathBuf) -> Result<(), Error> {
-        let entries: Vec<Entry> = base::read(path)?;
+        let entries: Vec<Entry> = json::read(path)?;
         let tx = self.connection.transaction()?;
         {
             let mut stmt = tx.prepare(INSERT)?;
@@ -271,7 +274,7 @@ impl Application for SqliteApplication {
                 metadata,
             })
         }
-        base::write(path, &entries)?;
+        json::write(path, &entries)?;
         Ok(())
     }
 }

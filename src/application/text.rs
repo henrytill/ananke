@@ -8,7 +8,10 @@ use anyhow::Error;
 use serde::Deserialize;
 
 use crate::{
-    application::base::{self, Application, Matcher, Target},
+    application::{
+        base::{Application, Matcher, Target},
+        json,
+    },
     config::{Backend, Config},
     data::{
         self, ArmoredCiphertext, Description, Entry, EntryId, Identity, KeyId, Metadata, Plaintext,
@@ -201,7 +204,7 @@ impl Application for TextApplication {
     }
 
     fn import(&mut self, path: PathBuf) -> Result<(), Self::Error> {
-        let entries: Vec<Entry> = base::read(path)?;
+        let entries: Vec<Entry> = json::read(path)?;
         for entry in entries {
             let key_id = self.config.key_id().clone();
             let entry_id = entry.entry_id;
@@ -254,7 +257,7 @@ impl Application for TextApplication {
                 metadata,
             });
         }
-        base::write(path, entries.as_slice())?;
+        json::write(path, entries.as_slice())?;
         Ok(())
     }
 }

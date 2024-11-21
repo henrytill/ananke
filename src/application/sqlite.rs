@@ -7,11 +7,12 @@ use uuid::Uuid;
 use crate::{
     application::{
         base::{Application, Target},
-        json,
+        text,
     },
     config::{Backend, Config},
     data::{
-        self, Description, Entry, EntryId, Identity, Metadata, Plaintext, SchemaVersion, Timestamp,
+        self, Description, Entry, EntryId, Identity, Metadata, Plaintext, SchemaVersion,
+        SecureEntry, Timestamp,
     },
     gpg,
 };
@@ -235,18 +236,20 @@ impl Application for SqliteApplication {
     }
 
     fn import(&mut self, path: PathBuf) -> Result<(), Error> {
-        let entries: Vec<Entry> = json::read(path)?;
+        let entries: Vec<SecureEntry> = text::read(path, Self::env)?;
         let tx = self.connection.transaction()?;
         {
             let mut stmt = tx.prepare(INSERT)?;
             for entry in entries {
+                let key_id = &entry.key_id;
+                let ciphertext = gpg::binary::encrypt(key_id, &entry.plaintext, Self::env)?;
                 stmt.execute(named_params! {
                     ":id": entry.entry_id,
-                    ":keyid": entry.key_id,
+                    ":keyid": key_id,
                     ":timestamp": entry.timestamp,
                     ":description": entry.description,
                     ":identity": entry.identity,
-                    ":ciphertext": entry.ciphertext,
+                    ":ciphertext": ciphertext,
                     ":meta": entry.metadata
                 })?;
             }
@@ -260,21 +263,24 @@ impl Application for SqliteApplication {
             "SELECT id, keyid, timestamp, description, identity, ciphertext, meta FROM entries";
         let mut stmt = self.connection.prepare(sql)?;
         let mut rows = stmt.query([])?;
-        let mut entries = Vec::new();
+        let mut out = Vec::new();
         while let Some(row) = rows.next()? {
             let (entry_id, key_id, timestamp, description, identity, ciphertext, metadata) =
                 TryFrom::try_from(row)?;
-            entries.push(Entry {
+            let plaintext = gpg::binary::decrypt(&ciphertext, Self::env)?;
+            out.push(SecureEntry {
                 timestamp,
                 entry_id,
                 key_id,
                 description,
                 identity,
-                ciphertext,
+                plaintext,
                 metadata,
             })
         }
-        json::write(path, &entries)?;
+        let json = serde_json::to_string_pretty(&out)?;
+        let plaintext = Plaintext::from(json);
+        text::write(path, plaintext, self.config.key_id(), Self::env)?;
         Ok(())
     }
 }

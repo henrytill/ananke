@@ -11,10 +11,14 @@ use serde_json::{json, ser::PrettyFormatter, Map, Serializer, Value};
 use uuid::Uuid;
 
 use crate::{
-    application::base::{Application, Matcher, Target},
+    application::{
+        base::{Application, Matcher, Target},
+        text,
+    },
     config::Config,
     data::{
-        self, Description, Entry, EntryId, Identity, Metadata, Plaintext, SchemaVersion, Timestamp,
+        self, Description, Entry, EntryId, Identity, Metadata, Plaintext, SchemaVersion,
+        SecureEntry, Timestamp,
     },
     gpg,
 };
@@ -167,14 +171,52 @@ impl Application for JsonApplication {
     }
 
     fn import(&mut self, path: PathBuf) -> Result<(), Self::Error> {
-        let entries: Vec<Entry> = read(path)?;
-        self.entries.extend(entries);
+        let entries: Vec<SecureEntry> = text::read(path, Self::env)?;
+        for entry in entries {
+            let timestamp = entry.timestamp;
+            let entry_id = entry.entry_id;
+            let key_id = entry.key_id.clone();
+            let description = entry.description.clone();
+            let identity = entry.identity.clone();
+            let ciphertext = gpg::binary::encrypt(&key_id, &entry.plaintext, Self::env)?;
+            let metadata = entry.metadata.clone();
+            self.entries.push(Entry {
+                timestamp,
+                entry_id,
+                key_id,
+                description,
+                identity,
+                ciphertext,
+                metadata,
+            })
+        }
         self.write(self.config.db())?;
         Ok(())
     }
 
     fn export(&self, path: PathBuf) -> Result<(), Self::Error> {
-        self.write(path)?;
+        let mut out = Vec::new();
+        for entry in self.entries.iter() {
+            let timestamp = entry.timestamp;
+            let entry_id = entry.entry_id;
+            let key_id = entry.key_id.clone();
+            let description = entry.description.clone();
+            let identity = entry.identity.clone();
+            let plaintext = gpg::binary::decrypt(&entry.ciphertext, Self::env)?;
+            let metadata = entry.metadata.clone();
+            out.push(SecureEntry {
+                timestamp,
+                entry_id,
+                key_id,
+                description,
+                identity,
+                plaintext,
+                metadata,
+            })
+        }
+        let json = serde_json::to_string_pretty(&out)?;
+        let plaintext = Plaintext::from(json);
+        text::write(path, plaintext, self.config.key_id(), Self::env)?;
         Ok(())
     }
 }

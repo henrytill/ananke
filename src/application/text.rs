@@ -8,13 +8,10 @@ use anyhow::Error;
 use serde::Deserialize;
 
 use crate::{
-    application::{
-        base::{Application, Matcher, Target},
-        json,
-    },
+    application::base::{Application, Matcher, Target},
     config::{Backend, Config},
     data::{
-        self, ArmoredCiphertext, Description, Entry, EntryId, Identity, KeyId, Metadata, Plaintext,
+        self, ArmoredCiphertext, Description, EntryId, Identity, KeyId, Metadata, Plaintext,
         SchemaVersion, SecureEntry, SecureIndexElement, Timestamp,
     },
     gpg,
@@ -204,32 +201,15 @@ impl Application for TextApplication {
     }
 
     fn import(&mut self, path: PathBuf) -> Result<(), Self::Error> {
-        let entries: Vec<Entry> = json::read(path)?;
+        let entries: Vec<SecureEntry> = read(path, Self::env)?;
         for entry in entries {
             let key_id = self.config.key_id().clone();
             let entry_id = entry.entry_id;
-            let secure_entry = {
-                let timestamp = entry.timestamp;
-                let key_id = key_id.clone();
-                let description = entry.description.clone();
-                let identity = entry.identity.clone();
-                let metadata = entry.metadata.clone();
-                let plaintext = gpg::binary::decrypt(&entry.ciphertext, Self::env)?;
-                SecureEntry {
-                    timestamp,
-                    entry_id,
-                    key_id,
-                    description,
-                    identity,
-                    plaintext,
-                    metadata,
-                }
-            };
             let elem = {
                 let description = entry.description.clone();
                 SecureIndexElement { description, key_id, entry_id }
             };
-            self.write_entry(secure_entry)?;
+            self.write_entry(entry)?;
             self.elems.push(elem);
         }
         self.write_index()?;
@@ -240,24 +220,11 @@ impl Application for TextApplication {
         let mut entries = Vec::new();
         for elem in &self.elems {
             let secure_entry = self.entry(elem.entry_id)?;
-            let timestamp = secure_entry.timestamp;
-            let entry_id = secure_entry.entry_id;
-            let key_id = secure_entry.key_id.clone();
-            let description = secure_entry.description.clone();
-            let identity = secure_entry.identity.clone();
-            let ciphertext = gpg::binary::encrypt(&key_id, &secure_entry.plaintext, Self::env)?;
-            let metadata = secure_entry.metadata.clone();
-            entries.push(Entry {
-                timestamp,
-                entry_id,
-                key_id,
-                description,
-                identity,
-                ciphertext,
-                metadata,
-            });
+            entries.push(secure_entry);
         }
-        json::write(path, entries.as_slice())?;
+        let json = serde_json::to_string_pretty(&entries)?;
+        let plaintext = Plaintext::from(json);
+        write(path, plaintext, self.config.key_id(), Self::env)?;
         Ok(())
     }
 }
@@ -272,7 +239,7 @@ fn migrate(_config: &Config, schema_version: SchemaVersion) -> Result<(), Error>
     Ok(())
 }
 
-fn read<F, I, K, V, T>(path: impl AsRef<Path>, vars: F) -> Result<T, anyhow::Error>
+pub fn read<F, I, K, V, T>(path: impl AsRef<Path>, vars: F) -> Result<T, anyhow::Error>
 where
     F: Fn() -> I,
     I: IntoIterator<Item = (K, V)>,
@@ -286,7 +253,7 @@ where
     serde_json::from_str(json.as_str()).map_err(Into::into)
 }
 
-fn write<F, I, K, V>(
+pub fn write<F, I, K, V>(
     path: impl AsRef<Path>,
     plaintext: Plaintext,
     key_id: &KeyId,

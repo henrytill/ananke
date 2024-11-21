@@ -7,8 +7,8 @@ use snapbox::cmd::{cargo_bin, Command};
 use base::{BIN, EXAMPLE_DIR};
 
 fn import(vars: impl IntoIterator<Item = (impl AsRef<OsStr>, impl AsRef<OsStr>)>) {
-    const JSON_PATH: [&str; 3] = [EXAMPLE_DIR, "db", "data.json"];
-    let data_file = JSON_PATH.into_iter().collect::<std::path::PathBuf>().into_os_string();
+    const IMPORT_PATH: [&str; 2] = [EXAMPLE_DIR, "export.asc"];
+    let data_file = IMPORT_PATH.into_iter().collect::<std::path::PathBuf>().into_os_string();
     let data_file_str = data_file.to_str().unwrap();
     Command::new(cargo_bin(BIN)).args(["import", data_file_str]).envs(vars).assert().success();
 }

@@ -19,6 +19,9 @@ use crate::{
     gpg,
 };
 
+const SPACES_PER_INDENT: usize = 4;
+const INDENT: [u8; SPACES_PER_INDENT] = [b' '; SPACES_PER_INDENT];
+
 pub struct JsonApplication {
     config: Config,
     entries: Vec<Entry>,
@@ -186,7 +189,7 @@ pub fn read(path: impl AsRef<Path>) -> Result<Vec<Entry>, anyhow::Error> {
 
 pub fn write(path: impl AsRef<Path>, entries: &[Entry]) -> Result<(), anyhow::Error> {
     let mut buf = Vec::new();
-    let formatter = PrettyFormatter::with_indent(b"    ");
+    let formatter = PrettyFormatter::with_indent(&INDENT);
     let mut ser = Serializer::with_formatter(&mut buf, formatter);
     entries.serialize(&mut ser)?;
     let mut ret = String::from_utf8(buf)?;
@@ -201,7 +204,7 @@ pub fn write(path: impl AsRef<Path>, entries: &[Entry]) -> Result<(), anyhow::Er
 
 fn write_value(path: impl AsRef<Path>, value: Value) -> Result<(), anyhow::Error> {
     let mut buf = Vec::new();
-    let formatter = PrettyFormatter::with_indent(b"    ");
+    let formatter = PrettyFormatter::with_indent(&INDENT);
     let mut ser = Serializer::with_formatter(&mut buf, formatter);
     value.serialize(&mut ser)?;
     let mut ret = String::from_utf8(buf)?;

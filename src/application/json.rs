@@ -19,9 +19,6 @@ use crate::{
     gpg,
 };
 
-const SPACES_PER_INDENT: usize = 4;
-const INDENT: [u8; SPACES_PER_INDENT] = [b' '; SPACES_PER_INDENT];
-
 pub struct JsonApplication {
     config: Config,
     entries: Vec<Entry>,
@@ -187,26 +184,13 @@ pub fn read(path: impl AsRef<Path>) -> Result<Vec<Entry>, anyhow::Error> {
     serde_json::from_str(&json).map_err(Into::into)
 }
 
-pub fn write(path: impl AsRef<Path>, entries: &[Entry]) -> Result<(), anyhow::Error> {
+pub fn write(path: impl AsRef<Path>, data: impl Serialize) -> Result<(), anyhow::Error> {
     let mut buf = Vec::new();
+    const SPACES_PER_INDENT: usize = 4;
+    const INDENT: [u8; SPACES_PER_INDENT] = [b' '; SPACES_PER_INDENT];
     let formatter = PrettyFormatter::with_indent(&INDENT);
     let mut ser = Serializer::with_formatter(&mut buf, formatter);
-    entries.serialize(&mut ser)?;
-    let mut ret = String::from_utf8(buf)?;
-    ret.push('\n');
-    if let Some(parent) = path.as_ref().parent() {
-        if !parent.exists() {
-            fs::create_dir_all(parent)?;
-        }
-    }
-    fs::write(path, ret).map_err(Into::into)
-}
-
-fn write_value(path: impl AsRef<Path>, value: Value) -> Result<(), anyhow::Error> {
-    let mut buf = Vec::new();
-    let formatter = PrettyFormatter::with_indent(&INDENT);
-    let mut ser = Serializer::with_formatter(&mut buf, formatter);
-    value.serialize(&mut ser)?;
+    data.serialize(&mut ser)?;
     let mut ret = String::from_utf8(buf)?;
     ret.push('\n');
     if let Some(parent) = path.as_ref().parent() {
@@ -226,7 +210,7 @@ fn migrate(config: &Config, schema_version: SchemaVersion) -> Result<(), Error> 
             let obj = value.as_object_mut().ok_or_else(|| Error::msg("value is not an object"))?;
             obj.insert(String::from("id"), json!(Uuid::new_v4()));
         }
-        write_value(config.db(), value).map_err(Into::into)
+        write(config.db(), value).map_err(Into::into)
     } else if schema_version == SchemaVersion::new(2) {
         let mappings: HashMap<String, String> = HashMap::from_iter(
             [
@@ -256,7 +240,7 @@ fn migrate(config: &Config, schema_version: SchemaVersion) -> Result<(), Error> 
             }
             *value = target.into();
         }
-        write_value(config.db(), value)?;
+        write(config.db(), value)?;
         migrate(config, SchemaVersion::new(3))
     } else if schema_version == SchemaVersion::new(1) {
         Err(Error::msg("schema version 1 not supported by JSON backend"))

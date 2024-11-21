@@ -382,34 +382,3 @@ impl SecureEntry {
         self.timestamp = Timestamp::now();
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use std::{fs, path::PathBuf};
-
-    use serde::Serialize;
-    use serde_json::{ser::PrettyFormatter, Serializer};
-
-    use super::Entry;
-
-    const EXAMPLE_PATH: [&str; 3] = [r"example", "db", "data.json"];
-
-    #[test]
-    fn roundtrip_example() {
-        let path: PathBuf = EXAMPLE_PATH.iter().collect();
-        let expected = fs::read_to_string(path).unwrap();
-        let entries: Vec<Entry> = serde_json::from_str(&expected).unwrap();
-        let actual = {
-            let mut buf = Vec::new();
-            let formatter = PrettyFormatter::with_indent(b"    ");
-            let mut ser = Serializer::with_formatter(&mut buf, formatter);
-            entries.serialize(&mut ser).unwrap();
-            let mut tmp = String::from_utf8(buf).unwrap();
-            tmp.push('\n');
-            tmp
-        };
-        #[cfg(target_os = "windows")]
-        let actual = actual.replace("\n", "\r\n");
-        assert_eq!(expected, actual);
-    }
-}

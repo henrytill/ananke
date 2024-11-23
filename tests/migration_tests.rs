@@ -5,8 +5,8 @@ use std::{fs, path::Path};
 const UNKNOWN_SCHEMA_VERSION: u64 = u64::MAX;
 
 fn create_schema_file(dir: impl AsRef<Path>, version: u64) {
-    const TARGET: [&str; 2] = ["db", "schema"];
     let target_file = {
+        const TARGET: [&str; 2] = ["db", "schema"];
         let mut tmp = dir.as_ref().to_path_buf();
         tmp.push(TARGET.into_iter().collect::<std::path::PathBuf>());
         tmp
@@ -35,8 +35,8 @@ mod json {
     };
 
     fn copy_data(target_dir: impl AsRef<Path>, source_file: impl AsRef<Path>) {
-        const TARGET: [&str; 2] = ["db", "data.json"];
         let target_file = {
+            const TARGET: [&str; 2] = ["db", "data.json"];
             let mut tmp = target_dir.as_ref().to_path_buf();
             tmp.push(TARGET.into_iter().collect::<std::path::PathBuf>());
             tmp
@@ -125,8 +125,8 @@ mod sqlite {
     };
 
     fn copy_data(dir: impl AsRef<Path>, source: impl AsRef<Path>) {
-        const TARGET: [&str; 2] = ["db", "db.sqlite"];
         let target_file = {
+            const TARGET: [&str; 2] = ["db", "db.sqlite"];
             let mut tmp = dir.as_ref().to_path_buf();
             tmp.push(TARGET.into_iter().collect::<std::path::PathBuf>());
             tmp

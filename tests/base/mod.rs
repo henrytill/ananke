@@ -48,8 +48,8 @@ pub fn text_vars(
 }
 
 pub fn check_schema(dir: impl AsRef<Path>, version: u64) {
-    const SCHEMA_PATH: [&str; 2] = ["db", "schema"];
     let schema_path = {
+        const SCHEMA_PATH: [&str; 2] = ["db", "schema"];
         let mut tmp = PathBuf::from(dir.as_ref());
         tmp.push(SCHEMA_PATH.into_iter().collect::<PathBuf>());
         tmp

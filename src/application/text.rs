@@ -222,8 +222,10 @@ impl Application for TextApplication {
             let secure_entry = self.entry(elem.entry_id)?;
             entries.push(secure_entry);
         }
-        let json = serde_json::to_string_pretty(&entries)?;
-        let plaintext = Plaintext::from(json);
+        let plaintext = {
+            let json = serde_json::to_string_pretty(&entries)?;
+            Plaintext::from(json)
+        };
         write(path, plaintext, self.config.key_id(), Self::env)?;
         Ok(())
     }

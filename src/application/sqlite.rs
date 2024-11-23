@@ -278,8 +278,10 @@ impl Application for SqliteApplication {
                 metadata,
             })
         }
-        let json = serde_json::to_string_pretty(&out)?;
-        let plaintext = Plaintext::from(json);
+        let plaintext = {
+            let json = serde_json::to_string_pretty(&out)?;
+            Plaintext::from(json)
+        };
         text::write(path, plaintext, self.config.key_id(), Self::env)?;
         Ok(())
     }

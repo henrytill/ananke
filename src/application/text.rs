@@ -9,12 +9,12 @@ use serde::Deserialize;
 
 use crate::{
     application::base::{Application, Matcher, Target},
+    cipher::gpg,
     config::{Backend, Config},
     data::{
         self, ArmoredCiphertext, Description, EntryId, Identity, KeyId, Metadata, Plaintext,
         SchemaVersion, SecureEntry, SecureIndexElement, Timestamp,
     },
-    gpg,
 };
 
 pub struct TextApplication {

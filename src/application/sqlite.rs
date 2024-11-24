@@ -9,12 +9,12 @@ use crate::{
         base::{Application, Target},
         text,
     },
+    cipher::gpg,
     config::{Backend, Config},
     data::{
         self, Description, Entry, EntryId, Identity, Metadata, Plaintext, SchemaVersion,
         SecureEntry, Timestamp,
     },
-    gpg,
 };
 
 const CREATE_TABLE: &str = "\

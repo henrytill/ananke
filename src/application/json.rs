@@ -15,12 +15,12 @@ use crate::{
         base::{Application, Matcher, Target},
         text,
     },
+    cipher::gpg,
     config::Config,
     data::{
         self, Description, Entry, EntryId, Identity, Metadata, Plaintext, SchemaVersion,
         SecureEntry, Timestamp,
     },
-    gpg,
 };
 
 pub struct JsonApplication {

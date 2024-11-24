@@ -13,9 +13,9 @@ use crate::{
     application::{
         base::Application, json::JsonApplication, sqlite::SqliteApplication, text::TextApplication,
     },
+    cipher::gpg,
     config::{Backend, Config, ConfigBuilder},
     data::{Description, Entry, Identity, KeyId, Metadata, Plaintext, SecureEntry},
-    gpg,
 };
 
 const PROMPT_PLAINTEXT: &str = "Enter plaintext: ";

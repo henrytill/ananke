@@ -36,7 +36,7 @@ fn run(mut cmd: Command, buf: &[u8]) -> Result<Vec<u8>, Error> {
     let status = child.wait()?;
     if !status.success() {
         let msg = format!("{} exited with status {}", program.to_string_lossy(), status);
-        return Err(Error::from(io::Error::other(msg)));
+        return Err(Error::msg(msg));
     }
 
     let buf_or_error = stdout_handle.join().map_err(|_| Error::msg(MSG_JOIN))?;

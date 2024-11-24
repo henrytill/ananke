@@ -168,6 +168,15 @@ impl TryFrom<String> for EntryId {
     }
 }
 
+impl FromStr for EntryId {
+    type Err = uuid::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let inner = Uuid::parse_str(s)?;
+        Ok(EntryId(inner))
+    }
+}
+
 impl Description {
     pub fn contains(&self, pat: impl AsRef<str>) -> bool {
         self.0.contains(pat.as_ref())

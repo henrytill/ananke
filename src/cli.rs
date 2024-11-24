@@ -8,15 +8,13 @@ use std::{
 use anyhow::Error;
 use zeroize::Zeroize;
 
+pub use crate::application::base::Target;
 use crate::{
     application::{
-        base::{Application, Target},
-        json::JsonApplication,
-        sqlite::SqliteApplication,
-        text::TextApplication,
+        base::Application, json::JsonApplication, sqlite::SqliteApplication, text::TextApplication,
     },
     config::{Backend, Config, ConfigBuilder},
-    data::{Description, Entry, EntryId, Identity, KeyId, Metadata, Plaintext, SecureEntry},
+    data::{Description, Entry, Identity, KeyId, Metadata, Plaintext, SecureEntry},
     gpg,
 };
 
@@ -163,15 +161,11 @@ fn format_results_secure(results: &[SecureEntry], verbose: bool) -> Result<Strin
 }
 
 pub fn add(
-    description: String,
-    maybe_identity: Option<String>,
-    maybe_metadata: Option<String>,
+    description: Description,
+    maybe_identity: Option<Identity>,
+    maybe_metadata: Option<Metadata>,
 ) -> Result<ExitCode, Error> {
     let plaintext = enter_plaintext()?;
-
-    let description = Description::from(description);
-    let maybe_identity = maybe_identity.map(Identity::from);
-    let maybe_metadata = maybe_metadata.map(Metadata::from);
 
     let config = config()?;
     match config.backend() {
@@ -192,13 +186,10 @@ pub fn add(
 }
 
 pub fn lookup(
-    description: String,
-    maybe_identity: Option<String>,
+    description: Description,
+    maybe_identity: Option<Identity>,
     verbose: bool,
 ) -> Result<ExitCode, Error> {
-    let description = Description::from(description);
-    let maybe_identity = maybe_identity.map(Identity::from);
-
     let config = config()?;
     match config.backend() {
         Backend::Json => {
@@ -236,12 +227,11 @@ pub fn lookup(
 }
 
 pub fn modify(
-    target_description: Option<String>,
-    target_entry_id: Option<String>,
+    target: Target,
     ask_plaintext: bool,
-    maybe_description: Option<String>,
-    maybe_identity: Option<String>,
-    maybe_metadata: Option<String>,
+    maybe_description: Option<Description>,
+    maybe_identity: Option<Identity>,
+    maybe_metadata: Option<Metadata>,
 ) -> Result<ExitCode, Error> {
     let maybe_plaintext = if ask_plaintext {
         let plaintext = enter_plaintext()?;
@@ -250,17 +240,6 @@ pub fn modify(
         None
     };
 
-    let target = match (target_description, target_entry_id) {
-        (Some(d), None) => Target::Description(Description::from(d)),
-        (None, Some(i)) => Target::EntryId(EntryId::try_from(i)?),
-        (Some(_), Some(_)) => panic!(),
-        (None, None) => panic!(),
-    };
-
-    let maybe_description = maybe_description.map(Description::from);
-    let maybe_identity = maybe_identity.map(Identity::from);
-    let maybe_metadata = maybe_metadata.map(Metadata::from);
-
     let config = config()?;
     match config.backend() {
         Backend::Json => {
@@ -279,17 +258,7 @@ pub fn modify(
     Ok(ExitCode::SUCCESS)
 }
 
-pub fn remove(
-    target_description: Option<String>,
-    target_entry_id: Option<String>,
-) -> Result<ExitCode, Error> {
-    let target = match (target_description, target_entry_id) {
-        (Some(d), None) => Target::Description(Description::from(d)),
-        (None, Some(i)) => Target::EntryId(EntryId::try_from(i)?),
-        (Some(_), Some(_)) => panic!(),
-        (None, None) => panic!(),
-    };
-
+pub fn remove(target: Target) -> Result<ExitCode, Error> {
     let config = config()?;
     match config.backend() {
         Backend::Json => {
@@ -308,8 +277,7 @@ pub fn remove(
     Ok(ExitCode::SUCCESS)
 }
 
-pub fn import(path: String) -> Result<ExitCode, Error> {
-    let path = PathBuf::from(path);
+pub fn import(path: PathBuf) -> Result<ExitCode, Error> {
     let config = config()?;
     match config.backend() {
         Backend::Json => {
@@ -328,8 +296,7 @@ pub fn import(path: String) -> Result<ExitCode, Error> {
     Ok(ExitCode::SUCCESS)
 }
 
-pub fn export(path: String) -> Result<ExitCode, Error> {
-    let path = PathBuf::from(path);
+pub fn export(path: PathBuf) -> Result<ExitCode, Error> {
     let config = config()?;
     match config.backend() {
         Backend::Json => {

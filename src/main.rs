@@ -1,9 +1,12 @@
-use std::process::ExitCode;
+use std::{path::PathBuf, process::ExitCode};
 
-use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
 
-use ananke::{cli, version};
+use ananke::{
+    cli::{self, Target},
+    data::{Description, EntryId, Identity, Metadata},
+    version,
+};
 
 /// A password manager
 #[derive(Parser)]
@@ -20,23 +23,23 @@ enum Commands {
     Add {
         /// URL or description
         #[arg(required = true)]
-        description: String,
+        description: Description,
         /// username or email address
         #[arg(short, long)]
-        identity: Option<String>,
+        identity: Option<Identity>,
         /// additional metadata
         #[arg(short, long, value_name = "METADATA")]
-        meta: Option<String>,
+        meta: Option<Metadata>,
     },
     /// Lookup an entry
     #[command(arg_required_else_help = true)]
     Lookup {
         /// URL or description
         #[arg(required = true)]
-        description: String,
+        description: Description,
         /// username or email address
         #[arg(short, long)]
-        identity: Option<String>,
+        identity: Option<Identity>,
         /// enable verbose output
         #[arg(short, long)]
         verbose: bool,
@@ -51,10 +54,10 @@ enum Commands {
         plaintext: bool,
         /// username or email address
         #[arg(short, long)]
-        identity: Option<String>,
+        identity: Option<Identity>,
         /// additional metadata
         #[arg(short, long, value_name = "METADATA")]
-        meta: Option<String>,
+        meta: Option<Metadata>,
     },
     /// Remove an entry
     #[command(arg_required_else_help = true)]
@@ -67,14 +70,14 @@ enum Commands {
     Import {
         /// file to import from
         #[arg(required = true)]
-        file: String,
+        file: PathBuf,
     },
     /// Export entries to JSON file
     #[command(arg_required_else_help = true)]
     Export {
         /// file to export to
         #[arg(required = true)]
-        file: String,
+        file: PathBuf,
     },
     /// Create, modify, and list configuration
     Configure {
@@ -89,10 +92,22 @@ enum Commands {
 struct ModifyTarget {
     /// URL or description
     #[arg(short, long)]
-    description: Option<String>,
+    description: Option<Description>,
     /// Entry ID
     #[arg(short, long, value_name = "ENTRYID")]
-    entry_id: Option<String>,
+    entry_id: Option<EntryId>,
+}
+
+impl TryFrom<ModifyTarget> for Target {
+    type Error = anyhow::Error;
+
+    fn try_from(value: ModifyTarget) -> Result<Self, Self::Error> {
+        match (value.description, value.entry_id) {
+            (Some(d), None) => Ok(Target::Description(Description::from(d))),
+            (None, Some(i)) => Ok(Target::EntryId(i)),
+            _ => Err(anyhow::Error::msg("ill-formed ModifyTarget value")),
+        }
+    }
 }
 
 #[derive(Args)]
@@ -100,13 +115,25 @@ struct ModifyTarget {
 struct RemoveTarget {
     /// URL or description
     #[arg(short, long)]
-    description: Option<String>,
+    description: Option<Description>,
     /// Entry ID
     #[arg(short, long, value_name = "ENTRYID")]
-    entry_id: Option<String>,
+    entry_id: Option<EntryId>,
 }
 
-fn main() -> Result<ExitCode> {
+impl TryFrom<RemoveTarget> for Target {
+    type Error = anyhow::Error;
+
+    fn try_from(value: RemoveTarget) -> Result<Self, Self::Error> {
+        match (value.description, value.entry_id) {
+            (Some(d), None) => Ok(Target::Description(Description::from(d))),
+            (None, Some(i)) => Ok(Target::EntryId(i)),
+            _ => Err(anyhow::Error::msg("ill-formed RemoveTarget value")),
+        }
+    }
+}
+
+fn main() -> anyhow::Result<ExitCode> {
     let cli = Cli::parse();
 
     match cli.command {
@@ -114,15 +141,10 @@ fn main() -> Result<ExitCode> {
         Commands::Lookup { description, identity, verbose } => {
             cli::lookup(description, identity, verbose)
         }
-        Commands::Modify {
-            target: ModifyTarget { description, entry_id },
-            plaintext,
-            identity,
-            meta,
-        } => cli::modify(description, entry_id, plaintext, None, identity, meta),
-        Commands::Remove { target: RemoveTarget { description, entry_id } } => {
-            cli::remove(description, entry_id)
+        Commands::Modify { target, plaintext, identity, meta } => {
+            cli::modify(target.try_into()?, plaintext, None, identity, meta)
         }
+        Commands::Remove { target } => cli::remove(target.try_into()?),
         Commands::Import { file } => cli::import(file),
         Commands::Export { file } => cli::export(file),
         Commands::Configure { list } => cli::configure(list),

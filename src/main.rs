@@ -103,7 +103,7 @@ impl TryFrom<ModifyTarget> for Target {
 
     fn try_from(value: ModifyTarget) -> Result<Self, Self::Error> {
         match (value.description, value.entry_id) {
-            (Some(d), None) => Ok(Target::Description(Description::from(d))),
+            (Some(d), None) => Ok(Target::Description(d)),
             (None, Some(i)) => Ok(Target::EntryId(i)),
             _ => Err(anyhow::Error::msg("ill-formed ModifyTarget value")),
         }
@@ -126,7 +126,7 @@ impl TryFrom<RemoveTarget> for Target {
 
     fn try_from(value: RemoveTarget) -> Result<Self, Self::Error> {
         match (value.description, value.entry_id) {
-            (Some(d), None) => Ok(Target::Description(Description::from(d))),
+            (Some(d), None) => Ok(Target::Description(d)),
             (None, Some(i)) => Ok(Target::EntryId(i)),
             _ => Err(anyhow::Error::msg("ill-formed RemoveTarget value")),
         }

@@ -62,8 +62,8 @@ macro_rules! wrap_string {
         }
 
         impl From<&str> for $name {
-            fn from(name: &str) -> Self {
-                Self(name.to_string())
+            fn from(s: &str) -> Self {
+                Self(s.to_string())
             }
         }
 

@@ -1,5 +1,5 @@
 use std::{
-    ffi::OsStr,
+    ffi::{OsStr, OsString},
     io::{self, BufRead, BufReader, Read, Write},
     process::{Command, Stdio},
     thread::JoinHandle,
@@ -7,11 +7,92 @@ use std::{
 
 use anyhow::Error;
 
-use crate::data::KeyId;
+use crate::data::{ArmoredCiphertext, Ciphertext, KeyId, Plaintext};
+
+use super::base::Cipher;
 
 const MSG_TAKE_STDOUT: &str = "missing stdout";
 const MSG_TAKE_STDIN: &str = "missing stdin";
 const MSG_JOIN: &str = "join thread failed";
+
+pub struct Binary {
+    env: Vec<(OsString, OsString)>,
+}
+
+impl Binary {
+    pub const fn new(env: Vec<(OsString, OsString)>) -> Binary {
+        Binary { env }
+    }
+}
+
+impl Cipher for Binary {
+    type Error = anyhow::Error;
+
+    type Out = Ciphertext;
+
+    fn encrypt(&self, key_id: &KeyId, plaintext: &Plaintext) -> Result<Self::Out, Self::Error> {
+        let cmd = {
+            let mut tmp = Command::new("gpg");
+            let vars = self.env.iter().cloned();
+            tmp.args(["--batch", "-q", "-e", "-r", key_id.as_str()]).envs(vars);
+            tmp
+        };
+        let buf = run(cmd, plaintext.as_bytes())?;
+        Ok(Ciphertext::new(buf))
+    }
+
+    fn decrypt(&self, ciphertext: &Self::Out) -> Result<Plaintext, Self::Error> {
+        let cmd = {
+            let mut tmp = Command::new("gpg");
+            let vars = self.env.iter().cloned();
+            tmp.args(["--batch", "-q", "-d"]).envs(vars);
+            tmp
+        };
+        let buf = run(cmd, ciphertext.as_ref())?;
+        let txt = String::from_utf8(buf)?;
+        Ok(Plaintext::new(txt))
+    }
+}
+
+pub struct Text {
+    env: Vec<(OsString, OsString)>,
+}
+
+impl Text {
+    pub const fn new(env: Vec<(OsString, OsString)>) -> Text {
+        Text { env }
+    }
+}
+
+impl Cipher for Text {
+    type Error = anyhow::Error;
+
+    type Out = ArmoredCiphertext;
+
+    fn encrypt(&self, key_id: &KeyId, plaintext: &Plaintext) -> Result<Self::Out, Self::Error> {
+        let cmd = {
+            let mut tmp = Command::new("gpg");
+            let vars = self.env.iter().cloned();
+            tmp.args(["--batch", "--armor", "-q", "-e", "-r", key_id.as_str()]).envs(vars);
+            tmp
+        };
+        let buf = run(cmd, plaintext.as_bytes())?;
+        let txt = String::from_utf8(buf)?;
+        Ok(ArmoredCiphertext::new(txt))
+    }
+
+    fn decrypt(&self, ciphertext: &Self::Out) -> Result<Plaintext, Self::Error> {
+        let cmd = {
+            let mut tmp = Command::new("gpg");
+            let vars = self.env.iter().cloned();
+            tmp.args(["--batch", "-q", "-d"]).envs(vars);
+            tmp
+        };
+        let buf = run(cmd, ciphertext.as_bytes())?;
+        let txt = String::from_utf8(buf)?;
+        Ok(Plaintext::new(txt))
+    }
+}
 
 fn run(mut cmd: Command, buf: &[u8]) -> Result<Vec<u8>, Error> {
     let program = cmd.get_program().to_os_string(); // for error messages
@@ -42,97 +123,6 @@ fn run(mut cmd: Command, buf: &[u8]) -> Result<Vec<u8>, Error> {
     let buf_or_error = stdout_handle.join().map_err(|_| Error::msg(MSG_JOIN))?;
     let buf = buf_or_error?;
     Ok(buf)
-}
-
-pub mod binary {
-    use std::{ffi::OsStr, process::Command};
-
-    use anyhow::Error;
-
-    use crate::data::{Ciphertext, KeyId, Plaintext};
-
-    pub fn encrypt<F, I, K, V>(
-        key_id: &KeyId,
-        plaintext: &Plaintext,
-        vars: F,
-    ) -> Result<Ciphertext, Error>
-    where
-        F: Fn() -> I,
-        I: IntoIterator<Item = (K, V)>,
-        K: AsRef<OsStr>,
-        V: AsRef<OsStr>,
-    {
-        let cmd = {
-            let mut tmp = Command::new("gpg");
-            tmp.args(["--batch", "-q", "-e", "-r", key_id.as_str()]).envs(vars());
-            tmp
-        };
-        let buf = super::run(cmd, plaintext.as_bytes())?;
-        Ok(Ciphertext::new(buf))
-    }
-
-    pub fn decrypt<F, I, K, V>(ciphertext: &Ciphertext, vars: F) -> Result<Plaintext, Error>
-    where
-        F: Fn() -> I,
-        I: IntoIterator<Item = (K, V)>,
-        K: AsRef<OsStr>,
-        V: AsRef<OsStr>,
-    {
-        let cmd = {
-            let mut tmp = Command::new("gpg");
-            tmp.args(["--batch", "-q", "-d"]).envs(vars());
-            tmp
-        };
-        let buf = super::run(cmd, ciphertext.as_ref())?;
-        let txt = String::from_utf8(buf)?;
-        Ok(Plaintext::new(txt))
-    }
-}
-
-pub mod text {
-    use std::{ffi::OsStr, process::Command};
-
-    use anyhow::Error;
-
-    use crate::data::{ArmoredCiphertext, KeyId, Plaintext};
-
-    pub fn encrypt<F, I, K, V>(
-        key_id: &KeyId,
-        plaintext: &Plaintext,
-        vars: F,
-    ) -> Result<ArmoredCiphertext, Error>
-    where
-        F: Fn() -> I,
-        I: IntoIterator<Item = (K, V)>,
-        K: AsRef<OsStr>,
-        V: AsRef<OsStr>,
-    {
-        let cmd = {
-            let mut tmp = Command::new("gpg");
-            tmp.args(["--batch", "--armor", "-q", "-e", "-r", key_id.as_str()]).envs(vars());
-            tmp
-        };
-        let buf = super::run(cmd, plaintext.as_bytes())?;
-        let txt = String::from_utf8(buf)?;
-        Ok(ArmoredCiphertext::new(txt))
-    }
-
-    pub fn decrypt<F, I, K, V>(ciphertext: &ArmoredCiphertext, vars: F) -> Result<Plaintext, Error>
-    where
-        F: Fn() -> I,
-        I: IntoIterator<Item = (K, V)>,
-        K: AsRef<OsStr>,
-        V: AsRef<OsStr>,
-    {
-        let cmd = {
-            let mut tmp = Command::new("gpg");
-            tmp.args(["--batch", "-q", "-d"]).envs(vars());
-            tmp
-        };
-        let buf = super::run(cmd, ciphertext.as_bytes())?;
-        let txt = String::from_utf8(buf)?;
-        Ok(Plaintext::new(txt))
-    }
 }
 
 pub fn suggest_key<F, I, K, V>(f: F) -> Result<Option<KeyId>, Error>
@@ -233,7 +223,13 @@ mod tests {
 
     use rand::Rng;
 
-    use crate::data::{KeyId, Plaintext};
+    use crate::{
+        cipher::{
+            base::Cipher,
+            gpg::{Binary, Text},
+        },
+        data::{KeyId, Plaintext},
+    };
 
     const GNUPGHOME: [&str; 2] = [r"example", "gnupg"];
 
@@ -245,25 +241,28 @@ mod tests {
 
     #[test]
     fn roundtrip_binary() {
+        let cipher = Binary::new(vars().into_iter().collect());
         let key_id = KeyId::from("371C136C");
         let plaintext = Plaintext::from("Hello, world!");
-        let encrypted = super::binary::encrypt(&key_id, &plaintext, vars).unwrap();
-        let decrypted = super::binary::decrypt(&encrypted, vars).unwrap();
+        let encrypted = cipher.encrypt(&key_id, &plaintext).unwrap();
+        let decrypted = cipher.decrypt(&encrypted).unwrap();
         assert_eq!(plaintext, decrypted);
     }
 
     #[test]
     fn roundtrip_text() {
+        let cipher = Text::new(vars().into_iter().collect());
         let key_id = KeyId::from("371C136C");
         let plaintext = Plaintext::from("Hello, world!");
-        let encrypted = super::text::encrypt(&key_id, &plaintext, vars).unwrap();
-        let decrypted = super::text::decrypt(&encrypted, vars).unwrap();
+        let encrypted = cipher.encrypt(&key_id, &plaintext).unwrap();
+        let decrypted = cipher.decrypt(&encrypted).unwrap();
         assert_eq!(plaintext, decrypted);
     }
 
     #[test]
     #[ignore]
     fn roundtrip_binary_large() {
+        let cipher = Binary::new(vars().into_iter().collect());
         let random = {
             let mut rng = rand::thread_rng();
             let mut data = Vec::with_capacity(RANDOM_LEN);
@@ -275,14 +274,15 @@ mod tests {
         };
         let key_id = KeyId::from("371C136C");
         let plaintext = Plaintext::from(random);
-        let encrypted = super::binary::encrypt(&key_id, &plaintext, vars).unwrap();
-        let decrypted = super::binary::decrypt(&encrypted, vars).unwrap();
+        let encrypted = cipher.encrypt(&key_id, &plaintext).unwrap();
+        let decrypted = cipher.decrypt(&encrypted).unwrap();
         assert_eq!(plaintext, decrypted);
     }
 
     #[test]
     #[ignore]
     fn roundtrip_text_large() {
+        let cipher = Text::new(vars().into_iter().collect());
         let random = {
             let mut rng = rand::thread_rng();
             let mut data = Vec::with_capacity(RANDOM_LEN);
@@ -294,8 +294,8 @@ mod tests {
         };
         let key_id = KeyId::from("371C136C");
         let plaintext = Plaintext::from(random);
-        let encrypted = super::text::encrypt(&key_id, &plaintext, vars).unwrap();
-        let decrypted = super::text::decrypt(&encrypted, vars).unwrap();
+        let encrypted = cipher.encrypt(&key_id, &plaintext).unwrap();
+        let decrypted = cipher.decrypt(&encrypted).unwrap();
         assert_eq!(plaintext, decrypted);
     }
 

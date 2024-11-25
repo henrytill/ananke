@@ -15,7 +15,10 @@ use crate::{
         base::{Application, Matcher, Target},
         text,
     },
-    cipher::gpg,
+    cipher::{
+        base::Cipher,
+        gpg::{Binary, Text},
+    },
     config::Config,
     data::{
         self, Description, Entry, EntryId, Identity, Metadata, Plaintext, SchemaVersion,
@@ -25,6 +28,7 @@ use crate::{
 
 pub struct JsonApplication {
     config: Config,
+    cipher: Binary,
     entries: Vec<Entry>,
 }
 
@@ -39,17 +43,14 @@ impl JsonApplication {
             migrate(&config, schema_version)?;
             fs::write(config.schema_file(), SchemaVersion::CURRENT.to_string())?;
         }
+        let cipher = Binary::new(Self::ENV.to_vec());
         let entries = if config.db().exists() { read(config.db())? } else { Vec::new() };
-        Ok(JsonApplication { config, entries })
+        Ok(JsonApplication { config, cipher, entries })
     }
 
     fn write(&self, path: PathBuf) -> Result<(), Error> {
         let entries: &[Entry] = self.entries.as_slice();
         write(path, entries)
-    }
-
-    fn env() -> impl Iterator<Item = (OsString, OsString)> {
-        Self::ENV.into_iter()
     }
 }
 
@@ -68,7 +69,7 @@ impl Application for JsonApplication {
         let timestamp = Timestamp::now();
         let key_id = self.config.key_id();
         let entry_id = EntryId::new();
-        let ciphertext = gpg::binary::encrypt(key_id, &plaintext, Self::env)?;
+        let ciphertext = self.cipher.encrypt(key_id, &plaintext)?;
         let identity = maybe_identity;
         let metadata = maybe_metadata;
         let entry = {
@@ -90,11 +91,11 @@ impl Application for JsonApplication {
         for entry in self.entries.iter().filter(|e| e.description.contains(description.as_str())) {
             match (maybe_identity.as_ref(), entry.identity.as_ref()) {
                 (Some(identity), Some(entry_identity)) if entry_identity.contains(identity) => {
-                    let plaintext = gpg::binary::decrypt(&entry.ciphertext, Self::env)?;
+                    let plaintext = self.cipher.decrypt(&entry.ciphertext)?;
                     ret.push((entry.clone(), plaintext))
                 }
                 (None, _) => {
-                    let plaintext = gpg::binary::decrypt(&entry.ciphertext, Self::env)?;
+                    let plaintext = self.cipher.decrypt(&entry.ciphertext)?;
                     ret.push((entry.clone(), plaintext))
                 }
                 (_, _) => (),
@@ -132,7 +133,7 @@ impl Application for JsonApplication {
             entry.description = description
         }
         if let Some(plaintext) = maybe_plaintext {
-            entry.ciphertext = gpg::binary::encrypt(&entry.key_id, &plaintext, Self::env)?
+            entry.ciphertext = self.cipher.encrypt(&entry.key_id, &plaintext)?
         }
         if maybe_identity.is_some() {
             entry.identity = maybe_identity
@@ -171,14 +172,17 @@ impl Application for JsonApplication {
     }
 
     fn import(&mut self, path: PathBuf) -> Result<(), Self::Error> {
-        let entries: Vec<SecureEntry> = text::read(path, Self::env)?;
+        let entries: Vec<SecureEntry> = {
+            let cipher = Text::new(Self::ENV.to_vec());
+            text::read(&cipher, path)?
+        };
         for entry in entries {
             let timestamp = entry.timestamp;
             let entry_id = entry.entry_id;
             let key_id = entry.key_id.clone();
             let description = entry.description.clone();
             let identity = entry.identity.clone();
-            let ciphertext = gpg::binary::encrypt(&key_id, &entry.plaintext, Self::env)?;
+            let ciphertext = self.cipher.encrypt(&key_id, &entry.plaintext)?;
             let metadata = entry.metadata.clone();
             self.entries.push(Entry {
                 timestamp,
@@ -202,7 +206,7 @@ impl Application for JsonApplication {
             let key_id = entry.key_id.clone();
             let description = entry.description.clone();
             let identity = entry.identity.clone();
-            let plaintext = gpg::binary::decrypt(&entry.ciphertext, Self::env)?;
+            let plaintext = self.cipher.decrypt(&entry.ciphertext)?;
             let metadata = entry.metadata.clone();
             out.push(SecureEntry {
                 timestamp,
@@ -218,7 +222,8 @@ impl Application for JsonApplication {
             let json = serde_json::to_string_pretty(&out)?;
             Plaintext::from(json)
         };
-        text::write(path, plaintext, self.config.key_id(), Self::env)?;
+        let cipher = Text::new(Self::ENV.to_vec());
+        text::write(&cipher, path, plaintext, self.config.key_id())?;
         Ok(())
     }
 }

@@ -1,5 +1,5 @@
 use std::{
-    ffi::{OsStr, OsString},
+    ffi::OsString,
     fs,
     path::{Path, PathBuf},
 };
@@ -9,7 +9,7 @@ use serde::Deserialize;
 
 use crate::{
     application::base::{Application, Matcher, Target},
-    cipher::gpg,
+    cipher::{base::Cipher, gpg::Text},
     config::{Backend, Config},
     data::{
         self, ArmoredCiphertext, Description, EntryId, Identity, KeyId, Metadata, Plaintext,
@@ -19,6 +19,7 @@ use crate::{
 
 pub struct TextApplication {
     config: Config,
+    cipher: Text,
     elems: Vec<SecureIndexElement>,
 }
 
@@ -36,8 +37,9 @@ impl TextApplication {
             migrate(&config, schema_version)?;
             fs::write(config.schema_file(), SchemaVersion::CURRENT.to_string())?;
         }
-        let elems = if config.db().exists() { read(config.db(), Self::env)? } else { Vec::new() };
-        let ret = TextApplication { config, elems };
+        let cipher = Text::new(Self::ENV.to_vec());
+        let elems = if config.db().exists() { read(&cipher, config.db())? } else { Vec::new() };
+        let ret = TextApplication { config, cipher, elems };
         Ok(ret)
     }
 
@@ -45,7 +47,7 @@ impl TextApplication {
         let elems: &[SecureIndexElement] = self.elems.as_slice();
         let json = serde_json::to_string_pretty(elems)?;
         let plaintext = Plaintext::from(json);
-        write(self.config.db(), plaintext, self.config.key_id(), Self::env)
+        write(&self.cipher, self.config.db(), plaintext, self.config.key_id())
     }
 
     fn entry_path(&self, entry_id: EntryId) -> PathBuf {
@@ -56,7 +58,7 @@ impl TextApplication {
 
     fn entry(&self, entry_id: EntryId) -> Result<SecureEntry, Error> {
         let path = self.entry_path(entry_id);
-        read(path, Self::env)
+        read(&self.cipher, path)
     }
 
     fn write_entry(&self, entry: SecureEntry) -> Result<(), Error> {
@@ -65,7 +67,7 @@ impl TextApplication {
             let json = serde_json::to_string_pretty(&entry)?;
             Plaintext::from(json)
         };
-        write(path, plaintext, self.config.key_id(), Self::env)
+        write(&self.cipher, path, plaintext, self.config.key_id())
     }
 
     fn delete_entry(&self, entry_id: EntryId) -> Result<(), Error> {
@@ -77,10 +79,6 @@ impl TextApplication {
         let mut ret = self.config.db_dir();
         ret.push(Self::OBJECTS_DIR);
         ret
-    }
-
-    fn env() -> impl Iterator<Item = (OsString, OsString)> {
-        Self::ENV.into_iter()
     }
 }
 
@@ -201,7 +199,7 @@ impl Application for TextApplication {
     }
 
     fn import(&mut self, path: PathBuf) -> Result<(), Self::Error> {
-        let entries: Vec<SecureEntry> = read(path, Self::env)?;
+        let entries: Vec<SecureEntry> = read(&self.cipher, path)?;
         for entry in entries {
             let key_id = self.config.key_id().clone();
             let entry_id = entry.entry_id;
@@ -226,7 +224,7 @@ impl Application for TextApplication {
             let json = serde_json::to_string_pretty(&entries)?;
             Plaintext::from(json)
         };
-        write(path, plaintext, self.config.key_id(), Self::env)?;
+        write(&self.cipher, path, plaintext, self.config.key_id())?;
         Ok(())
     }
 }
@@ -241,33 +239,23 @@ fn migrate(_config: &Config, schema_version: SchemaVersion) -> Result<(), Error>
     Ok(())
 }
 
-pub fn read<F, I, K, V, T>(path: impl AsRef<Path>, vars: F) -> Result<T, anyhow::Error>
+pub fn read<T>(cipher: &Text, path: impl AsRef<Path>) -> Result<T, anyhow::Error>
 where
-    F: Fn() -> I,
-    I: IntoIterator<Item = (K, V)>,
-    K: AsRef<OsStr>,
-    V: AsRef<OsStr>,
     T: for<'a> Deserialize<'a>,
 {
     let blob = fs::read_to_string(path)?;
     let armored = ArmoredCiphertext::from(blob);
-    let json: Plaintext = gpg::text::decrypt(&armored, vars)?;
+    let json: Plaintext = cipher.decrypt(&armored)?;
     serde_json::from_str(json.as_str()).map_err(Into::into)
 }
 
-pub fn write<F, I, K, V>(
+pub fn write(
+    cipher: &Text,
     path: impl AsRef<Path>,
     plaintext: Plaintext,
     key_id: &KeyId,
-    vars: F,
-) -> Result<(), anyhow::Error>
-where
-    F: Fn() -> I,
-    I: IntoIterator<Item = (K, V)>,
-    K: AsRef<OsStr>,
-    V: AsRef<OsStr>,
-{
-    let armored = gpg::text::encrypt(key_id, &plaintext, vars)?;
+) -> Result<(), anyhow::Error> {
+    let armored = cipher.encrypt(key_id, &plaintext)?;
     if let Some(parent) = path.as_ref().parent() {
         if !parent.exists() {
             fs::create_dir_all(parent)?;

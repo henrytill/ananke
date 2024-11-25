@@ -9,7 +9,10 @@ use crate::{
         base::{Application, Target},
         text,
     },
-    cipher::gpg,
+    cipher::{
+        base::Cipher,
+        gpg::{Binary, Text},
+    },
     config::{Backend, Config},
     data::{
         self, Description, Entry, EntryId, Identity, Metadata, Plaintext, SchemaVersion,
@@ -37,6 +40,7 @@ VALUES(:id, :keyid, :timestamp, :description, :identity, :ciphertext, :meta)
 
 pub struct SqliteApplication {
     config: Config,
+    cipher: Binary,
     connection: Connection,
 }
 
@@ -52,6 +56,7 @@ impl SqliteApplication {
                 fs::create_dir_all(parent)?;
             }
         }
+        let cipher = Binary::new(Self::ENV.to_vec());
         let mut connection = rusqlite::Connection::open(config.db())?;
         let schema_version = data::schema_version(config.schema_file())?;
         if schema_version != SchemaVersion::CURRENT {
@@ -59,12 +64,8 @@ impl SqliteApplication {
             fs::write(config.schema_file(), SchemaVersion::CURRENT.to_string())?;
         }
         connection.execute_batch(CREATE_TABLE)?;
-        let ret = SqliteApplication { config, connection };
+        let ret = SqliteApplication { config, cipher, connection };
         Ok(ret)
-    }
-
-    fn env() -> impl Iterator<Item = (OsString, OsString)> {
-        Self::ENV.into_iter()
     }
 }
 
@@ -83,7 +84,7 @@ impl Application for SqliteApplication {
         let timestamp = Timestamp::now();
         let key_id = self.config.key_id();
         let entry_id = EntryId::new();
-        let ciphertext = gpg::binary::encrypt(key_id, &plaintext, Self::env)?;
+        let ciphertext = self.cipher.encrypt(key_id, &plaintext)?;
         let identity = maybe_identity;
         let metadata = maybe_metadata;
 
@@ -113,7 +114,7 @@ impl Application for SqliteApplication {
         while let Some(row) = rows.next()? {
             let (entry_id, key_id, timestamp, description, identity, ciphertext, metadata) =
                 TryFrom::try_from(row)?;
-            let plaintext = gpg::binary::decrypt(&ciphertext, Self::env)?;
+            let plaintext = self.cipher.decrypt(&ciphertext)?;
             results.push((
                 Entry { timestamp, entry_id, key_id, description, identity, ciphertext, metadata },
                 plaintext,
@@ -169,7 +170,7 @@ impl Application for SqliteApplication {
                 entry.description = description
             }
             if let Some(plaintext) = maybe_plaintext {
-                let ciphertext = gpg::binary::encrypt(self.config.key_id(), &plaintext, Self::env)?;
+                let ciphertext = self.cipher.encrypt(self.config.key_id(), &plaintext)?;
                 entry.ciphertext = ciphertext
             }
             if maybe_identity.is_some() {
@@ -236,13 +237,16 @@ impl Application for SqliteApplication {
     }
 
     fn import(&mut self, path: PathBuf) -> Result<(), Error> {
-        let entries: Vec<SecureEntry> = text::read(path, Self::env)?;
+        let entries: Vec<SecureEntry> = {
+            let cipher = Text::new(Self::ENV.to_vec());
+            text::read(&cipher, path)?
+        };
         let tx = self.connection.transaction()?;
         {
             let mut stmt = tx.prepare(INSERT)?;
             for entry in entries {
                 let key_id = &entry.key_id;
-                let ciphertext = gpg::binary::encrypt(key_id, &entry.plaintext, Self::env)?;
+                let ciphertext = self.cipher.encrypt(key_id, &entry.plaintext)?;
                 stmt.execute(named_params! {
                     ":id": entry.entry_id,
                     ":keyid": key_id,
@@ -267,7 +271,7 @@ impl Application for SqliteApplication {
         while let Some(row) = rows.next()? {
             let (entry_id, key_id, timestamp, description, identity, ciphertext, metadata) =
                 TryFrom::try_from(row)?;
-            let plaintext = gpg::binary::decrypt(&ciphertext, Self::env)?;
+            let plaintext = self.cipher.decrypt(&ciphertext)?;
             out.push(SecureEntry {
                 timestamp,
                 entry_id,
@@ -282,7 +286,8 @@ impl Application for SqliteApplication {
             let json = serde_json::to_string_pretty(&out)?;
             Plaintext::from(json)
         };
-        text::write(path, plaintext, self.config.key_id(), Self::env)?;
+        let cipher = Text::new(Self::ENV.to_vec());
+        text::write(&cipher, path, plaintext, self.config.key_id())?;
         Ok(())
     }
 }

@@ -1,6 +1,5 @@
 use std::{
     collections::HashMap,
-    ffi::OsString,
     fs,
     path::{Path, PathBuf},
 };
@@ -33,7 +32,6 @@ pub struct JsonApplication {
 }
 
 impl JsonApplication {
-    const ENV: [(OsString, OsString); 0] = [];
     const MSG_NO_ENTRIES: &'static str = "no entries match this target";
     const MSG_MULTIPLE_ENTRIES: &'static str = "multiple entries match this target";
 
@@ -43,7 +41,7 @@ impl JsonApplication {
             migrate(&config, schema_version)?;
             fs::write(config.schema_file(), SchemaVersion::CURRENT.to_string())?;
         }
-        let cipher = Binary::new(Self::ENV.to_vec());
+        let cipher = Binary::default();
         let entries = if config.db().exists() { read(config.db())? } else { Vec::new() };
         Ok(JsonApplication { config, cipher, entries })
     }
@@ -173,7 +171,7 @@ impl Application for JsonApplication {
 
     fn import(&mut self, path: PathBuf) -> Result<(), Self::Error> {
         let entries: Vec<SecureEntry> = {
-            let cipher = Text::new(Self::ENV.to_vec());
+            let cipher = Text::default();
             text::read(&cipher, path)?
         };
         for entry in entries {
@@ -222,7 +220,7 @@ impl Application for JsonApplication {
             let json = serde_json::to_string_pretty(&out)?;
             Plaintext::from(json)
         };
-        let cipher = Text::new(Self::ENV.to_vec());
+        let cipher = Text::default();
         text::write(&cipher, path, plaintext, self.config.key_id())?;
         Ok(())
     }

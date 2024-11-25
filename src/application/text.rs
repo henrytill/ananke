@@ -1,5 +1,4 @@
 use std::{
-    ffi::OsString,
     fs,
     path::{Path, PathBuf},
 };
@@ -24,7 +23,6 @@ pub struct TextApplication {
 }
 
 impl TextApplication {
-    const ENV: [(OsString, OsString); 0] = [];
     const MSG_NO_ENTRIES: &'static str = "no entries match this target";
     const MSG_MULTIPLE_ENTRIES: &'static str = "multiple entries match this target";
     const OBJECTS_DIR: &'static str = "objects";
@@ -37,7 +35,7 @@ impl TextApplication {
             migrate(&config, schema_version)?;
             fs::write(config.schema_file(), SchemaVersion::CURRENT.to_string())?;
         }
-        let cipher = Text::new(Self::ENV.to_vec());
+        let cipher = Text::default();
         let elems = if config.db().exists() { read(&cipher, config.db())? } else { Vec::new() };
         let ret = TextApplication { config, cipher, elems };
         Ok(ret)

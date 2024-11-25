@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, ffi::OsString, fs, path::PathBuf};
+use std::{convert::TryFrom, fs, path::PathBuf};
 
 use anyhow::Error;
 use rusqlite::{named_params, params_from_iter, Connection, ToSql};
@@ -45,7 +45,6 @@ pub struct SqliteApplication {
 }
 
 impl SqliteApplication {
-    const ENV: [(OsString, OsString); 0] = [];
     const MSG_NO_ENTRIES: &'static str = "no entries match this target";
     const MSG_MULTIPLE_ENTRIES: &'static str = "multiple entries match this target";
 
@@ -56,7 +55,7 @@ impl SqliteApplication {
                 fs::create_dir_all(parent)?;
             }
         }
-        let cipher = Binary::new(Self::ENV.to_vec());
+        let cipher = Binary::default();
         let mut connection = rusqlite::Connection::open(config.db())?;
         let schema_version = data::schema_version(config.schema_file())?;
         if schema_version != SchemaVersion::CURRENT {
@@ -238,7 +237,7 @@ impl Application for SqliteApplication {
 
     fn import(&mut self, path: PathBuf) -> Result<(), Error> {
         let entries: Vec<SecureEntry> = {
-            let cipher = Text::new(Self::ENV.to_vec());
+            let cipher = Text::default();
             text::read(&cipher, path)?
         };
         let tx = self.connection.transaction()?;
@@ -286,7 +285,7 @@ impl Application for SqliteApplication {
             let json = serde_json::to_string_pretty(&out)?;
             Plaintext::from(json)
         };
-        let cipher = Text::new(Self::ENV.to_vec());
+        let cipher = Text::default();
         text::write(&cipher, path, plaintext, self.config.key_id())?;
         Ok(())
     }

@@ -15,10 +15,12 @@ const MSG_TAKE_STDOUT: &str = "missing stdout";
 const MSG_TAKE_STDIN: &str = "missing stdin";
 const MSG_JOIN: &str = "join thread failed";
 
+#[derive(Default)]
 pub struct Binary {
     env: Vec<(OsString, OsString)>,
 }
 
+#[cfg(test)]
 impl Binary {
     pub const fn new(env: Vec<(OsString, OsString)>) -> Binary {
         Binary { env }
@@ -54,10 +56,12 @@ impl Cipher for Binary {
     }
 }
 
+#[derive(Default)]
 pub struct Text {
     env: Vec<(OsString, OsString)>,
 }
 
+#[cfg(test)]
 impl Text {
     pub const fn new(env: Vec<(OsString, OsString)>) -> Text {
         Text { env }

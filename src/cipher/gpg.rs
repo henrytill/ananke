@@ -235,11 +235,10 @@ mod tests {
         data::{KeyId, Plaintext},
     };
 
-    const GNUPGHOME: [&str; 2] = [r"example", "gnupg"];
-
     const RANDOM_LEN: usize = 100 * 1024 * 1024;
 
     fn vars() -> impl IntoIterator<Item = (OsString, OsString)> {
+        const GNUPGHOME: [&str; 2] = [r"example", "gnupg"];
         [(OsString::from("GNUPGHOME"), GNUPGHOME.iter().collect::<PathBuf>().into_os_string())]
     }
 

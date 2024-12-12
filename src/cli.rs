@@ -359,7 +359,7 @@ pub fn configure(list: bool) -> Result<ExitCode, Error> {
         let default_backend = Backend::default();
         while backend_candidate.is_none() {
             println!("Available backends:");
-            for backend in [Backend::Json, Backend::Sqlite] {
+            for backend in [Backend::Text, Backend::Json, Backend::Sqlite] {
                 let backend_value = backend as u8;
                 if backend == default_backend {
                     println!("  {}: {} (default)", backend_value, backend)

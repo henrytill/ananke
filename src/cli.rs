@@ -169,16 +169,16 @@ pub fn add(
 
     let config = config()?;
     match config.backend() {
+        Backend::Text => {
+            let mut app = TextApplication::new(config)?;
+            app.add(description, plaintext, maybe_identity, maybe_metadata)?;
+        }
         Backend::Json => {
             let mut app = JsonApplication::new(config)?;
             app.add(description, plaintext, maybe_identity, maybe_metadata)?;
         }
         Backend::Sqlite => {
             let mut app = SqliteApplication::new(config)?;
-            app.add(description, plaintext, maybe_identity, maybe_metadata)?;
-        }
-        Backend::Text => {
-            let mut app = TextApplication::new(config)?;
             app.add(description, plaintext, maybe_identity, maybe_metadata)?;
         }
     }
@@ -192,6 +192,16 @@ pub fn lookup(
 ) -> Result<ExitCode, Error> {
     let config = config()?;
     match config.backend() {
+        Backend::Text => {
+            let app = TextApplication::new(config)?;
+            let results = app.lookup(description, maybe_identity)?;
+            if results.is_empty() {
+                return Ok(ExitCode::FAILURE);
+            }
+            let mut output = format_results_secure(&results, verbose)?;
+            println!("{}", output);
+            output.zeroize();
+        }
         Backend::Json => {
             let app = JsonApplication::new(config)?;
             let results = app.lookup(description, maybe_identity)?;
@@ -209,16 +219,6 @@ pub fn lookup(
                 return Ok(ExitCode::FAILURE);
             }
             let mut output = format_results(&results, verbose)?;
-            println!("{}", output);
-            output.zeroize();
-        }
-        Backend::Text => {
-            let app = TextApplication::new(config)?;
-            let results = app.lookup(description, maybe_identity)?;
-            if results.is_empty() {
-                return Ok(ExitCode::FAILURE);
-            }
-            let mut output = format_results_secure(&results, verbose)?;
             println!("{}", output);
             output.zeroize();
         }
@@ -242,16 +242,16 @@ pub fn modify(
 
     let config = config()?;
     match config.backend() {
+        Backend::Text => {
+            let mut app = TextApplication::new(config)?;
+            app.modify(target, maybe_description, maybe_plaintext, maybe_identity, maybe_metadata)?;
+        }
         Backend::Json => {
             let mut app = JsonApplication::new(config)?;
             app.modify(target, maybe_description, maybe_plaintext, maybe_identity, maybe_metadata)?;
         }
         Backend::Sqlite => {
             let mut app = SqliteApplication::new(config)?;
-            app.modify(target, maybe_description, maybe_plaintext, maybe_identity, maybe_metadata)?;
-        }
-        Backend::Text => {
-            let mut app = TextApplication::new(config)?;
             app.modify(target, maybe_description, maybe_plaintext, maybe_identity, maybe_metadata)?;
         }
     }
@@ -261,16 +261,16 @@ pub fn modify(
 pub fn remove(target: Target) -> Result<ExitCode, Error> {
     let config = config()?;
     match config.backend() {
+        Backend::Text => {
+            let mut app = TextApplication::new(config)?;
+            app.remove(target)?;
+        }
         Backend::Json => {
             let mut app = JsonApplication::new(config)?;
             app.remove(target)?;
         }
         Backend::Sqlite => {
             let mut app = SqliteApplication::new(config)?;
-            app.remove(target)?;
-        }
-        Backend::Text => {
-            let mut app = TextApplication::new(config)?;
             app.remove(target)?;
         }
     }
@@ -280,16 +280,16 @@ pub fn remove(target: Target) -> Result<ExitCode, Error> {
 pub fn import(path: PathBuf) -> Result<ExitCode, Error> {
     let config = config()?;
     match config.backend() {
+        Backend::Text => {
+            let mut app = TextApplication::new(config)?;
+            app.import(path)?;
+        }
         Backend::Json => {
             let mut app = JsonApplication::new(config)?;
             app.import(path)?;
         }
         Backend::Sqlite => {
             let mut app = SqliteApplication::new(config)?;
-            app.import(path)?;
-        }
-        Backend::Text => {
-            let mut app = TextApplication::new(config)?;
             app.import(path)?;
         }
     }
@@ -299,16 +299,16 @@ pub fn import(path: PathBuf) -> Result<ExitCode, Error> {
 pub fn export(path: PathBuf) -> Result<ExitCode, Error> {
     let config = config()?;
     match config.backend() {
+        Backend::Text => {
+            let app = TextApplication::new(config)?;
+            app.export(path)?;
+        }
         Backend::Json => {
             let app = JsonApplication::new(config)?;
             app.export(path)?;
         }
         Backend::Sqlite => {
             let app = SqliteApplication::new(config)?;
-            app.export(path)?;
-        }
-        Backend::Text => {
-            let app = TextApplication::new(config)?;
             app.export(path)?;
         }
     }

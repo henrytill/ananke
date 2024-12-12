@@ -14,9 +14,9 @@ const MSG_MISSING_KEY_ID: &str = "missing key_id";
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub enum Backend {
     #[default]
-    Json = 0,
-    Sqlite = 1,
-    Text = 2,
+    Text = 0,
+    Json = 1,
+    Sqlite = 2,
 }
 
 impl TryFrom<u8> for Backend {
@@ -24,9 +24,9 @@ impl TryFrom<u8> for Backend {
 
     fn try_from(value: u8) -> Result<Backend, Self::Error> {
         match value {
-            0 => Ok(Backend::Json),
-            1 => Ok(Backend::Sqlite),
-            2 => Ok(Backend::Text),
+            0 => Ok(Backend::Text),
+            1 => Ok(Backend::Json),
+            2 => Ok(Backend::Sqlite),
             _ => Err(()),
         }
     }
@@ -37,9 +37,9 @@ impl FromStr for Backend {
 
     fn from_str(s: &str) -> Result<Backend, Self::Err> {
         match s.to_lowercase().as_str() {
-            "sqlite" => Ok(Backend::Sqlite),
-            "json" => Ok(Backend::Json),
             "text" => Ok(Backend::Text),
+            "json" => Ok(Backend::Json),
+            "sqlite" => Ok(Backend::Sqlite),
             _ => Err(()),
         }
     }
@@ -48,9 +48,9 @@ impl FromStr for Backend {
 impl std::fmt::Display for Backend {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
+            Backend::Text => "text",
             Backend::Json => "json",
             Backend::Sqlite => "sqlite",
-            Backend::Text => "text",
         };
         write!(f, "{}", str)
     }

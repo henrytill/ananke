@@ -21,6 +21,9 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+      - run: |
+          sudo apt-get update -yqq && \
+          sudo apt-get install -yqq --no-install-recommends libsqlite3-dev
       - run: cargo build
       - run: cargo test
   linux-flake:

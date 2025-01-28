@@ -267,10 +267,10 @@ mod tests {
     fn roundtrip_binary_large() {
         let cipher = Binary::new(vars().into_iter().collect());
         let random = {
-            let mut rng = rand::thread_rng();
+            let mut rng = rand::rng();
             let mut data = Vec::with_capacity(RANDOM_LEN);
             for _ in 0..(RANDOM_LEN / 8) {
-                let random_bytes: [u8; 8] = rng.gen();
+                let random_bytes: [u8; 8] = rng.random();
                 data.extend_from_slice(&random_bytes);
             }
             String::from_utf8_lossy(&data).to_string()
@@ -287,10 +287,10 @@ mod tests {
     fn roundtrip_text_large() {
         let cipher = Text::new(vars().into_iter().collect());
         let random = {
-            let mut rng = rand::thread_rng();
+            let mut rng = rand::rng();
             let mut data = Vec::with_capacity(RANDOM_LEN);
             for _ in 0..(RANDOM_LEN / 8) {
-                let random_bytes: [u8; 8] = rng.gen();
+                let random_bytes: [u8; 8] = rng.random();
                 data.extend_from_slice(&random_bytes);
             }
             String::from_utf8_lossy(&data).to_string()

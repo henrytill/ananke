@@ -8,7 +8,7 @@ anyhow = "1.0.92"
 clap = { version = "4.5.19", default-features = false, features = ["std", "derive", "help", "string", "usage"] }
 configparser = "3.0.4"
 data-encoding = "2.5.0"
-directories = "5.0.1"
+directories = "6.0.0"
 rusqlite = "0.33.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }

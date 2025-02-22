@@ -257,7 +257,7 @@ fn migrate(config: &Config, schema_version: SchemaVersion) -> Result<(), Error> 
             let obj = value.as_object_mut().ok_or_else(|| Error::msg("value is not an object"))?;
             obj.insert(String::from("id"), json!(Uuid::new_v4()));
         }
-        write(config.db(), value).map_err(Into::into)
+        write(config.db(), value)
     } else if schema_version == SchemaVersion::new(2) {
         let mappings: HashMap<String, String> = HashMap::from_iter(
             [

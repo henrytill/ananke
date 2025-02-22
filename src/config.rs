@@ -156,7 +156,7 @@ pub struct ConfigBuilder<'a> {
     mult_keys: Flag,
 }
 
-impl<'a> std::fmt::Debug for ConfigBuilder<'a> {
+impl std::fmt::Debug for ConfigBuilder<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ConfigBuilder")
             .field("maybe_config_dir", &self.maybe_config_dir)
@@ -168,7 +168,7 @@ impl<'a> std::fmt::Debug for ConfigBuilder<'a> {
     }
 }
 
-impl<'a> PartialEq for ConfigBuilder<'a> {
+impl PartialEq for ConfigBuilder<'_> {
     fn eq(&self, other: &ConfigBuilder) -> bool {
         self.maybe_config_dir == other.maybe_config_dir
             && self.maybe_data_dir == other.maybe_data_dir
@@ -178,7 +178,7 @@ impl<'a> PartialEq for ConfigBuilder<'a> {
     }
 }
 
-impl<'a> Eq for ConfigBuilder<'a> {}
+impl Eq for ConfigBuilder<'_> {}
 
 struct IniSelector {
     section: &'static str,

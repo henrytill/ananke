@@ -325,11 +325,11 @@ fn make_update<'a>(
     let mut params: NamedParams<'a> = vec![];
 
     match target {
-        Target::EntryId(ref entry_id) => {
+        Target::EntryId(entry_id) => {
             wheres.push("entries.id = :target");
             params.push((":target", entry_id));
         }
-        Target::Description(ref description) => {
+        Target::Description(description) => {
             wheres.push("entries.description = :target");
             params.push((":target", description));
         }

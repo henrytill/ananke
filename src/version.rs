@@ -24,7 +24,7 @@ impl std::fmt::Display for VersionInfo {
 }
 
 macro_rules! option_env_str {
-    ($name:expr) => {
+    ($name:expr_2021) => {
         option_env!($name).map(ToString::to_string)
     };
 }

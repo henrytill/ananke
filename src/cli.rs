@@ -339,11 +339,10 @@ pub fn configure(list: bool) -> Result<ExitCode, Error> {
         let mut key_candidate = None;
         while key_candidate.is_none() {
             key_candidate = gpg::suggest_key(std::env::vars)?;
-            let key_candidate_str = match key_candidate {
-                Some(ref key_id) => {
-                    format!("[{}] ", key_id)
-                }
-                _ => String::new(),
+            let key_candidate_str = if let Some(ref key_id) = key_candidate {
+                format!("[{}] ", key_id)
+            } else {
+                String::new()
             };
             let prompt_str = format!("Enter GPG key id: {}", key_candidate_str);
             let key_input = prompt(prompt_str.as_str())?;

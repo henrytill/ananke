@@ -134,7 +134,7 @@ mod error {
 }
 
 macro_rules! make_tests {
-    ($name:ident, $vars:expr_2021) => {
+    ($name:ident, $vars:expr) => {
         mod $name {
             use snapbox::{
                 cmd::{cargo_bin, Command},

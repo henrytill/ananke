@@ -227,9 +227,10 @@ impl<'a> ConfigBuilder<'a> {
         )
         .ok_or_else(|| Error::msg(MSG_PROJECT_DIRS))?;
 
-        let config_dir: PathBuf = match (self.getenv)(Self::ENV_CONFIG_DIR) {
-            Ok(config_dir) => config_dir.into(),
-            _ => project_dirs.config_dir().into(),
+        let config_dir: PathBuf = if let Ok(config_dir) = (self.getenv)(Self::ENV_CONFIG_DIR) {
+            config_dir.into()
+        } else {
+            project_dirs.config_dir().into()
         };
         self.maybe_config_dir = Some(config_dir);
 
@@ -242,20 +243,15 @@ impl<'a> ConfigBuilder<'a> {
     pub fn with_ini(mut self, maybe_input: Option<String>) -> Result<ConfigBuilder<'a>, Error> {
         let input = if let Some(input) = maybe_input {
             input
-        } else {
-            match self.maybe_config_dir.clone() {
-                Some(mut path) => {
-                    path.push(Self::CONFIG_FILE);
-                    if path.exists() {
-                        fs::read_to_string(path)?
-                    } else {
-                        String::new()
-                    }
-                }
-                _ => {
-                    return Err(Error::msg(MSG_MISSING_CONFIG_DIR));
-                }
+        } else if let Some(mut path) = self.maybe_config_dir.clone() {
+            path.push(Self::CONFIG_FILE);
+            if path.exists() {
+                fs::read_to_string(path)?
+            } else {
+                String::new()
             }
+        } else {
+            return Err(Error::msg(MSG_MISSING_CONFIG_DIR));
         };
 
         let mut config = Ini::new();

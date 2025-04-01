@@ -27,7 +27,7 @@ impl std::fmt::Display for SchemaVersion {
 
 impl From<u64> for SchemaVersion {
     fn from(value: u64) -> SchemaVersion {
-        SchemaVersion::new(value)
+        SchemaVersion(value)
     }
 }
 

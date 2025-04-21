@@ -9,7 +9,7 @@ clap = { version = "4.5.35", default-features = false, features = ["std", "deriv
 configparser = "3.0.4"
 data-encoding = "2.5.0"
 directories = "6.0.0"
-rusqlite = "0.34.0"
+rusqlite = "0.35.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 time = { version = "0.3.30", features = ["macros", "formatting", "parsing", "serde"] }

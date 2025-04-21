@@ -110,16 +110,16 @@ impl From<String> for Plaintext {
     }
 }
 
-impl std::fmt::Display for Plaintext {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
-    }
-}
-
 #[cfg(test)]
 impl From<&str> for Plaintext {
     fn from(name: &str) -> Plaintext {
         Plaintext(name.to_string())
+    }
+}
+
+impl std::fmt::Display for Plaintext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }
 
@@ -171,7 +171,7 @@ impl TryFrom<String> for EntryId {
 impl FromStr for EntryId {
     type Err = uuid::Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<EntryId, Self::Err> {
         let inner = Uuid::parse_str(s)?;
         Ok(EntryId(inner))
     }

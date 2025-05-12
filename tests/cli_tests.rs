@@ -14,8 +14,6 @@ fn import(vars: impl IntoIterator<Item = (impl AsRef<OsStr>, impl AsRef<OsStr>)>
 }
 
 mod usage {
-    use std::ffi::OsString;
-
     use snapbox::{
         cmd::{cargo_bin, Command},
         file,
@@ -25,20 +23,13 @@ mod usage {
 
     #[test]
     fn usage() {
-        let vars: [(OsString, OsString); 0] = [];
-        Command::new(cargo_bin(BIN))
-            .envs(vars)
-            .assert()
-            .stderr_eq(file!("cli_tests/usage.stderr"))
-            .failure();
+        Command::new(cargo_bin(BIN)).assert().stderr_eq(file!("cli_tests/usage.stderr")).failure();
     }
 
     #[test]
     fn add() {
-        let vars: [(OsString, OsString); 0] = [];
         Command::new(cargo_bin(BIN))
             .args(["add"])
-            .envs(vars)
             .assert()
             .stderr_eq(file!("cli_tests/usage_add.stderr"))
             .failure();
@@ -46,10 +37,8 @@ mod usage {
 
     #[test]
     fn lookup() {
-        let vars: [(OsString, OsString); 0] = [];
         Command::new(cargo_bin(BIN))
             .args(["lookup"])
-            .envs(vars)
             .assert()
             .stderr_eq(file!("cli_tests/usage_lookup.stderr"))
             .failure();
@@ -57,10 +46,8 @@ mod usage {
 
     #[test]
     fn modify() {
-        let vars: [(OsString, OsString); 0] = [];
         Command::new(cargo_bin(BIN))
             .args(["modify"])
-            .envs(vars)
             .assert()
             .stderr_eq(file!("cli_tests/usage_modify.stderr"))
             .failure();
@@ -68,10 +55,8 @@ mod usage {
 
     #[test]
     fn remove() {
-        let vars: [(OsString, OsString); 0] = [];
         Command::new(cargo_bin(BIN))
             .args(["remove"])
-            .envs(vars)
             .assert()
             .stderr_eq(file!("cli_tests/usage_remove.stderr"))
             .failure();
@@ -79,10 +64,8 @@ mod usage {
 
     #[test]
     fn import() {
-        let vars: [(OsString, OsString); 0] = [];
         Command::new(cargo_bin(BIN))
             .args(["import"])
-            .envs(vars)
             .assert()
             .stderr_eq(file!("cli_tests/usage_import.stderr"))
             .failure();
@@ -90,10 +73,8 @@ mod usage {
 
     #[test]
     fn export() {
-        let vars: [(OsString, OsString); 0] = [];
         Command::new(cargo_bin(BIN))
             .args(["export"])
-            .envs(vars)
             .assert()
             .stderr_eq(file!("cli_tests/usage_export.stderr"))
             .failure();
@@ -101,8 +82,6 @@ mod usage {
 }
 
 mod error {
-    use std::ffi::OsString;
-
     use snapbox::{
         cmd::{cargo_bin, Command},
         file,
@@ -112,10 +91,8 @@ mod error {
 
     #[test]
     fn add_without_description() {
-        let vars: [(OsString, OsString); 0] = [];
         Command::new(cargo_bin(BIN))
             .args(["add", "-i", "foo"])
-            .envs(vars)
             .assert()
             .stderr_eq(file!("cli_tests/error_add_without_description.stderr"))
             .failure();
@@ -123,10 +100,8 @@ mod error {
 
     #[test]
     fn lookup_without_description() {
-        let vars: [(OsString, OsString); 0] = [];
         Command::new(cargo_bin(BIN))
             .args(["lookup", "-v"])
-            .envs(vars)
             .assert()
             .stderr_eq(file!("cli_tests/error_lookup_without_description.stderr"))
             .failure();

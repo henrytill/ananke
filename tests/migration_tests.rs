@@ -24,14 +24,14 @@ mod json {
 
     use snapbox::{
         self,
-        cmd::{cargo_bin, Command},
+        cmd::{Command, cargo_bin},
         dir::DirRoot,
         file,
     };
 
     use crate::{
-        base::{self, BIN},
         UNKNOWN_SCHEMA_VERSION,
+        base::{self, BIN},
     };
 
     fn copy_data(target_dir: impl AsRef<Path>, source_file: impl AsRef<Path>) {
@@ -114,14 +114,14 @@ mod sqlite {
 
     use rusqlite::Connection;
     use snapbox::{
-        cmd::{cargo_bin, Command},
+        cmd::{Command, cargo_bin},
         dir::DirRoot,
         file,
     };
 
     use crate::{
-        base::{self, BIN},
         UNKNOWN_SCHEMA_VERSION,
+        base::{self, BIN},
     };
 
     fn copy_data(dir: impl AsRef<Path>, source: impl AsRef<Path>) {

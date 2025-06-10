@@ -1,7 +1,7 @@
 use std::{convert::TryFrom, fs, path::PathBuf};
 
 use anyhow::Error;
-use rusqlite::{named_params, params_from_iter, Connection, ToSql};
+use rusqlite::{Connection, ToSql, named_params, params_from_iter};
 use uuid::Uuid;
 
 use crate::{

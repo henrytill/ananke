@@ -245,11 +245,7 @@ impl<'a> ConfigBuilder<'a> {
             input
         } else if let Some(mut path) = self.maybe_config_dir.clone() {
             path.push(Self::CONFIG_FILE);
-            if path.exists() {
-                fs::read_to_string(path)?
-            } else {
-                String::new()
-            }
+            if path.exists() { fs::read_to_string(path)? } else { String::new() }
         } else {
             return Err(Error::msg(MSG_MISSING_CONFIG_DIR));
         };

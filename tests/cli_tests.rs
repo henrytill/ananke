@@ -2,7 +2,7 @@ mod base;
 
 use std::ffi::OsStr;
 
-use snapbox::cmd::{cargo_bin, Command};
+use snapbox::cmd::{Command, cargo_bin};
 
 use base::{BIN, EXAMPLE_DIR};
 
@@ -17,7 +17,7 @@ mod usage {
     use std::ffi::OsString;
 
     use snapbox::{
-        cmd::{cargo_bin, Command},
+        cmd::{Command, cargo_bin},
         file,
     };
 
@@ -104,7 +104,7 @@ mod error {
     use std::ffi::OsString;
 
     use snapbox::{
-        cmd::{cargo_bin, Command},
+        cmd::{Command, cargo_bin},
         file,
     };
 

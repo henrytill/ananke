@@ -5,20 +5,20 @@ use std::{
     str::FromStr,
 };
 
-use data_encoding::{DecodeError, BASE64};
+use data_encoding::{BASE64, DecodeError};
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 use serde::{Deserialize, Serialize};
 use time::{
-    format_description::well_known::{
-        iso8601::{Config, EncodedConfig},
-        Iso8601,
-    },
     OffsetDateTime,
+    format_description::well_known::{
+        Iso8601,
+        iso8601::{Config, EncodedConfig},
+    },
 };
 use uuid::Uuid;
 use zeroize::{DefaultIsZeroes, Zeroize, ZeroizeOnDrop};
 
-pub use schema::{schema_version, SchemaVersion};
+pub use schema::{SchemaVersion, schema_version};
 
 /// Wraps a [`String`] in a newtype
 macro_rules! wrap_string {
@@ -286,8 +286,8 @@ impl ToSql for Ciphertext {
 mod base64 {
     use data_encoding::BASE64;
     use serde::{
-        de::{Error, Visitor},
         Deserializer, Serializer,
+        de::{Error, Visitor},
     };
 
     struct Vis;

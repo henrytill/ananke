@@ -6,7 +6,7 @@ use std::{
 
 use anyhow::Error;
 use serde::Serialize;
-use serde_json::{json, ser::PrettyFormatter, Map, Serializer, Value};
+use serde_json::{Map, Serializer, Value, json, ser::PrettyFormatter};
 use uuid::Uuid;
 
 use crate::{

@@ -58,12 +58,10 @@ impl std::fmt::Display for Backend {
 
 #[derive(Debug)]
 pub struct Config {
-    #[allow(dead_code)]
     config_dir: PathBuf,
     data_dir: PathBuf,
     backend: Backend,
     key_id: KeyId,
-    #[allow(dead_code)]
     mult_keys: bool,
 }
 

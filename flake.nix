@@ -25,16 +25,15 @@
       ...
     }:
     let
-      makeAnanke =
-        pkgs:
-        pkgs.rustPlatform.buildRustPackage {
+      overlay = final: prev: {
+        ananke = final.rustPlatform.buildRustPackage {
           name = "ananke";
           pname = "ananke";
           cargoLock = {
             lockFile = ./Cargo.lock;
           };
-          buildInputs = with pkgs; [ sqlite ];
-          nativeCheckInputs = with pkgs; [ gnupg ];
+          buildInputs = with final; [ sqlite ];
+          nativeCheckInputs = with final; [ gnupg ];
           src = builtins.path {
             path = ./.;
             name = "ananke-src";
@@ -44,14 +43,18 @@
             ANANKE_COMMIT_SHORT_HASH = "${self.shortRev or self.dirtyShortRev}";
           };
         };
+      };
     in
     flake-utils.lib.eachDefaultSystem (
       system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ overlay ];
+        };
       in
       {
-        packages.ananke = makeAnanke pkgs;
+        packages.ananke = pkgs.ananke;
         packages.default = self.packages.${system}.ananke;
       }
     );

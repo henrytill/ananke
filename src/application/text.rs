@@ -139,11 +139,10 @@ impl Application for TextApplication {
         maybe_identity: Option<Identity>,
     ) -> Result<Vec<Self::Record>, Self::Error> {
         let mut ret = Vec::new();
-        for elem in self
-            .elems
-            .iter()
-            .filter(|e| e.description.contains(description.as_str()))
-        {
+        for elem in self.elems.iter() {
+            if !elem.description.contains(description.as_str()) {
+                continue;
+            }
             let entry: SecureEntry = self.entry(elem.entry_id)?;
             match (maybe_identity.as_ref(), entry.identity.as_ref()) {
                 (Some(identity), Some(entry_identity)) if entry_identity.contains(identity) => {
@@ -287,10 +286,10 @@ pub fn write(
     key_id: &KeyId,
 ) -> Result<(), anyhow::Error> {
     let armored = cipher.encrypt(key_id, &plaintext)?;
-    if let Some(parent) = path.as_ref().parent() {
-        if !parent.exists() {
-            fs::create_dir_all(parent)?;
-        }
+    if let Some(parent) = path.as_ref().parent()
+        && !parent.exists()
+    {
+        fs::create_dir_all(parent)?;
     }
     fs::write(path, armored.as_str()).map_err(Into::into)
 }

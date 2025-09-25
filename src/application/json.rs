@@ -102,11 +102,10 @@ impl Application for JsonApplication {
         maybe_identity: Option<Identity>,
     ) -> Result<Vec<Self::Record>, Self::Error> {
         let mut ret = Vec::new();
-        for entry in self
-            .entries
-            .iter()
-            .filter(|e| e.description.contains(description.as_str()))
-        {
+        for entry in self.entries.iter() {
+            if !entry.description.contains(description.as_str()) {
+                continue;
+            }
             match (maybe_identity.as_ref(), entry.identity.as_ref()) {
                 (Some(identity), Some(entry_identity)) if entry_identity.contains(identity) => {
                     let plaintext = self.cipher.decrypt(&entry.ciphertext)?;
@@ -260,10 +259,10 @@ pub fn write(path: impl AsRef<Path>, data: impl Serialize) -> Result<(), anyhow:
     data.serialize(&mut ser)?;
     let mut ret = String::from_utf8(buf)?;
     ret.push('\n');
-    if let Some(parent) = path.as_ref().parent() {
-        if !parent.exists() {
-            fs::create_dir_all(parent)?;
-        }
+    if let Some(parent) = path.as_ref().parent()
+        && !parent.exists()
+    {
+        fs::create_dir_all(parent)?;
     }
     fs::write(path, ret).map_err(Into::into)
 }

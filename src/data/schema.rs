@@ -39,10 +39,10 @@ pub fn schema_version(path: impl AsRef<Path>) -> Result<SchemaVersion, anyhow::E
     }
 
     let schema_version = SchemaVersion::CURRENT;
-    if let Some(parent) = path.as_ref().parent() {
-        if !parent.exists() {
-            fs::create_dir_all(parent)?;
-        }
+    if let Some(parent) = path.as_ref().parent()
+        && !parent.exists()
+    {
+        fs::create_dir_all(parent)?;
     }
     fs::write(path, schema_version.to_string())?;
     Ok(schema_version)

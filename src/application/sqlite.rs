@@ -50,10 +50,10 @@ impl SqliteApplication {
 
     pub fn new(config: Config) -> Result<SqliteApplication, Error> {
         assert_eq!(config.backend(), Backend::Sqlite);
-        if let Some(parent) = config.db().parent() {
-            if !parent.exists() {
-                fs::create_dir_all(parent)?;
-            }
+        if let Some(parent) = config.db().parent()
+            && !parent.exists()
+        {
+            fs::create_dir_all(parent)?;
         }
         let cipher = Binary::default();
         let mut connection = rusqlite::Connection::open(config.db())?;

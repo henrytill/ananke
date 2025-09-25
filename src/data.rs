@@ -270,7 +270,9 @@ impl std::fmt::Display for Ciphertext {
 impl FromSql for Ciphertext {
     fn column_result(value: ValueRef<'_>) -> FromSqlResult<Ciphertext> {
         let bytes = value.as_bytes()?;
-        let decoded = BASE64.decode(bytes).map_err(|err| FromSqlError::Other(Box::new(err)))?;
+        let decoded = BASE64
+            .decode(bytes)
+            .map_err(|err| FromSqlError::Other(Box::new(err)))?;
         Ok(Ciphertext(decoded))
     }
 }

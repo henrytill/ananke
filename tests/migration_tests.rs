@@ -104,7 +104,9 @@ mod json {
             .args(["lookup", "foomail"])
             .envs(vars)
             .assert()
-            .stderr_eq(file!("migration_tests/migrate_to_unknown_schema_version.stderr"))
+            .stderr_eq(file!(
+                "migration_tests/migrate_to_unknown_schema_version.stderr"
+            ))
             .failure();
     }
 }
@@ -197,7 +199,9 @@ mod sqlite {
             .args(["lookup", "foomail"])
             .envs(vars)
             .assert()
-            .stderr_eq(file!("migration_tests/migrate_to_unknown_schema_version.stderr"))
+            .stderr_eq(file!(
+                "migration_tests/migrate_to_unknown_schema_version.stderr"
+            ))
             .failure();
     }
 }

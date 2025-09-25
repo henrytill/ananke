@@ -42,8 +42,16 @@ impl JsonApplication {
             fs::write(config.schema_file(), SchemaVersion::CURRENT.to_string())?;
         }
         let cipher = Binary::default();
-        let entries = if config.db().exists() { read(config.db())? } else { Vec::new() };
-        Ok(JsonApplication { config, cipher, entries })
+        let entries = if config.db().exists() {
+            read(config.db())?
+        } else {
+            Vec::new()
+        };
+        Ok(JsonApplication {
+            config,
+            cipher,
+            entries,
+        })
     }
 
     fn write(&self, path: PathBuf) -> Result<(), Error> {
@@ -73,7 +81,15 @@ impl Application for JsonApplication {
         let entry = {
             let key_id = key_id.clone();
             let description = description.clone();
-            Entry { timestamp, entry_id, key_id, description, identity, ciphertext, metadata }
+            Entry {
+                timestamp,
+                entry_id,
+                key_id,
+                description,
+                identity,
+                ciphertext,
+                metadata,
+            }
         };
         self.entries.push(entry);
         self.write(self.config.db())?;
@@ -86,7 +102,11 @@ impl Application for JsonApplication {
         maybe_identity: Option<Identity>,
     ) -> Result<Vec<Self::Record>, Self::Error> {
         let mut ret = Vec::new();
-        for entry in self.entries.iter().filter(|e| e.description.contains(description.as_str())) {
+        for entry in self
+            .entries
+            .iter()
+            .filter(|e| e.description.contains(description.as_str()))
+        {
             match (maybe_identity.as_ref(), entry.identity.as_ref()) {
                 (Some(identity), Some(entry_identity)) if entry_identity.contains(identity) => {
                     let plaintext = self.cipher.decrypt(&entry.ciphertext)?;
@@ -252,9 +272,13 @@ fn migrate(config: &Config, schema_version: SchemaVersion) -> Result<(), Error> 
     if schema_version == SchemaVersion::new(3) {
         let json = fs::read_to_string(config.db())?;
         let mut value: Value = serde_json::from_str(&json)?;
-        let arr = value.as_array_mut().ok_or_else(|| Error::msg("value is not an array"))?;
+        let arr = value
+            .as_array_mut()
+            .ok_or_else(|| Error::msg("value is not an array"))?;
         for value in arr {
-            let obj = value.as_object_mut().ok_or_else(|| Error::msg("value is not an object"))?;
+            let obj = value
+                .as_object_mut()
+                .ok_or_else(|| Error::msg("value is not an object"))?;
             obj.insert(String::from("id"), json!(Uuid::new_v4()));
         }
         write(config.db(), value)
@@ -274,9 +298,13 @@ fn migrate(config: &Config, schema_version: SchemaVersion) -> Result<(), Error> 
         );
         let json = fs::read_to_string(config.db())?;
         let mut value: Value = serde_json::from_str(&json)?;
-        let arr = value.as_array_mut().ok_or_else(|| Error::msg("value is not an array"))?;
+        let arr = value
+            .as_array_mut()
+            .ok_or_else(|| Error::msg("value is not an array"))?;
         for value in arr {
-            let obj = value.as_object().ok_or_else(|| Error::msg("value is not an object"))?;
+            let obj = value
+                .as_object()
+                .ok_or_else(|| Error::msg("value is not an object"))?;
             let mut target = Map::new();
             for (k, v) in obj.into_iter() {
                 if let Some(mapped) = mappings.get(k) {

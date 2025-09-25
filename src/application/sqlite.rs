@@ -63,7 +63,11 @@ impl SqliteApplication {
             fs::write(config.schema_file(), SchemaVersion::CURRENT.to_string())?;
         }
         connection.execute_batch(CREATE_TABLE)?;
-        let ret = SqliteApplication { config, cipher, connection };
+        let ret = SqliteApplication {
+            config,
+            cipher,
+            connection,
+        };
         Ok(ret)
     }
 }
@@ -115,7 +119,15 @@ impl Application for SqliteApplication {
                 TryFrom::try_from(row)?;
             let plaintext = self.cipher.decrypt(&ciphertext)?;
             results.push((
-                Entry { timestamp, entry_id, key_id, description, identity, ciphertext, metadata },
+                Entry {
+                    timestamp,
+                    entry_id,
+                    key_id,
+                    description,
+                    identity,
+                    ciphertext,
+                    metadata,
+                },
                 plaintext,
             ))
         }
@@ -354,7 +366,11 @@ fn make_update<'a>(
     sets.push("meta = :meta");
     params.push((":meta", &entry.metadata));
 
-    let sql = format!("UPDATE entries SET {} WHERE {}", sets.join(", "), wheres.join(" AND "));
+    let sql = format!(
+        "UPDATE entries SET {} WHERE {}",
+        sets.join(", "),
+        wheres.join(" AND ")
+    );
     Ok((sql, params))
 }
 

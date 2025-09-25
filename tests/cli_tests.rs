@@ -8,9 +8,16 @@ use base::{BIN, EXAMPLE_DIR};
 
 fn import(vars: impl IntoIterator<Item = (impl AsRef<OsStr>, impl AsRef<OsStr>)>) {
     const IMPORT_PATH: [&str; 2] = [EXAMPLE_DIR, "export.asc"];
-    let data_file = IMPORT_PATH.into_iter().collect::<std::path::PathBuf>().into_os_string();
+    let data_file = IMPORT_PATH
+        .into_iter()
+        .collect::<std::path::PathBuf>()
+        .into_os_string();
     let data_file_str = data_file.to_str().unwrap();
-    Command::new(cargo_bin(BIN)).args(["import", data_file_str]).envs(vars).assert().success();
+    Command::new(cargo_bin(BIN))
+        .args(["import", data_file_str])
+        .envs(vars)
+        .assert()
+        .success();
 }
 
 mod usage {

@@ -36,7 +36,8 @@ impl Cipher for Binary {
         let cmd = {
             let mut tmp = Command::new("gpg");
             let vars = self.env.iter().cloned();
-            tmp.args(["--batch", "-q", "-e", "-r", key_id.as_str()]).envs(vars);
+            tmp.args(["--batch", "-q", "-e", "-r", key_id.as_str()])
+                .envs(vars);
             tmp
         };
         let buf = run(cmd, plaintext.as_bytes())?;
@@ -77,7 +78,8 @@ impl Cipher for Text {
         let cmd = {
             let mut tmp = Command::new("gpg");
             let vars = self.env.iter().cloned();
-            tmp.args(["--batch", "--armor", "-q", "-e", "-r", key_id.as_str()]).envs(vars);
+            tmp.args(["--batch", "--armor", "-q", "-e", "-r", key_id.as_str()])
+                .envs(vars);
             tmp
         };
         let buf = run(cmd, plaintext.as_bytes())?;
@@ -101,11 +103,17 @@ impl Cipher for Text {
 fn run(mut cmd: Command, buf: &[u8]) -> Result<Vec<u8>, Error> {
     let program = cmd.get_program().to_os_string(); // for error messages
 
-    let mut child =
-        cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn()?;
+    let mut child = cmd
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()?;
 
     let stdout_handle: JoinHandle<Result<Vec<u8>, io::Error>> = {
-        let mut stdout = child.stdout.take().ok_or_else(|| Error::msg(MSG_TAKE_STDOUT))?;
+        let mut stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| Error::msg(MSG_TAKE_STDOUT))?;
         std::thread::spawn(move || {
             let mut buf = Vec::new();
             let _len = stdout.read_to_end(&mut buf)?;
@@ -114,13 +122,20 @@ fn run(mut cmd: Command, buf: &[u8]) -> Result<Vec<u8>, Error> {
     };
 
     {
-        let mut stdin = child.stdin.take().ok_or_else(|| Error::msg(MSG_TAKE_STDIN))?;
+        let mut stdin = child
+            .stdin
+            .take()
+            .ok_or_else(|| Error::msg(MSG_TAKE_STDIN))?;
         stdin.write_all(buf)?;
     }
 
     let status = child.wait()?;
     if !status.success() {
-        let msg = format!("{} exited with status {}", program.to_string_lossy(), status);
+        let msg = format!(
+            "{} exited with status {}",
+            program.to_string_lossy(),
+            status
+        );
         return Err(Error::msg(msg));
     }
 
@@ -148,7 +163,10 @@ where
 
     let maybe_key_id: Option<KeyId> = {
         let mut tmp = None;
-        let stdout = child.stdout.take().ok_or_else(|| Error::msg(MSG_TAKE_STDOUT))?;
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| Error::msg(MSG_TAKE_STDOUT))?;
         for line in BufReader::new(stdout).lines() {
             let line = line?;
             let mut fields = line.split(':');
@@ -170,7 +188,10 @@ where
 
     let status = child.wait()?;
     if !status.success() {
-        return Err(Error::from(io::Error::other(format!("gpg exited with status {}", status))));
+        return Err(Error::from(io::Error::other(format!(
+            "gpg exited with status {}",
+            status
+        ))));
     }
 
     if let result @ Some(_) = maybe_key_id {
@@ -188,7 +209,10 @@ where
 
     let maybe_key_id: Option<KeyId> = {
         let mut tmp = None;
-        let stdout = child.stdout.take().ok_or_else(|| Error::msg(MSG_TAKE_STDOUT))?;
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| Error::msg(MSG_TAKE_STDOUT))?;
         for line in BufReader::new(stdout).lines() {
             let line = line?;
             let mut fields = line.split(':');
@@ -211,7 +235,10 @@ where
 
     let status = child.wait()?;
     if !status.success() {
-        return Err(Error::from(io::Error::other(format!("gpg exited with status {}", status))));
+        return Err(Error::from(io::Error::other(format!(
+            "gpg exited with status {}",
+            status
+        ))));
     }
 
     if let result @ Some(_) = maybe_key_id {
@@ -239,7 +266,10 @@ mod tests {
 
     fn vars() -> impl IntoIterator<Item = (OsString, OsString)> {
         const GNUPGHOME: [&str; 2] = [r"example", "gnupg"];
-        [(OsString::from("GNUPGHOME"), GNUPGHOME.iter().collect::<PathBuf>().into_os_string())]
+        [(
+            OsString::from("GNUPGHOME"),
+            GNUPGHOME.iter().collect::<PathBuf>().into_os_string(),
+        )]
     }
 
     #[test]

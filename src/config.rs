@@ -243,7 +243,11 @@ impl<'a> ConfigBuilder<'a> {
             input
         } else if let Some(mut path) = self.maybe_config_dir.clone() {
             path.push(Self::CONFIG_FILE);
-            if path.exists() { fs::read_to_string(path)? } else { String::new() }
+            if path.exists() {
+                fs::read_to_string(path)?
+            } else {
+                String::new()
+            }
         } else {
             return Err(Error::msg(MSG_MISSING_CONFIG_DIR));
         };
@@ -291,14 +295,27 @@ impl<'a> ConfigBuilder<'a> {
     }
 
     pub fn build(mut self) -> Result<Config, Error> {
-        let config_dir =
-            self.maybe_config_dir.take().ok_or_else(|| Error::msg(MSG_MISSING_CONFIG_DIR))?;
-        let data_dir =
-            self.maybe_data_dir.take().ok_or_else(|| Error::msg(MSG_MISSING_DATA_DIR))?;
+        let config_dir = self
+            .maybe_config_dir
+            .take()
+            .ok_or_else(|| Error::msg(MSG_MISSING_CONFIG_DIR))?;
+        let data_dir = self
+            .maybe_data_dir
+            .take()
+            .ok_or_else(|| Error::msg(MSG_MISSING_DATA_DIR))?;
         let backend = self.maybe_backend.unwrap_or(Backend::Json);
-        let key_id = self.maybe_key_id.take().ok_or_else(|| Error::msg(MSG_MISSING_KEY_ID))?;
+        let key_id = self
+            .maybe_key_id
+            .take()
+            .ok_or_else(|| Error::msg(MSG_MISSING_KEY_ID))?;
         let mult_keys = self.mult_keys.into();
-        Ok(Config { config_dir, data_dir, backend, key_id, mult_keys })
+        Ok(Config {
+            config_dir,
+            data_dir,
+            backend,
+            key_id,
+            mult_keys,
+        })
     }
 
     pub fn maybe_config_dir(&self) -> Option<&PathBuf> {
@@ -334,7 +351,11 @@ impl<'a> ConfigBuilder<'a> {
     }
 
     pub fn ini(&self) -> Option<String> {
-        match (self.maybe_backend, self.maybe_data_dir.as_ref(), self.maybe_key_id.as_ref()) {
+        match (
+            self.maybe_backend,
+            self.maybe_data_dir.as_ref(),
+            self.maybe_key_id.as_ref(),
+        ) {
             (Some(backend), Some(data_dir), Some(key_id)) => Some(format!(
                 "\
 [data]
@@ -389,7 +410,9 @@ allow_multiple_keys={}
 ",
             data_dir, backend, key_id, mult_keys
         );
-        let actual = ConfigBuilder::new(empty_getenv).with_ini(Some(input)).unwrap();
+        let actual = ConfigBuilder::new(empty_getenv)
+            .with_ini(Some(input))
+            .unwrap();
         assert_eq!(expected, actual);
     }
 
@@ -397,7 +420,9 @@ allow_multiple_keys={}
     fn with_ini_parses_empty_ini() {
         let expected = ConfigBuilder::new(empty_getenv);
         let input = String::new();
-        let actual = ConfigBuilder::new(empty_getenv).with_ini(Some(input)).unwrap();
+        let actual = ConfigBuilder::new(empty_getenv)
+            .with_ini(Some(input))
+            .unwrap();
         assert_eq!(expected, actual);
     }
 

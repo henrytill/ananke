@@ -22,7 +22,11 @@ fn commit_info_git() {
 }
 
 fn commit_info_env() {
-    for var in ["ANANKE_COMMIT_HASH", "ANANKE_COMMIT_SHORT_HASH", "ANANKE_COMMIT_DATE"] {
+    for var in [
+        "ANANKE_COMMIT_HASH",
+        "ANANKE_COMMIT_SHORT_HASH",
+        "ANANKE_COMMIT_DATE",
+    ] {
         if let Ok(value) = std::env::var(var) {
             println!("cargo:rustc-env={}={}", var, value);
         }

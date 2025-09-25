@@ -21,7 +21,11 @@ use crate::{
 const PROMPT_PLAINTEXT: &str = "Enter plaintext: ";
 
 fn config() -> Result<Config, Error> {
-    ConfigBuilder::new(std::env::var).with_defaults()?.with_ini(None)?.with_env()?.build()
+    ConfigBuilder::new(std::env::var)
+        .with_defaults()?
+        .with_ini(None)?
+        .with_env()?
+        .build()
 }
 
 fn trim_newline(s: &mut String) {
@@ -50,7 +54,11 @@ fn enter_plaintext() -> Result<Plaintext, io::Error> {
 
 fn format_brief(entry: &Entry, plaintext: &Plaintext) -> String {
     let description = entry.description.as_str();
-    let identity = entry.identity.as_ref().map(Identity::as_str).unwrap_or_else(|| "<none>");
+    let identity = entry
+        .identity
+        .as_ref()
+        .map(Identity::as_str)
+        .unwrap_or_else(|| "<none>");
     let plaintext = plaintext.as_str();
     format!("{} {} {}", description, identity, plaintext)
 }
@@ -106,7 +114,11 @@ fn format_results(results: &[(Entry, Plaintext)], verbose: bool) -> Result<Strin
 
 fn format_brief_secure(entry: &SecureEntry) -> String {
     let description = entry.description.as_str();
-    let identity = entry.identity.as_ref().map(Identity::as_str).unwrap_or_else(|| "<none>");
+    let identity = entry
+        .identity
+        .as_ref()
+        .map(Identity::as_str)
+        .unwrap_or_else(|| "<none>");
     let plaintext = entry.plaintext.as_str();
     format!("{} {} {}", description, identity, plaintext)
 }
@@ -244,15 +256,33 @@ pub fn modify(
     match config.backend() {
         Backend::Text => {
             let mut app = TextApplication::new(config)?;
-            app.modify(target, maybe_description, maybe_plaintext, maybe_identity, maybe_metadata)?;
+            app.modify(
+                target,
+                maybe_description,
+                maybe_plaintext,
+                maybe_identity,
+                maybe_metadata,
+            )?;
         }
         Backend::Json => {
             let mut app = JsonApplication::new(config)?;
-            app.modify(target, maybe_description, maybe_plaintext, maybe_identity, maybe_metadata)?;
+            app.modify(
+                target,
+                maybe_description,
+                maybe_plaintext,
+                maybe_identity,
+                maybe_metadata,
+            )?;
         }
         Backend::Sqlite => {
             let mut app = SqliteApplication::new(config)?;
-            app.modify(target, maybe_description, maybe_plaintext, maybe_identity, maybe_metadata)?;
+            app.modify(
+                target,
+                maybe_description,
+                maybe_plaintext,
+                maybe_identity,
+                maybe_metadata,
+            )?;
         }
     }
     Ok(ExitCode::SUCCESS)
@@ -322,7 +352,9 @@ pub fn configure(list: bool) -> Result<ExitCode, Error> {
         return Ok(ExitCode::SUCCESS);
     }
 
-    let mut builder = ConfigBuilder::new(std::env::var).with_defaults()?.with_env()?;
+    let mut builder = ConfigBuilder::new(std::env::var)
+        .with_defaults()?
+        .with_env()?;
 
     let maybe_config_file = builder.maybe_config_file();
     match maybe_config_file {

@@ -137,13 +137,22 @@ fn main() -> anyhow::Result<ExitCode> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Add { description, identity, meta } => cli::add(description, identity, meta),
-        Commands::Lookup { description, identity, verbose } => {
-            cli::lookup(description, identity, verbose)
-        }
-        Commands::Modify { target, plaintext, identity, meta } => {
-            cli::modify(target.try_into()?, plaintext, None, identity, meta)
-        }
+        Commands::Add {
+            description,
+            identity,
+            meta,
+        } => cli::add(description, identity, meta),
+        Commands::Lookup {
+            description,
+            identity,
+            verbose,
+        } => cli::lookup(description, identity, verbose),
+        Commands::Modify {
+            target,
+            plaintext,
+            identity,
+            meta,
+        } => cli::modify(target.try_into()?, plaintext, None, identity, meta),
         Commands::Remove { target } => cli::remove(target.try_into()?),
         Commands::Import { file } => cli::import(file),
         Commands::Export { file } => cli::export(file),

@@ -36,8 +36,16 @@ impl TextApplication {
             fs::write(config.schema_file(), SchemaVersion::CURRENT.to_string())?;
         }
         let cipher = Text::default();
-        let elems = if config.db().exists() { read(&cipher, config.db())? } else { Vec::new() };
-        let ret = TextApplication { config, cipher, elems };
+        let elems = if config.db().exists() {
+            read(&cipher, config.db())?
+        } else {
+            Vec::new()
+        };
+        let ret = TextApplication {
+            config,
+            cipher,
+            elems,
+        };
         Ok(ret)
     }
 
@@ -45,7 +53,12 @@ impl TextApplication {
         let elems: &[SecureIndexElement] = self.elems.as_slice();
         let json = serde_json::to_string_pretty(elems)?;
         let plaintext = Plaintext::from(json);
-        write(&self.cipher, self.config.db(), plaintext, self.config.key_id())
+        write(
+            &self.cipher,
+            self.config.db(),
+            plaintext,
+            self.config.key_id(),
+        )
     }
 
     fn entry_path(&self, entry_id: EntryId) -> PathBuf {
@@ -100,9 +113,21 @@ impl Application for TextApplication {
             let description = description.clone();
             let identity = maybe_identity;
             let metadata = maybe_metadata;
-            SecureEntry { timestamp, entry_id, key_id, description, identity, plaintext, metadata }
+            SecureEntry {
+                timestamp,
+                entry_id,
+                key_id,
+                description,
+                identity,
+                plaintext,
+                metadata,
+            }
         };
-        let elem = SecureIndexElement { description, key_id, entry_id };
+        let elem = SecureIndexElement {
+            description,
+            key_id,
+            entry_id,
+        };
         self.write_entry(entry)?;
         self.elems.push(elem);
         self.write_index()
@@ -114,7 +139,11 @@ impl Application for TextApplication {
         maybe_identity: Option<Identity>,
     ) -> Result<Vec<Self::Record>, Self::Error> {
         let mut ret = Vec::new();
-        for elem in self.elems.iter().filter(|e| e.description.contains(description.as_str())) {
+        for elem in self
+            .elems
+            .iter()
+            .filter(|e| e.description.contains(description.as_str()))
+        {
             let entry: SecureEntry = self.entry(elem.entry_id)?;
             match (maybe_identity.as_ref(), entry.identity.as_ref()) {
                 (Some(identity), Some(entry_identity)) if entry_identity.contains(identity) => {
@@ -203,7 +232,11 @@ impl Application for TextApplication {
             let entry_id = entry.entry_id;
             let elem = {
                 let description = entry.description.clone();
-                SecureIndexElement { description, key_id, entry_id }
+                SecureIndexElement {
+                    description,
+                    key_id,
+                    entry_id,
+                }
             };
             self.write_entry(entry)?;
             self.elems.push(elem);

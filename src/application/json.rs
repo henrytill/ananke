@@ -14,16 +14,18 @@ use crate::{
         base::{Application, Matcher, Target},
         text,
     },
-    cipher::{
-        base::Cipher,
-        gpg::{Binary, Text},
-    },
+    cipher::base::Cipher,
     config::Config,
     data::{
         self, Description, Entry, EntryId, Identity, Metadata, Plaintext, SchemaVersion,
         SecureEntry, Timestamp,
     },
 };
+
+#[cfg(not(feature = "gpgme"))]
+use crate::cipher::gpg::{Binary, Text};
+#[cfg(feature = "gpgme")]
+use crate::cipher::gpgme::{Binary, Text};
 
 pub struct JsonApplication {
     config: Config,

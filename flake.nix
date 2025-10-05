@@ -34,9 +34,11 @@
           cargoLock = {
             lockFile = ./Cargo.lock;
           };
+          buildFeatures = [
+            "gpgme"
+          ];
           nativeBuildInputs = with pkgs; [ pkg-config ];
-          buildInputs = with pkgs; [ sqlite ];
-          nativeCheckInputs = with pkgs; [ gnupg ];
+          buildInputs = with pkgs; [ gpgme sqlite ];
           src = builtins.path {
             path = ./.;
             name = "ananke-src";

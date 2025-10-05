@@ -9,16 +9,18 @@ use crate::{
         base::{Application, Target},
         text,
     },
-    cipher::{
-        base::Cipher,
-        gpg::{Binary, Text},
-    },
+    cipher::base::Cipher,
     config::{Backend, Config},
     data::{
         self, Description, Entry, EntryId, Identity, Metadata, Plaintext, SchemaVersion,
         SecureEntry, Timestamp,
     },
 };
+
+#[cfg(not(feature = "gpgme"))]
+use crate::cipher::gpg::{Binary, Text};
+#[cfg(feature = "gpgme")]
+use crate::cipher::gpgme::{Binary, Text};
 
 const CREATE_TABLE: &str = "\
 CREATE TABLE IF NOT EXISTS entries (

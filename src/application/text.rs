@@ -8,13 +8,18 @@ use serde::Deserialize;
 
 use crate::{
     application::base::{Application, Matcher, Target},
-    cipher::{base::Cipher, gpg::Text},
+    cipher::base::Cipher,
     config::{Backend, Config},
     data::{
         self, ArmoredCiphertext, Description, EntryId, Identity, KeyId, Metadata, Plaintext,
         SchemaVersion, SecureEntry, SecureIndexElement, Timestamp,
     },
 };
+
+#[cfg(not(feature = "gpgme"))]
+use crate::cipher::gpg::Text;
+#[cfg(feature = "gpgme")]
+use crate::cipher::gpgme::Text;
 
 pub struct TextApplication {
     config: Config,

@@ -25,11 +25,12 @@
       ...
     }:
     let
+      cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
       mkAnanke =
         pkgs:
         pkgs.rustPlatform.buildRustPackage {
-          name = "ananke";
           pname = "ananke";
+          version = "${cargoToml.package.version}-${self.shortRev or self.dirtyShortRev}";
           cargoLock = {
             lockFile = ./Cargo.lock;
           };

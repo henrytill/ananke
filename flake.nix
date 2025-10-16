@@ -25,17 +25,20 @@
       ...
     }:
     let
+      cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
       mkAnanke =
         pkgs:
         pkgs.rustPlatform.buildRustPackage {
-          name = "ananke";
           pname = "ananke";
+          version = "${cargoToml.package.version}-${self.shortRev or self.dirtyShortRev}";
           cargoLock = {
             lockFile = ./Cargo.lock;
           };
+          buildFeatures = [
+            "gpgme"
+          ];
           nativeBuildInputs = with pkgs; [ pkg-config ];
-          buildInputs = with pkgs; [ sqlite ];
-          nativeCheckInputs = with pkgs; [ gnupg ];
+          buildInputs = with pkgs; [ gpgme sqlite ];
           src = builtins.path {
             path = ./.;
             name = "ananke-src";

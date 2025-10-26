@@ -65,6 +65,15 @@
           ananke-static = pkgs.ananke-static;
           default = self.packages.${system}.ananke;
         };
+        devShells.default = pkgs.mkShell {
+          inputsFrom = [ pkgs.ananke ];
+          packages = with pkgs; [
+            rust-analyzer
+            rustfmt
+            clippy
+            cargo-deny
+          ];
+        };
       }
     );
 }

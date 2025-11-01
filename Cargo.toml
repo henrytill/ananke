@@ -19,5 +19,5 @@ zeroize = { version = "1.7.0", features = ["derive"] }
 
 [dev-dependencies]
 rand = "0.9.0"
-snapbox = { version = "0.6.7", default-features = false, features = ["diff", "path"] }
+snapbox = { version = "0.6.23", default-features = false, features = ["diff", "path"] }
 tempfile = "3.10.1"

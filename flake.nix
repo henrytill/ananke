@@ -33,10 +33,7 @@
           nativeBuildInputs = with pkgs; [ pkg-config ];
           buildInputs = with pkgs; [ sqlite ];
           nativeCheckInputs = with pkgs; [ gnupg ];
-          src = builtins.path {
-            path = ./.;
-            name = "ananke-src";
-          };
+          src = self;
           env = {
             ANANKE_COMMIT_HASH = "${self.rev or self.dirtyRev}";
             ANANKE_COMMIT_SHORT_HASH = "${self.shortRev or self.dirtyShortRev}";

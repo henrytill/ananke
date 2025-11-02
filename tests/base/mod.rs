@@ -4,8 +4,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub const BIN: &str = env!("CARGO_PKG_NAME");
-
 pub const EXAMPLE_DIR: &str = r"example";
 
 const GNUPGHOME: [&str; 2] = [EXAMPLE_DIR, "gnupg"];

@@ -2,9 +2,9 @@ mod base;
 
 use std::ffi::OsStr;
 
-use snapbox::cmd::{Command, cargo_bin};
+use snapbox::{cargo_bin, cmd::Command};
 
-use base::{BIN, EXAMPLE_DIR};
+use base::EXAMPLE_DIR;
 
 fn import(vars: impl IntoIterator<Item = (impl AsRef<OsStr>, impl AsRef<OsStr>)>) {
     const IMPORT_PATH: [&str; 2] = [EXAMPLE_DIR, "export.asc"];
@@ -13,7 +13,7 @@ fn import(vars: impl IntoIterator<Item = (impl AsRef<OsStr>, impl AsRef<OsStr>)>
         .collect::<std::path::PathBuf>()
         .into_os_string();
     let data_file_str = data_file.to_str().unwrap();
-    Command::new(cargo_bin(BIN))
+    Command::new(cargo_bin!())
         .args(["import", data_file_str])
         .envs(vars)
         .assert()
@@ -23,17 +23,12 @@ fn import(vars: impl IntoIterator<Item = (impl AsRef<OsStr>, impl AsRef<OsStr>)>
 mod usage {
     use std::ffi::OsString;
 
-    use snapbox::{
-        cmd::{Command, cargo_bin},
-        file,
-    };
-
-    use crate::base::BIN;
+    use snapbox::{cargo_bin, cmd::Command, file};
 
     #[test]
     fn usage() {
         let vars: [(OsString, OsString); 0] = [];
-        Command::new(cargo_bin(BIN))
+        Command::new(cargo_bin!())
             .envs(vars)
             .assert()
             .stderr_eq(file!("cli_tests/usage.stderr"))
@@ -43,7 +38,7 @@ mod usage {
     #[test]
     fn add() {
         let vars: [(OsString, OsString); 0] = [];
-        Command::new(cargo_bin(BIN))
+        Command::new(cargo_bin!())
             .args(["add"])
             .envs(vars)
             .assert()
@@ -54,7 +49,7 @@ mod usage {
     #[test]
     fn lookup() {
         let vars: [(OsString, OsString); 0] = [];
-        Command::new(cargo_bin(BIN))
+        Command::new(cargo_bin!())
             .args(["lookup"])
             .envs(vars)
             .assert()
@@ -65,7 +60,7 @@ mod usage {
     #[test]
     fn modify() {
         let vars: [(OsString, OsString); 0] = [];
-        Command::new(cargo_bin(BIN))
+        Command::new(cargo_bin!())
             .args(["modify"])
             .envs(vars)
             .assert()
@@ -76,7 +71,7 @@ mod usage {
     #[test]
     fn remove() {
         let vars: [(OsString, OsString); 0] = [];
-        Command::new(cargo_bin(BIN))
+        Command::new(cargo_bin!())
             .args(["remove"])
             .envs(vars)
             .assert()
@@ -87,7 +82,7 @@ mod usage {
     #[test]
     fn import() {
         let vars: [(OsString, OsString); 0] = [];
-        Command::new(cargo_bin(BIN))
+        Command::new(cargo_bin!())
             .args(["import"])
             .envs(vars)
             .assert()
@@ -98,7 +93,7 @@ mod usage {
     #[test]
     fn export() {
         let vars: [(OsString, OsString); 0] = [];
-        Command::new(cargo_bin(BIN))
+        Command::new(cargo_bin!())
             .args(["export"])
             .envs(vars)
             .assert()
@@ -110,17 +105,12 @@ mod usage {
 mod error {
     use std::ffi::OsString;
 
-    use snapbox::{
-        cmd::{Command, cargo_bin},
-        file,
-    };
-
-    use crate::base::BIN;
+    use snapbox::{cargo_bin, cmd::Command, file};
 
     #[test]
     fn add_without_description() {
         let vars: [(OsString, OsString); 0] = [];
-        Command::new(cargo_bin(BIN))
+        Command::new(cargo_bin!())
             .args(["add", "-i", "foo"])
             .envs(vars)
             .assert()
@@ -131,7 +121,7 @@ mod error {
     #[test]
     fn lookup_without_description() {
         let vars: [(OsString, OsString); 0] = [];
-        Command::new(cargo_bin(BIN))
+        Command::new(cargo_bin!())
             .args(["lookup", "-v"])
             .envs(vars)
             .assert()
@@ -143,13 +133,9 @@ mod error {
 macro_rules! make_tests {
     ($name:ident, $vars:expr) => {
         mod $name {
-            use snapbox::{
-                cmd::{cargo_bin, Command},
-                dir::DirRoot,
-                file,
-            };
+            use snapbox::{cargo_bin, cmd::Command, dir::DirRoot, file};
 
-            use crate::base::{self, BIN};
+            use crate::base;
 
             #[test]
             fn import() {
@@ -165,7 +151,7 @@ macro_rules! make_tests {
                 let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
                 base::check_schema(dir, 4);
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["lookup", "foomail"])
                     .envs($vars(dir))
                     .assert()
@@ -179,7 +165,7 @@ macro_rules! make_tests {
                 let path_fixture = DirRoot::mutable_temp().unwrap();
                 let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["lookup", "foomail", "-i", "quux"])
                     .envs($vars(dir))
                     .assert()
@@ -192,7 +178,7 @@ macro_rules! make_tests {
                 let path_fixture = DirRoot::mutable_temp().unwrap();
                 let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["lookup", "www"])
                     .envs($vars(dir))
                     .assert()
@@ -205,7 +191,7 @@ macro_rules! make_tests {
                 let path_fixture = DirRoot::mutable_temp().unwrap();
                 let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["lookup", "www", "-v"])
                     .envs($vars(dir))
                     .assert()
@@ -218,7 +204,7 @@ macro_rules! make_tests {
                 let path_fixture = DirRoot::mutable_temp().unwrap();
                 let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["lookup", "paul"])
                     .envs($vars(dir))
                     .assert()
@@ -232,13 +218,13 @@ macro_rules! make_tests {
                 let path_fixture = DirRoot::mutable_temp().unwrap();
                 let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["modify", "-p", "-d", "https://www.barphone.com"])
                     .envs($vars(dir))
                     .stdin("MyNewPassword")
                     .assert()
                     .success();
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["lookup", "https://www.barphone.com"])
                     .envs($vars(dir))
                     .assert()
@@ -251,19 +237,19 @@ macro_rules! make_tests {
                 let path_fixture = DirRoot::mutable_temp().unwrap();
                 let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["lookup", "-v", "https://www.barphone.com"])
                     .envs($vars(dir))
                     .assert()
                     .stdout_eq("[..] ba9d7666-f201-4d78-ae30-300ff236de7f 371C136C https://www.barphone.com quux YetAnotherSecretPassword\n")
                     .success();
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["modify", "-p", "-d", "https://www.barphone.com"])
                     .envs($vars(dir))
                     .stdin("MyNewPassword")
                     .assert()
                     .success();
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["lookup", "-v", "https://www.barphone.com"])
                     .envs($vars(dir))
                     .assert()
@@ -276,13 +262,13 @@ macro_rules! make_tests {
                 let path_fixture = DirRoot::mutable_temp().unwrap();
                 let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["modify", "-p", "-e", "ba9d7666-f201-4d78-ae30-300ff236de7f"])
                     .envs($vars(dir))
                     .stdin("MyNewPassword")
                     .assert()
                     .success();
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["lookup", "https://www.barphone.com"])
                     .envs($vars(dir))
                     .assert()
@@ -295,7 +281,7 @@ macro_rules! make_tests {
                 let path_fixture = DirRoot::mutable_temp().unwrap();
                 let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["modify", "-d", "paul"])
                     .envs($vars(dir))
                     .assert()
@@ -309,7 +295,7 @@ macro_rules! make_tests {
                 let path_fixture = DirRoot::mutable_temp().unwrap();
                 let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["remove", "-d", "https://www.foomail.com"])
                     .envs($vars(dir))
                     .assert()
@@ -323,12 +309,12 @@ macro_rules! make_tests {
                 let path_fixture = DirRoot::mutable_temp().unwrap();
                 let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["remove", "-d", "https://www.barphone.com"])
                     .envs($vars(dir))
                     .assert()
                     .success();
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["lookup", "https://www.barphone.com"])
                     .envs($vars(dir))
                     .assert()
@@ -342,12 +328,12 @@ macro_rules! make_tests {
                 let path_fixture = DirRoot::mutable_temp().unwrap();
                 let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["remove", "-e", "ba9d7666-f201-4d78-ae30-300ff236de7f"])
                     .envs($vars(dir))
                     .assert()
                     .success();
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["lookup", "https://www.barphone.com"])
                     .envs($vars(dir))
                     .assert()
@@ -361,7 +347,7 @@ macro_rules! make_tests {
                 let path_fixture = DirRoot::mutable_temp().unwrap();
                 let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["remove", "-d", "paul"])
                     .envs($vars(dir))
                     .assert()
@@ -375,7 +361,7 @@ macro_rules! make_tests {
                 let path_fixture = DirRoot::mutable_temp().unwrap();
                 let dir = path_fixture.path().unwrap();
                 super::import($vars(dir));
-                Command::new(cargo_bin(BIN))
+                Command::new(cargo_bin!())
                     .args(["remove", "-d", "https://www.foomail.com"])
                     .envs($vars(dir))
                     .assert()

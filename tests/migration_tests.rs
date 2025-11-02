@@ -22,17 +22,9 @@ fn create_schema_file(dir: impl AsRef<Path>, version: u64) {
 mod json {
     use std::{fs, path::Path};
 
-    use snapbox::{
-        self,
-        cmd::{Command, cargo_bin},
-        dir::DirRoot,
-        file,
-    };
+    use snapbox::{self, cargo_bin, cmd::Command, dir::DirRoot, file};
 
-    use crate::{
-        UNKNOWN_SCHEMA_VERSION,
-        base::{self, BIN},
-    };
+    use crate::{UNKNOWN_SCHEMA_VERSION, base};
 
     fn copy_data(target_dir: impl AsRef<Path>, source_file: impl AsRef<Path>) {
         let target_file = {
@@ -68,7 +60,7 @@ mod json {
         copy_v2_data(dir);
         super::create_schema_file(dir, 2);
         let vars = base::json_vars(dir);
-        Command::new(cargo_bin(BIN))
+        Command::new(cargo_bin!())
             .args(["lookup", "foomail"])
             .envs(vars)
             .assert()
@@ -84,7 +76,7 @@ mod json {
         copy_v3_data(dir);
         super::create_schema_file(dir, 3);
         let vars = base::json_vars(dir);
-        Command::new(cargo_bin(BIN))
+        Command::new(cargo_bin!())
             .args(["lookup", "foomail"])
             .envs(vars)
             .assert()
@@ -100,7 +92,7 @@ mod json {
         copy_v2_data(dir);
         super::create_schema_file(dir, UNKNOWN_SCHEMA_VERSION);
         let vars = base::json_vars(dir);
-        Command::new(cargo_bin(BIN))
+        Command::new(cargo_bin!())
             .args(["lookup", "foomail"])
             .envs(vars)
             .assert()
@@ -115,16 +107,9 @@ mod sqlite {
     use std::{fs, path::Path};
 
     use rusqlite::Connection;
-    use snapbox::{
-        cmd::{Command, cargo_bin},
-        dir::DirRoot,
-        file,
-    };
+    use snapbox::{cargo_bin, cmd::Command, dir::DirRoot, file};
 
-    use crate::{
-        UNKNOWN_SCHEMA_VERSION,
-        base::{self, BIN},
-    };
+    use crate::{UNKNOWN_SCHEMA_VERSION, base};
 
     fn copy_data(dir: impl AsRef<Path>, source: impl AsRef<Path>) {
         let target_file = {
@@ -155,7 +140,7 @@ mod sqlite {
         copy_data(dir, data_file);
         super::create_schema_file(dir, 1);
         let vars = base::sqlite_vars(dir);
-        Command::new(cargo_bin(BIN))
+        Command::new(cargo_bin!())
             .args(["lookup", "foomail"])
             .envs(vars)
             .assert()
@@ -175,7 +160,7 @@ mod sqlite {
         copy_data(dir, data_file);
         super::create_schema_file(dir, 2);
         let vars = base::sqlite_vars(dir);
-        Command::new(cargo_bin(BIN))
+        Command::new(cargo_bin!())
             .args(["lookup", "foomail"])
             .envs(vars)
             .assert()
@@ -195,7 +180,7 @@ mod sqlite {
         copy_data(dir, data_file);
         super::create_schema_file(dir, UNKNOWN_SCHEMA_VERSION);
         let vars = base::sqlite_vars(dir);
-        Command::new(cargo_bin(BIN))
+        Command::new(cargo_bin!())
             .args(["lookup", "foomail"])
             .envs(vars)
             .assert()

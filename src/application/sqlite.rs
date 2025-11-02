@@ -436,8 +436,7 @@ FROM entries_v1
         migrate(connection, config, SchemaVersion::new(2))
     } else {
         Err(Error::msg(format!(
-            "no supported migration path for schema version {}",
-            schema_version
+            "no supported migration path for schema version {schema_version}"
         )))
     }
 }

@@ -320,8 +320,7 @@ fn migrate(config: &Config, schema_version: SchemaVersion) -> Result<(), Error> 
         Err(Error::msg("schema version 1 not supported by JSON backend"))
     } else {
         Err(Error::msg(format!(
-            "no supported migration path for schema version {}",
-            schema_version
+            "no supported migration path for schema version {schema_version}"
         )))
     }
 }

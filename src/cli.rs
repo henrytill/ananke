@@ -38,7 +38,7 @@ fn trim_newline(s: &mut String) {
 }
 
 fn prompt(display: &str) -> Result<String, io::Error> {
-    print!("{}", display);
+    print!("{display}");
     io::stdout().flush()?;
     let mut ret = String::new();
     let stdin = io::stdin();
@@ -60,7 +60,7 @@ fn format_brief(entry: &Entry, plaintext: &Plaintext) -> String {
         .map(Identity::as_str)
         .unwrap_or_else(|| "<none>");
     let plaintext = plaintext.as_str();
-    format!("{} {} {}", description, identity, plaintext)
+    format!("{description} {identity} {plaintext}")
 }
 
 fn format_verbose(entry: &Entry, plaintext: &Plaintext) -> Result<String, Error> {
@@ -78,7 +78,7 @@ fn format_verbose(entry: &Entry, plaintext: &Plaintext) -> Result<String, Error>
     elements.push(plaintext.to_string());
 
     if let Some(ref metadata) = entry.metadata {
-        elements.push(format!("\"{}\"", metadata))
+        elements.push(format!("\"{metadata}\""))
     }
 
     let ret = elements.join(" ");
@@ -120,7 +120,7 @@ fn format_brief_secure(entry: &SecureEntry) -> String {
         .map(Identity::as_str)
         .unwrap_or_else(|| "<none>");
     let plaintext = entry.plaintext.as_str();
-    format!("{} {} {}", description, identity, plaintext)
+    format!("{description} {identity} {plaintext}")
 }
 
 fn format_verbose_secure(entry: &SecureEntry) -> Result<String, Error> {
@@ -138,7 +138,7 @@ fn format_verbose_secure(entry: &SecureEntry) -> Result<String, Error> {
     elements.push(entry.plaintext.to_string());
 
     if let Some(ref metadata) = entry.metadata {
-        elements.push(format!("\"{}\"", metadata))
+        elements.push(format!("\"{metadata}\""))
     }
 
     let ret = elements.join(" ");
@@ -211,7 +211,7 @@ pub fn lookup(
                 return Ok(ExitCode::FAILURE);
             }
             let mut output = format_results_secure(&results, verbose)?;
-            println!("{}", output);
+            println!("{output}");
             output.zeroize();
         }
         Backend::Json => {
@@ -221,7 +221,7 @@ pub fn lookup(
                 return Ok(ExitCode::FAILURE);
             }
             let mut output = format_results(&results, verbose)?;
-            println!("{}", output);
+            println!("{output}");
             output.zeroize();
         }
         Backend::Sqlite => {
@@ -231,7 +231,7 @@ pub fn lookup(
                 return Ok(ExitCode::FAILURE);
             }
             let mut output = format_results(&results, verbose)?;
-            println!("{}", output);
+            println!("{output}");
             output.zeroize();
         }
     };
@@ -372,11 +372,11 @@ pub fn configure(list: bool) -> Result<ExitCode, Error> {
         while key_candidate.is_none() {
             key_candidate = gpg::suggest_key(std::env::vars)?;
             let key_candidate_str = if let Some(ref key_id) = key_candidate {
-                format!("[{}] ", key_id)
+                format!("[{key_id}] ")
             } else {
                 String::new()
             };
-            let prompt_str = format!("Enter GPG key id: {}", key_candidate_str);
+            let prompt_str = format!("Enter GPG key id: {key_candidate_str}");
             let key_input = prompt(prompt_str.as_str())?;
             if !key_input.is_empty() {
                 key_candidate = Some(KeyId::from(key_input))
@@ -394,9 +394,9 @@ pub fn configure(list: bool) -> Result<ExitCode, Error> {
             for backend in [Backend::Text, Backend::Json, Backend::Sqlite] {
                 let backend_value = backend as u8;
                 if backend == default_backend {
-                    println!("  {}: {} (default)", backend_value, backend)
+                    println!("  {backend_value}: {backend} (default)")
                 } else {
-                    println!("  {}: {}", backend_value, backend)
+                    println!("  {backend_value}: {backend}")
                 }
             }
             let prompt_str = format!("Enter choice: [{}] ", default_backend as u8);

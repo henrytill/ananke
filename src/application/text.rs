@@ -63,7 +63,7 @@ impl TextApplication {
 
     fn entry_path(&self, entry_id: EntryId) -> PathBuf {
         let mut ret = self.objects_dir();
-        ret.push(format!("{}.asc", entry_id));
+        ret.push(format!("{entry_id}.asc"));
         ret
     }
 

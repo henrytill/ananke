@@ -189,8 +189,7 @@ where
     let status = child.wait()?;
     if !status.success() {
         return Err(Error::from(io::Error::other(format!(
-            "gpg exited with status {}",
-            status
+            "gpg exited with status {status}"
         ))));
     }
 
@@ -236,8 +235,7 @@ where
     let status = child.wait()?;
     if !status.success() {
         return Err(Error::from(io::Error::other(format!(
-            "gpg exited with status {}",
-            status
+            "gpg exited with status {status}"
         ))));
     }
 

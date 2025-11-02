@@ -52,7 +52,7 @@ impl std::fmt::Display for Backend {
             Backend::Json => "json",
             Backend::Sqlite => "sqlite",
         };
-        write!(f, "{}", str)
+        write!(f, "{str}")
     }
 }
 
@@ -401,14 +401,13 @@ mod tests {
         let input = format!(
             "\
 [data]
-dir={}
-backend={}
+dir={data_dir}
+backend={backend}
 
 [gpg]
-key_id={}
-allow_multiple_keys={}
-",
-            data_dir, backend, key_id, mult_keys
+key_id={key_id}
+allow_multiple_keys={mult_keys}
+"
         );
         let actual = ConfigBuilder::new(empty_getenv)
             .with_ini(Some(input))

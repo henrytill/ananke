@@ -28,7 +28,7 @@ fn commit_info_env() {
         "ANANKE_COMMIT_DATE",
     ] {
         if let Ok(value) = std::env::var(var) {
-            println!("cargo:rustc-env={}={}", var, value);
+            println!("cargo:rustc-env={var}={value}");
         }
     }
 }

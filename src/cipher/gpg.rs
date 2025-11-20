@@ -221,7 +221,7 @@ where
             }
             match fields.nth(3) {
                 Some(key) if !key.is_empty() => {
-                    let start_pos = key.char_indices().nth_back(7).map(|x| x.0).unwrap_or(0);
+                    let start_pos = key.char_indices().nth_back(7).map_or(0, |x| x.0);
                     let key = &key[start_pos..];
                     tmp = Some(KeyId::from(key));
                 }

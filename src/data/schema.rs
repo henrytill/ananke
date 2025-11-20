@@ -6,6 +6,7 @@ pub struct SchemaVersion(u64);
 impl SchemaVersion {
     pub const CURRENT: SchemaVersion = SchemaVersion::new(4);
 
+    #[must_use]
     pub const fn new(value: u64) -> SchemaVersion {
         SchemaVersion(value)
     }
@@ -31,6 +32,9 @@ impl From<u64> for SchemaVersion {
     }
 }
 
+/// # Errors
+///
+/// Returns an error if the schema file cannot be read or written, or if the schema version format is invalid.
 pub fn schema_version(path: impl AsRef<Path>) -> Result<SchemaVersion, anyhow::Error> {
     if path.as_ref().exists() {
         let contents = fs::read_to_string(path)?;

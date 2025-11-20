@@ -18,7 +18,7 @@ impl std::fmt::Display for VersionInfo {
             } else {
                 write!(f, " ({})", ci.short_commit_hash)?;
             }
-        };
+        }
         Ok(())
     }
 }
@@ -40,6 +40,7 @@ fn commit_info() -> Option<CommitInfo> {
     })
 }
 
+#[must_use]
 pub fn version_info() -> VersionInfo {
     let version = env!("CARGO_PKG_VERSION").to_string();
     let maybe_commit_info = commit_info();

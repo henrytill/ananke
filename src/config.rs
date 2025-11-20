@@ -57,6 +57,7 @@ impl std::fmt::Display for Backend {
 }
 
 #[derive(Debug)]
+#[allow(clippy::struct_field_names)]
 pub struct Config {
     config_dir: PathBuf,
     data_dir: PathBuf,
@@ -256,19 +257,19 @@ impl<'a> ConfigBuilder<'a> {
         config.read(input).map_err(Error::msg)?;
 
         if let Some(data_dir) = config.get(Self::INI_DATA_DIR.section, Self::INI_DATA_DIR.key) {
-            self.maybe_data_dir = Some(PathBuf::from(data_dir))
+            self.maybe_data_dir = Some(PathBuf::from(data_dir));
         }
 
         if let Some(backend) = config.get(Self::INI_BACKEND.section, Self::INI_BACKEND.key) {
-            self.maybe_backend = backend.parse::<Backend>().ok()
+            self.maybe_backend = backend.parse::<Backend>().ok();
         }
 
         if let Some(key_id) = config.get(Self::INI_KEY_ID.section, Self::INI_KEY_ID.key) {
-            self.maybe_key_id = Some(KeyId::from(key_id))
+            self.maybe_key_id = Some(KeyId::from(key_id));
         }
 
         if let Some(mult_keys) = config.get(Self::INI_MULT_KEYS.section, Self::INI_MULT_KEYS.key) {
-            self.mult_keys = mult_keys.parse::<Flag>()?
+            self.mult_keys = mult_keys.parse::<Flag>()?;
         }
 
         Ok(self)
@@ -276,19 +277,19 @@ impl<'a> ConfigBuilder<'a> {
 
     pub fn with_env(mut self) -> Result<ConfigBuilder<'a>, Error> {
         if let Ok(data_dir) = (self.getenv)(Self::ENV_DATA_DIR) {
-            self.maybe_data_dir = Some(PathBuf::from(data_dir))
+            self.maybe_data_dir = Some(PathBuf::from(data_dir));
         }
 
         if let Ok(backend) = (self.getenv)(Self::ENV_BACKEND) {
-            self.maybe_backend = backend.parse::<Backend>().ok()
+            self.maybe_backend = backend.parse::<Backend>().ok();
         }
 
         if let Ok(key_id) = (self.getenv)(Self::ENV_KEY_ID) {
-            self.maybe_key_id = Some(KeyId::from(key_id))
+            self.maybe_key_id = Some(KeyId::from(key_id));
         }
 
         if let Ok(mult_keys) = (self.getenv)(Self::ENV_MULT_KEYS) {
-            self.mult_keys = mult_keys.parse::<Flag>()?
+            self.mult_keys = mult_keys.parse::<Flag>()?;
         }
 
         Ok(self)

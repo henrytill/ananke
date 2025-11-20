@@ -1,3 +1,6 @@
+#![warn(clippy::pedantic)]
+#![deny(clippy::unwrap_in_result)]
+
 use std::{path::PathBuf, process::ExitCode};
 
 use clap::{Args, Parser, Subcommand};

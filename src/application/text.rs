@@ -56,7 +56,7 @@ impl TextApplication {
         write(
             &self.cipher,
             self.config.db(),
-            plaintext,
+            &plaintext,
             self.config.key_id(),
         )
     }
@@ -72,13 +72,13 @@ impl TextApplication {
         read(&self.cipher, path)
     }
 
-    fn write_entry(&self, entry: SecureEntry) -> Result<(), Error> {
+    fn write_entry(&self, entry: &SecureEntry) -> Result<(), Error> {
         let path = self.entry_path(entry.entry_id);
         let plaintext = {
             let json = serde_json::to_string_pretty(&entry)?;
             Plaintext::from(json)
         };
-        write(&self.cipher, path, plaintext, self.config.key_id())
+        write(&self.cipher, path, &plaintext, self.config.key_id())
     }
 
     fn delete_entry(&self, entry_id: EntryId) -> Result<(), Error> {
@@ -124,11 +124,11 @@ impl Application for TextApplication {
             }
         };
         let elem = SecureIndexElement {
-            description,
-            key_id,
             entry_id,
+            key_id,
+            description,
         };
-        self.write_entry(entry)?;
+        self.write_entry(&entry)?;
         self.elems.push(elem);
         self.write_index()
     }
@@ -139,14 +139,14 @@ impl Application for TextApplication {
         maybe_identity: Option<Identity>,
     ) -> Result<Vec<Self::Record>, Self::Error> {
         let mut ret = Vec::new();
-        for elem in self.elems.iter() {
+        for elem in &self.elems {
             if !elem.description.contains(description.as_str()) {
                 continue;
             }
             let entry: SecureEntry = self.entry(elem.entry_id)?;
             match (maybe_identity.as_ref(), entry.identity.as_ref()) {
                 (Some(identity), Some(entry_identity)) if entry_identity.contains(identity) => {
-                    ret.push(entry)
+                    ret.push(entry);
                 }
                 (None, _) => ret.push(entry),
                 (_, _) => (),
@@ -187,16 +187,16 @@ impl Application for TextApplication {
             elem.description = description;
         }
         if let Some(plaintext) = maybe_plaintext {
-            entry.plaintext = plaintext
+            entry.plaintext = plaintext;
         }
         if maybe_identity.is_some() {
-            entry.identity = maybe_identity
+            entry.identity = maybe_identity;
         }
         if maybe_metadata.is_some() {
-            entry.metadata = maybe_metadata
+            entry.metadata = maybe_metadata;
         }
         entry.update();
-        self.write_entry(entry)?;
+        self.write_entry(&entry)?;
         self.elems.push(elem);
         self.write_index()
     }
@@ -232,12 +232,12 @@ impl Application for TextApplication {
             let elem = {
                 let description = entry.description.clone();
                 SecureIndexElement {
-                    description,
-                    key_id,
                     entry_id,
+                    key_id,
+                    description,
                 }
             };
-            self.write_entry(entry)?;
+            self.write_entry(&entry)?;
             self.elems.push(elem);
         }
         self.write_index()?;
@@ -254,7 +254,7 @@ impl Application for TextApplication {
             let json = serde_json::to_string_pretty(&entries)?;
             Plaintext::from(json)
         };
-        write(&self.cipher, path, plaintext, self.config.key_id())?;
+        write(&self.cipher, path, &plaintext, self.config.key_id())?;
         Ok(())
     }
 }
@@ -282,10 +282,10 @@ where
 pub fn write(
     cipher: &Text,
     path: impl AsRef<Path>,
-    plaintext: Plaintext,
+    plaintext: &Plaintext,
     key_id: &KeyId,
 ) -> Result<(), anyhow::Error> {
-    let armored = cipher.encrypt(key_id, &plaintext)?;
+    let armored = cipher.encrypt(key_id, plaintext)?;
     if let Some(parent) = path.as_ref().parent()
         && !parent.exists()
     {

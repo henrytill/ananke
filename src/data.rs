@@ -28,14 +28,17 @@ macro_rules! wrap_string {
         pub struct $name(String);
 
         impl $name {
+            #[must_use]
             pub const fn new(value: String) -> Self {
                 Self(value)
             }
 
+            #[must_use]
             pub fn as_str(&self) -> &str {
                 self.0.as_str()
             }
 
+            #[must_use]
             pub fn as_bytes(&self) -> &[u8] {
                 self.0.as_bytes()
             }
@@ -90,14 +93,17 @@ wrap_string!(ArmoredCiphertext);
 pub struct Plaintext(String);
 
 impl Plaintext {
+    #[must_use]
     pub const fn new(value: String) -> Plaintext {
         Plaintext(value)
     }
 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         self.0.as_str()
     }
 
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
@@ -134,6 +140,7 @@ impl Default for EntryId {
 impl DefaultIsZeroes for EntryId {}
 
 impl EntryId {
+    #[must_use]
     pub fn new() -> EntryId {
         EntryId(Uuid::new_v4())
     }
@@ -198,10 +205,14 @@ impl Identity {
 pub struct Timestamp(#[serde(with = "iso8601")] OffsetDateTime);
 
 impl Timestamp {
+    #[must_use]
     pub fn now() -> Timestamp {
         Timestamp(OffsetDateTime::now_utc())
     }
 
+    /// # Errors
+    ///
+    /// Returns an error if the timestamp cannot be formatted according to ISO 8601 standard.
     pub fn isoformat(&self) -> Result<String, time::error::Format> {
         self.0.format(&Iso8601::DEFAULT)
     }
@@ -241,6 +252,7 @@ time::serde::format_description!(iso8601, OffsetDateTime, FORMAT);
 pub struct Ciphertext(#[serde(with = "base64")] Vec<u8>);
 
 impl Ciphertext {
+    #[must_use]
     pub const fn new(value: Vec<u8>) -> Ciphertext {
         Ciphertext(value)
     }
@@ -340,7 +352,7 @@ impl Eq for Entry {}
 
 impl Hash for Entry {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.entry_id.0.hash(state)
+        self.entry_id.0.hash(state);
     }
 }
 
@@ -383,7 +395,7 @@ impl Eq for SecureEntry {}
 
 impl Hash for SecureEntry {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.description.0.hash(state)
+        self.description.0.hash(state);
     }
 }
 

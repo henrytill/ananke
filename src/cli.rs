@@ -57,8 +57,7 @@ fn format_brief(entry: &Entry, plaintext: &Plaintext) -> String {
     let identity = entry
         .identity
         .as_ref()
-        .map(Identity::as_str)
-        .unwrap_or_else(|| "<none>");
+        .map_or_else(|| "<none>", Identity::as_str);
     let plaintext = plaintext.as_str();
     format!("{description} {identity} {plaintext}")
 }
@@ -72,13 +71,13 @@ fn format_verbose(entry: &Entry, plaintext: &Plaintext) -> Result<String, Error>
     ];
 
     if let Some(ref identity) = entry.identity {
-        elements.push(identity.to_string())
+        elements.push(identity.to_string());
     }
 
     elements.push(plaintext.to_string());
 
     if let Some(ref metadata) = entry.metadata {
-        elements.push(format!("\"{metadata}\""))
+        elements.push(format!("\"{metadata}\""));
     }
 
     let ret = elements.join(" ");
@@ -91,9 +90,8 @@ fn format_results(results: &[(Entry, Plaintext)], verbose: bool) -> Result<Strin
         let (entry, plaintext) = &results[0];
         if verbose {
             return format_verbose(entry, plaintext);
-        } else {
-            return Ok(plaintext.to_string());
         }
+        return Ok(plaintext.to_string());
     }
 
     let mut formatted_results = Vec::new();
@@ -117,8 +115,7 @@ fn format_brief_secure(entry: &SecureEntry) -> String {
     let identity = entry
         .identity
         .as_ref()
-        .map(Identity::as_str)
-        .unwrap_or_else(|| "<none>");
+        .map_or_else(|| "<none>", Identity::as_str);
     let plaintext = entry.plaintext.as_str();
     format!("{description} {identity} {plaintext}")
 }
@@ -132,13 +129,13 @@ fn format_verbose_secure(entry: &SecureEntry) -> Result<String, Error> {
     ];
 
     if let Some(ref identity) = entry.identity {
-        elements.push(identity.to_string())
+        elements.push(identity.to_string());
     }
 
     elements.push(entry.plaintext.to_string());
 
     if let Some(ref metadata) = entry.metadata {
-        elements.push(format!("\"{metadata}\""))
+        elements.push(format!("\"{metadata}\""));
     }
 
     let ret = elements.join(" ");
@@ -151,9 +148,8 @@ fn format_results_secure(results: &[SecureEntry], verbose: bool) -> Result<Strin
         let secure_entry = &results[0];
         if verbose {
             return format_verbose_secure(secure_entry);
-        } else {
-            return Ok(secure_entry.plaintext.to_string());
         }
+        return Ok(secure_entry.plaintext.to_string());
     }
 
     let mut formatted_results = Vec::new();
@@ -172,6 +168,9 @@ fn format_results_secure(results: &[SecureEntry], verbose: bool) -> Result<Strin
     Ok(ret)
 }
 
+/// # Errors
+///
+/// Returns an error if password entry fails, configuration is invalid, or storage backend operations fail.
 pub fn add(
     description: Description,
     maybe_identity: Option<Identity>,
@@ -197,6 +196,9 @@ pub fn add(
     Ok(ExitCode::SUCCESS)
 }
 
+/// # Errors
+///
+/// Returns an error if configuration is invalid, storage backend operations fail, or decryption fails.
 pub fn lookup(
     description: Description,
     maybe_identity: Option<Identity>,
@@ -234,10 +236,13 @@ pub fn lookup(
             println!("{output}");
             output.zeroize();
         }
-    };
+    }
     Ok(ExitCode::SUCCESS)
 }
 
+/// # Errors
+///
+/// Returns an error if password entry fails, configuration is invalid, target entry not found, or storage backend operations fail.
 pub fn modify(
     target: Target,
     ask_plaintext: bool,
@@ -288,6 +293,9 @@ pub fn modify(
     Ok(ExitCode::SUCCESS)
 }
 
+/// # Errors
+///
+/// Returns an error if configuration is invalid, target entry not found, or storage backend operations fail.
 pub fn remove(target: Target) -> Result<ExitCode, Error> {
     let config = config()?;
     match config.backend() {
@@ -307,6 +315,9 @@ pub fn remove(target: Target) -> Result<ExitCode, Error> {
     Ok(ExitCode::SUCCESS)
 }
 
+/// # Errors
+///
+/// Returns an error if configuration is invalid, import file cannot be read, or storage backend operations fail.
 pub fn import(path: PathBuf) -> Result<ExitCode, Error> {
     let config = config()?;
     match config.backend() {
@@ -326,6 +337,9 @@ pub fn import(path: PathBuf) -> Result<ExitCode, Error> {
     Ok(ExitCode::SUCCESS)
 }
 
+/// # Errors
+///
+/// Returns an error if configuration is invalid, export file cannot be written, or storage backend operations fail.
 pub fn export(path: PathBuf) -> Result<ExitCode, Error> {
     let config = config()?;
     match config.backend() {
@@ -345,6 +359,14 @@ pub fn export(path: PathBuf) -> Result<ExitCode, Error> {
     Ok(ExitCode::SUCCESS)
 }
 
+/// # Errors
+///
+/// Returns an error if configuration cannot be loaded, directories cannot be created, or INI file operations fail.
+///
+/// # Panics
+///
+/// Panics if `config_dir` or `data_dir` are not set after configuration building, which should not happen
+/// in normal operation as defaults are always provided.
 pub fn configure(list: bool) -> Result<ExitCode, Error> {
     if list {
         let config = config()?;
@@ -379,10 +401,10 @@ pub fn configure(list: bool) -> Result<ExitCode, Error> {
             let prompt_str = format!("Enter GPG key id: {key_candidate_str}");
             let key_input = prompt(prompt_str.as_str())?;
             if !key_input.is_empty() {
-                key_candidate = Some(KeyId::from(key_input))
+                key_candidate = Some(KeyId::from(key_input));
             }
         }
-        *builder.maybe_key_id_mut() = key_candidate
+        *builder.maybe_key_id_mut() = key_candidate;
     }
 
     if builder.maybe_backend().is_none() {
@@ -394,9 +416,9 @@ pub fn configure(list: bool) -> Result<ExitCode, Error> {
             for backend in [Backend::Text, Backend::Json, Backend::Sqlite] {
                 let backend_value = backend as u8;
                 if backend == default_backend {
-                    println!("  {backend_value}: {backend} (default)")
+                    println!("  {backend_value}: {backend} (default)");
                 } else {
-                    println!("  {backend_value}: {backend}")
+                    println!("  {backend_value}: {backend}");
                 }
             }
             let prompt_str = format!("Enter choice: [{}] ", default_backend as u8);
@@ -407,13 +429,13 @@ pub fn configure(list: bool) -> Result<ExitCode, Error> {
                 Backend::from_str(backend_input.as_str()).ok()
             }
         }
-        *builder.maybe_backend_mut() = backend_candidate
+        *builder.maybe_backend_mut() = backend_candidate;
     }
 
     for maybe_dir in [builder.maybe_config_dir(), builder.maybe_data_dir()] {
         let dir = maybe_dir.unwrap();
         if !dir.exists() {
-            std::fs::create_dir(dir)?
+            std::fs::create_dir(dir)?;
         }
     }
 

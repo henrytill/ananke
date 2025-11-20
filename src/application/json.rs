@@ -102,18 +102,18 @@ impl Application for JsonApplication {
         maybe_identity: Option<Identity>,
     ) -> Result<Vec<Self::Record>, Self::Error> {
         let mut ret = Vec::new();
-        for entry in self.entries.iter() {
+        for entry in &self.entries {
             if !entry.description.contains(description.as_str()) {
                 continue;
             }
             match (maybe_identity.as_ref(), entry.identity.as_ref()) {
                 (Some(identity), Some(entry_identity)) if entry_identity.contains(identity) => {
                     let plaintext = self.cipher.decrypt(&entry.ciphertext)?;
-                    ret.push((entry.clone(), plaintext))
+                    ret.push((entry.clone(), plaintext));
                 }
                 (None, _) => {
                     let plaintext = self.cipher.decrypt(&entry.ciphertext)?;
-                    ret.push((entry.clone(), plaintext))
+                    ret.push((entry.clone(), plaintext));
                 }
                 (_, _) => (),
             }
@@ -147,16 +147,16 @@ impl Application for JsonApplication {
 
         let mut entry = self.entries.remove(is[0]);
         if let Some(description) = maybe_description {
-            entry.description = description
+            entry.description = description;
         }
         if let Some(plaintext) = maybe_plaintext {
-            entry.ciphertext = self.cipher.encrypt(&entry.key_id, &plaintext)?
+            entry.ciphertext = self.cipher.encrypt(&entry.key_id, &plaintext)?;
         }
         if maybe_identity.is_some() {
-            entry.identity = maybe_identity
+            entry.identity = maybe_identity;
         }
         if maybe_metadata.is_some() {
-            entry.metadata = maybe_metadata
+            entry.metadata = maybe_metadata;
         }
         entry.update();
         self.entries.push(entry);
@@ -209,7 +209,7 @@ impl Application for JsonApplication {
                 identity,
                 ciphertext,
                 metadata,
-            })
+            });
         }
         self.write(self.config.db())?;
         Ok(())
@@ -217,7 +217,7 @@ impl Application for JsonApplication {
 
     fn export(&self, path: PathBuf) -> Result<(), Self::Error> {
         let mut out = Vec::new();
-        for entry in self.entries.iter() {
+        for entry in &self.entries {
             let timestamp = entry.timestamp;
             let entry_id = entry.entry_id;
             let key_id = entry.key_id.clone();
@@ -233,14 +233,14 @@ impl Application for JsonApplication {
                 identity,
                 plaintext,
                 metadata,
-            })
+            });
         }
         let plaintext = {
             let json = serde_json::to_string_pretty(&out)?;
             Plaintext::from(json)
         };
         let cipher = Text::default();
-        text::write(&cipher, path, plaintext, self.config.key_id())?;
+        text::write(&cipher, path, &plaintext, self.config.key_id())?;
         Ok(())
     }
 }
@@ -250,10 +250,11 @@ pub fn read(path: impl AsRef<Path>) -> Result<Vec<Entry>, anyhow::Error> {
     serde_json::from_str(&json).map_err(Into::into)
 }
 
+const SPACES_PER_INDENT: usize = 4;
+const INDENT: [u8; SPACES_PER_INDENT] = [b' '; SPACES_PER_INDENT];
+
 pub fn write(path: impl AsRef<Path>, data: impl Serialize) -> Result<(), anyhow::Error> {
     let mut buf = Vec::new();
-    const SPACES_PER_INDENT: usize = 4;
-    const INDENT: [u8; SPACES_PER_INDENT] = [b' '; SPACES_PER_INDENT];
     let formatter = PrettyFormatter::with_indent(&INDENT);
     let mut ser = Serializer::with_formatter(&mut buf, formatter);
     data.serialize(&mut ser)?;
@@ -282,19 +283,18 @@ fn migrate(config: &Config, schema_version: SchemaVersion) -> Result<(), Error> 
         }
         write(config.db(), value)
     } else if schema_version == SchemaVersion::new(2) {
-        let mappings: HashMap<String, String> = HashMap::from_iter(
-            [
-                ("Timestamp", "timestamp"),
-                ("Id", "id"),
-                ("KeyId", "keyId"),
-                ("Description", "description"),
-                ("Identity", "identity"),
-                ("Ciphertext", "ciphertext"),
-                ("Meta", "meta"),
-            ]
-            .into_iter()
-            .map(|(k, v)| (String::from(k), String::from(v))),
-        );
+        let mappings: HashMap<String, String> = [
+            ("Timestamp", "timestamp"),
+            ("Id", "id"),
+            ("KeyId", "keyId"),
+            ("Description", "description"),
+            ("Identity", "identity"),
+            ("Ciphertext", "ciphertext"),
+            ("Meta", "meta"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (String::from(k), String::from(v)))
+        .collect();
         let json = fs::read_to_string(config.db())?;
         let mut value: Value = serde_json::from_str(&json)?;
         let arr = value
@@ -305,7 +305,7 @@ fn migrate(config: &Config, schema_version: SchemaVersion) -> Result<(), Error> 
                 .as_object()
                 .ok_or_else(|| Error::msg("value is not an object"))?;
             let mut target = Map::new();
-            for (k, v) in obj.into_iter() {
+            for (k, v) in obj {
                 if let Some(mapped) = mappings.get(k) {
                     target.insert(mapped.clone(), v.clone());
                 } else {

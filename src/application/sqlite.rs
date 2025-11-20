@@ -129,7 +129,7 @@ impl Application for SqliteApplication {
                     metadata,
                 },
                 plaintext,
-            ))
+            ));
         }
         Ok(results)
     }
@@ -160,7 +160,7 @@ impl Application for SqliteApplication {
                     identity,
                     ciphertext,
                     metadata,
-                })
+                });
             }
             entries
         };
@@ -178,24 +178,24 @@ impl Application for SqliteApplication {
         let entry = {
             let mut entry = entries.remove(0);
             if let Some(description) = maybe_description {
-                entry.description = description
+                entry.description = description;
             }
             if let Some(plaintext) = maybe_plaintext {
                 let ciphertext = self.cipher.encrypt(self.config.key_id(), &plaintext)?;
-                entry.ciphertext = ciphertext
+                entry.ciphertext = ciphertext;
             }
             if maybe_identity.is_some() {
-                entry.identity = maybe_identity
+                entry.identity = maybe_identity;
             }
             if maybe_metadata.is_some() {
-                entry.metadata = maybe_metadata
+                entry.metadata = maybe_metadata;
             }
             entry.update();
             entry
         };
 
         {
-            let (stmt, params) = make_update(&target, &entry)?;
+            let (stmt, params) = make_update(&target, &entry);
             let mut stmt = tx.prepare(&stmt)?;
             stmt.execute(params.as_slice())?;
         }
@@ -291,14 +291,14 @@ impl Application for SqliteApplication {
                 identity,
                 plaintext,
                 metadata,
-            })
+            });
         }
         let plaintext = {
             let json = serde_json::to_string_pretty(&out)?;
             Plaintext::from(json)
         };
         let cipher = Text::default();
-        text::write(&cipher, path, plaintext, self.config.key_id())?;
+        text::write(&cipher, path, &plaintext, self.config.key_id())?;
         Ok(())
     }
 }
@@ -329,10 +329,7 @@ fn make_query(target: Target, maybe_identity: Option<Identity>) -> (String, Vec<
 
 type NamedParams<'a> = Vec<(&'a str, &'a dyn ToSql)>;
 
-fn make_update<'a>(
-    target: &'a Target,
-    entry: &'a Entry,
-) -> Result<(String, NamedParams<'a>), Error> {
+fn make_update<'a>(target: &'a Target, entry: &'a Entry) -> (String, NamedParams<'a>) {
     let mut wheres: Vec<&str> = vec![];
     let mut params: NamedParams<'a> = vec![];
 
@@ -371,7 +368,7 @@ fn make_update<'a>(
         sets.join(", "),
         wheres.join(" AND ")
     );
-    Ok((sql, params))
+    (sql, params)
 }
 
 fn migrate(

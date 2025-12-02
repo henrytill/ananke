@@ -6,7 +6,7 @@ license = "ISC"
 
 [dependencies]
 anyhow = "1.0.92"
-clap = { version = "4.5.35", default-features = false, features = ["std", "derive", "help", "string", "usage"] }
+clap = { version = "4.5.52", default-features = false, features = ["std", "derive", "help", "string", "usage"] }
 configparser = "3.0.4"
 data-encoding = "2.5.0"
 directories = "6.0.0"

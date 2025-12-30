@@ -207,7 +207,7 @@ impl Application for SqliteApplication {
     fn remove(&mut self, target: Target) -> Result<(), Error> {
         let tx = self.connection.transaction()?;
 
-        let count: u64 = match target {
+        let count: i64 = match target {
             Target::EntryId(ref entry_id) => {
                 let sql = "SELECT count(*) FROM entries WHERE id = :id";
                 let mut stmt = tx.prepare(sql)?;

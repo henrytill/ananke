@@ -11,8 +11,8 @@ jobs:
   linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/cache@v4
+      - uses: actions/checkout@v6
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/bin/
@@ -29,25 +29,25 @@ jobs:
   linux-flake:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: cachix/install-nix-action@v31
       - run: nix build -L --accept-flake-config .#ananke -o result-ananke
   linux-flake-static:
     needs: linux-flake
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: cachix/install-nix-action@v31
       - run: nix build -L --accept-flake-config .#ananke-static -o result-ananke-static
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: ananke-x86_64-unknown-linux-musl
           path: result-ananke-static/bin/ananke
   macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/cache@v4
+      - uses: actions/checkout@v6
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/bin/
@@ -64,8 +64,8 @@ jobs:
       VCPKG_ROOT: C:\vcpkg
       SQLITE3_STATIC: 1
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/cache@v4
+      - uses: actions/checkout@v6
+      - uses: actions/cache@v5
         with:
           path: |
             ~\.cargo\bin\

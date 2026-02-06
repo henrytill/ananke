@@ -13,7 +13,7 @@ directories = "6.0.0"
 rusqlite = "0.38.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
-time = { version = "0.3.30", features = ["macros", "formatting", "parsing", "serde"] }
+time = { version = "0.3.47", features = ["macros", "formatting", "parsing", "serde"] }
 uuid = { version = "1.8.0", features = ["v4", "serde"] }
 zeroize = { version = "1.7.0", features = ["derive"] }
 

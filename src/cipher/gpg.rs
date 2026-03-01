@@ -250,7 +250,7 @@ where
 mod tests {
     use std::{ffi::OsString, path::PathBuf};
 
-    use rand::Rng;
+    use rand::RngExt;
 
     use crate::{
         cipher::{

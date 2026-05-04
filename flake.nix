@@ -30,8 +30,14 @@
           cargoLock = {
             lockFile = ./Cargo.lock;
           };
+          buildFeatures = [
+            "gpgme"
+          ];
           nativeBuildInputs = with pkgs; [ pkg-config ];
-          buildInputs = with pkgs; [ sqlite ];
+          buildInputs = with pkgs; [
+            gpgme
+            sqlite
+          ];
           nativeCheckInputs = with pkgs; [ gnupg ];
           src = self;
           env = {

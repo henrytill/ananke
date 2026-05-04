@@ -13,10 +13,14 @@ use crate::{
     application::{
         base::Application, json::JsonApplication, sqlite::SqliteApplication, text::TextApplication,
     },
-    cipher::gpg,
     config::{Backend, Config, ConfigBuilder},
     data::{Description, Entry, Identity, KeyId, Metadata, Plaintext, SecureEntry},
 };
+
+#[cfg(not(feature = "gpgme"))]
+use crate::cipher::gpg::suggest_key;
+#[cfg(feature = "gpgme")]
+use crate::cipher::gpgme::suggest_key;
 
 const PROMPT_PLAINTEXT: &str = "Enter plaintext: ";
 
@@ -392,7 +396,7 @@ pub fn configure(list: bool) -> Result<ExitCode, Error> {
         // Prompt for key id
         let mut key_candidate = None;
         while key_candidate.is_none() {
-            key_candidate = gpg::suggest_key(std::env::vars)?;
+            key_candidate = suggest_key(std::env::vars)?;
             let key_candidate_str = if let Some(ref key_id) = key_candidate {
                 format!("[{key_id}] ")
             } else {
